@@ -17,7 +17,7 @@ export default async function CollectesPage() {
     .select("collecte_id, lot_id, lots (id, code_lot)")
 
   const collecteLotsMap = new Map(
-    lotCollectes?.map(lc => [lc.collecte_id, lc.lots]) || []
+    lotCollectes?.map(lc => [lc.collecte_id, lc.lots?.[0]]) || []
   )
 
   return (

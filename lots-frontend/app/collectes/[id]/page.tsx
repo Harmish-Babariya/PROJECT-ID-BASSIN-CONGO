@@ -29,7 +29,7 @@ export default async function CollecteDetail({ params }: { params: Promise<{ id:
     .single()
 
   const estAssignee = !!lotAssigne
-  const lot = lotAssigne?.lots
+  const lot = lotAssigne?.lots?.[0]
 
   return (
     <div className="min-h-screen p-8 bg-background">
