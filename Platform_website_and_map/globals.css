@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/* ID BASSIN DU CONGO - Charte graphique institutionnelle */
+:root {
+  /* Couleurs officielles ID BASSIN DU CONGO */
+  --congo-cyan: #2AC1A3;
+  --ochre-terre: #A67C52;
+  --ink-black: #1A1A1A;
+  --tech-gray: #2D3436;
+  --light-gray: #F5F7FA;
+  --off-white: #FEFCF7;
+
+  /* Nuances Cyan (obligatoires) */
+  --cyan-soft: rgba(42, 193, 163, 0.12);
+  --cyan-muted: rgba(42, 193, 163, 0.35);
+  --cyan-strong: #1FA58C;
+
+  /* Nuances Ochre (obligatoires) */
+  --ochre-soft: rgba(166, 124, 82, 0.15);
+  --ochre-dark: #8F673F;
+
+  /* Nuances Gray (obligatoires) */
+  --gray-soft: rgba(45, 52, 54, 0.06);
+  --gray-border: rgba(45, 52, 54, 0.12);
+
+  /* Alias fonctionnels */
+  --background: var(--off-white);
+  --foreground: var(--ink-black);
+  --primary: var(--congo-cyan);
+  --institutional: var(--ochre-terre);
+  --ui: var(--tech-gray);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-congo-cyan: var(--congo-cyan);
+  --color-ochre-terre: var(--ochre-terre);
+  --color-ink-black: var(--ink-black);
+  --color-tech-gray: var(--tech-gray);
+  --color-light-gray: var(--light-gray);
+  --color-off-white: var(--off-white);
+
+  /* Nuances */
+  --color-cyan-soft: var(--cyan-soft);
+  --color-cyan-muted: var(--cyan-muted);
+  --color-cyan-strong: var(--cyan-strong);
+  --color-ochre-soft: var(--ochre-soft);
+  --color-ochre-dark: var(--ochre-dark);
+  --color-gray-soft: var(--gray-soft);
+  --color-gray-border: var(--gray-border);
+
+  --font-sans: var(--font-archivo);
+  --font-mono: var(--font-courier);
+}
+
+/* Typographie hiérarchique stricte */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-archivo), sans-serif;
+  line-height: 1.6;
+}
+
+h1 {
+  font-family: var(--font-archivo), sans-serif;
+  font-weight: 700;
+  font-size: clamp(38px, 5vw, 48px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+  line-height: 1.2;
+}
+
+h2 {
+  font-family: var(--font-archivo), sans-serif;
+  font-weight: 700;
+  font-size: clamp(28px, 4vw, 32px);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
+  line-height: 1.3;
+}
+
+h3 {
+  font-family: var(--font-archivo), sans-serif;
+  font-weight: 600;
+  font-size: clamp(18px, 2.5vw, 22px);
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+p {
+  font-family: var(--font-archivo), sans-serif;
+  font-size: clamp(14px, 1.5vw, 16px);
+  line-height: 1.7;
+  max-width: 65ch;
+}
+
+.data-text,
+.mono-text {
+  font-family: var(--font-courier), monospace;
+  font-size: clamp(12px, 1.2vw, 14px);
+}
+
+.meta-text {
+  font-family: var(--font-courier), monospace;
+  font-size: clamp(11px, 1vw, 12px);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}

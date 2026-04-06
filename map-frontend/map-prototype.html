@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Bassin Congo - Carte des Parcelles</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.17.0/mapbox-gl.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #059669;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            background: var(--gray-50);
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        /* Header professionnel */
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--gray-800) 100%);
+            box-shadow: var(--shadow-lg);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo-text h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text p {
+            font-size: 11px;
+            color: var(--gray-300);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Sidebar gauche - Statistiques */
+        .sidebar-left {
+            position: absolute;
+            top: 90px;
+            left: 20px;
+            width: 320px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow-xl);
+            z-index: 5;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .sidebar-header p {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .stats-grid {
+            padding: 20px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: var(--gray-50);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .stat-unit {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            margin-left: 4px;
+        }
+
+        .stat-trend {
+            font-size: 12px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-trend.positive {
+            color: var(--secondary);
+        }
+
+        /* Barre de recherche */
+        .search-box {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            border: 1px solid var(--gray-300);
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="rgb(148,163,184)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>') no-repeat 12px center;
+            background-size: 20px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Liste des parcelles */
+        .parcelles-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .parcelle-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-200);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .parcelle-item:hover {
+            background: var(--gray-50);
+        }
+
+        .parcelle-item.active {
+            background: rgba(37, 99, 235, 0.05);
+            border-left: 3px solid var(--primary);
+        }
+
+        .parcelle-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 6px;
+        }
+
+        .parcelle-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--gray-600);
+        }
+
+        .parcelle-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Controls - Sidebar droite */
+        .controls {
+            position: absolute;
+            top: 90px;
+            right: 20px;
+            width: 280px;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .control-header {
+            padding: 14px 16px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-body {
+            padding: 12px;
+        }
+
+        .style-btn {
+            display: block;
+            width: 100%;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .style-btn:last-child {
+            margin-bottom: 0;
+        }
+
+        .style-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .style-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Légende moderne */
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            z-index: 5;
+        }
+
+        .legend-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-color {
+            width: 24px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .legend-fill {
+            width: 24px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        /* Popup moderne */
+        .mapboxgl-popup-content {
+            padding: 0;
+            border-radius: 12px;
+            box-shadow: var(--shadow-xl);
+            min-width: 280px;
+        }
+
+        .popup-header {
+            padding: 16px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .popup-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .popup-subtitle {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .popup-body {
+            padding: 16px 20px;
+        }
+
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 13px;
+        }
+
+        .popup-row:last-child {
+            border-bottom: none;
+        }
+
+        .popup-label {
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        .popup-value {
+            color: var(--gray-900);
+            font-weight: 600;
+        }
+
+        /* Scrollbar custom */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--gray-100);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--gray-300);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gray-400);
+        }
+
+        /* Loading state */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 16px;
+            font-size: 14px;
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        /* Map attribution custom */
+        .mapboxgl-ctrl-attrib {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div class="logo">
+        <div class="logo-icon">🌍</div>
+        <div class="logo-text">
+            <h1>ID Bassin Congo</h1>
+            <p>Gestion des Parcelles Cadastrales</p>
+        </div>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-secondary" onclick="exportData()">
+            📊 Exporter
+        </button>
+        <button class="btn btn-primary" onclick="toggleMeasure()">
+            📏 Mesurer
+        </button>
+    </div>
+</div>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- Loading -->
+<div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Chargement des parcelles...</div>
+</div>
+
+<!-- Sidebar gauche - Statistiques -->
+<div class="sidebar-left">
+    <div class="sidebar-header">
+        <h2>Tableau de bord</h2>
+        <p>Statistiques en temps réel</p>
+    </div>
+
+    <div class="search-box">
+        <input type="text" class="search-input" id="searchInput" placeholder="Rechercher une parcelle...">
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Parcelles</div>
+            <div class="stat-value" id="totalParcelles">-</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Surface Totale</div>
+            <div>
+                <span class="stat-value" id="totalSurface">-</span>
+                <span class="stat-unit">ha</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Surface Moyenne</div>
+            <div>
+                <span class="stat-value" id="avgSurface">-</span>
+                <span class="stat-unit">ha</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Plus Grande Parcelle</div>
+            <div>
+                <span class="stat-value" id="maxSurface">-</span>
+                <span class="stat-unit">ha</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="parcelles-list" id="parcellesList"></div>
+</div>
+
+<!-- Controls droite -->
+<div class="controls">
+    <div class="control-card">
+        <div class="control-header">Style de Carte</div>
+        <div class="control-body">
+            <button class="style-btn active" data-style="satellite" onclick="changeMapStyle('satellite', this)">
+                🛰️ Satellite
+            </button>
+            <button class="style-btn" data-style="streets" onclick="changeMapStyle('streets', this)">
+                🗺️ Plan
+            </button>
+            <button class="style-btn" data-style="terrain" onclick="changeMapStyle('terrain', this)">
+                ⛰️ Terrain
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Légende -->
+<div class="legend">
+    <div class="legend-title">Légende</div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #2563eb; width: 24px; height: 4px;"></div>
+        <span>Contour de parcelle (3px)</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-fill" style="background: rgba(37, 99, 235, 0.2);"></div>
+        <span>Surface cadastrale</span>
+    </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.17.0/mapbox-gl.js"></script>
+
+<script>
+// Configuration
+mapboxgl.accessToken = process.env.MAPBOX_TOKEN;
+
+const supabaseUrl = 'https://cbxziiphvnmfmawjpxwy.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNieHppaXBodm5tZm1hd2pweHd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjMzMTUsImV4cCI6MjA4MTg5OTMxNX0.eOi8OqhTwdEj7HD29tJXgo6-NTfIvkm2TWat7neQduw';
+
+const { createClient } = supabase;
+const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+// Initialisation de la carte
+const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/satellite-streets-v12',
+    center: [14.57, 1.66],
+    zoom: 12
+});
+
+// Contrôles de navigation
+map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }), 'bottom-right');
+map.addControl(new mapboxgl.FullscreenControl(), 'bottom-right');
+
+let allFeatures = [];
+let currentGeojson = null;
+
+// Fonction de calcul d'aire
+function calculateArea(coordinates) {
+    const R = 6371000;
+    let area = 0;
+    const coords = coordinates[0];
+
+    for (let i = 0; i < coords.length - 1; i++) {
+        const p1 = coords[i];
+        const p2 = coords[i + 1];
+
+        const lat1 = p1[1] * Math.PI / 180;
+        const lat2 = p2[1] * Math.PI / 180;
+        const dLon = (p2[0] - p1[0]) * Math.PI / 180;
+
+        area += (dLon * (2 + Math.sin(lat1) + Math.sin(lat2)));
+    }
+
+    area = Math.abs(area * R * R / 2);
+    return area;
+}
+
+// Parser géométrie
+function parseGeometry(geom) {
+    if (typeof geom === 'object' && geom !== null && geom.type && geom.coordinates) {
+        return geom;
+    }
+
+    if (typeof geom === 'string') {
+        try {
+            const parsed = JSON.parse(geom);
+            if (parsed.type && parsed.coordinates) return parsed;
+        } catch (e) {}
+    }
+
+    return null;
+}
+
+// Mettre à jour les statistiques
+function updateStats(features) {
+    const totalParcelles = features.length;
+    const surfaces = features.map(f => f.properties.area / 10000); // Convertir en hectares
+    const totalSurface = surfaces.reduce((a, b) => a + b, 0);
+    const avgSurface = totalSurface / totalParcelles;
+    const maxSurface = Math.max(...surfaces);
+
+    document.getElementById('totalParcelles').textContent = totalParcelles.toLocaleString('fr-FR');
+    document.getElementById('totalSurface').textContent = totalSurface.toFixed(2).toLocaleString('fr-FR');
+    document.getElementById('avgSurface').textContent = avgSurface.toFixed(2).toLocaleString('fr-FR');
+    document.getElementById('maxSurface').textContent = maxSurface.toFixed(2).toLocaleString('fr-FR');
+}
+
+// Créer la liste des parcelles
+function createParcellesList(features) {
+    const list = document.getElementById('parcellesList');
+    list.innerHTML = '';
+
+    features.forEach((feature, index) => {
+        const item = document.createElement('div');
+        item.className = 'parcelle-item';
+        item.innerHTML = `
+            <div class="parcelle-name">${feature.properties.filename}</div>
+            <div class="parcelle-meta">
+                <span>📍 ID: ${feature.properties.id}</span>
+                <span>📐 ${(feature.properties.area / 10000).toFixed(2)} ha</span>
+            </div>
+        `;
+
+        item.onclick = () => {
+            // Zoom sur la parcelle
+            const coords = feature.geometry.coordinates[0];
+            const bounds = new mapboxgl.LngLatBounds();
+            coords.forEach(coord => bounds.extend(coord));
+
+            map.fitBounds(bounds, {
+                padding: 100,
+                duration: 1000
+            });
+
+            // Highlight
+            document.querySelectorAll('.parcelle-item').forEach(el => el.classList.remove('active'));
+            item.classList.add('active');
+        };
+
+        list.appendChild(item);
+    });
+}
+
+// Recherche
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const filtered = allFeatures.filter(f =>
+        f.properties.filename.toLowerCase().includes(query) ||
+        String(f.properties.id).includes(query)
+    );
+    createParcellesList(filtered);
+});
+
+// Chargement de la carte
+map.on('load', async () => {
+    try {
+        // Récupérer les données
+        const { data, error } = await supabaseClient
+            .from('parcelles_geojson')
+            .select('*');
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            document.getElementById('loading').innerHTML = `
+                <div style="text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                    <div class="loading-text">Aucune parcelle trouvée</div>
+                </div>
+            `;
+            return;
+        }
+
+        // Parser les features
+        const features = data.map((row, index) => {
+            const geometry = parseGeometry(row.geometry);
+            if (!geometry) return null;
+
+            const area = calculateArea(geometry.coordinates);
+            const parcelName = row.filename || row.name || row.nom || `Parcelle ${row.id || index + 1}`;
+
+            return {
+                type: 'Feature',
+                geometry: geometry,
+                properties: {
+                    id: row.id || index + 1,
+                    filename: parcelName,
+                    area: area,
+                    ...row
+                }
+            };
+        }).filter(f => f !== null);
+
+        allFeatures = features;
+
+        const geojson = {
+            type: 'FeatureCollection',
+            features: features
+        };
+
+        currentGeojson = geojson;
+
+        // Masquer le loading
+        document.getElementById('loading').style.display = 'none';
+
+        // Mettre à jour les stats
+        updateStats(features);
+        createParcellesList(features);
+
+        // Ajouter à la carte
+        map.addSource('parcelles', {
+            type: 'geojson',
+            data: geojson
+        });
+
+        // Couche de remplissage
+        map.addLayer({
+            id: 'parcelles-fill',
+            type: 'fill',
+            source: 'parcelles',
+            paint: {
+                'fill-color': '#2563eb',
+                'fill-opacity': 0.2
+            }
+        });
+
+        // Couche de contour
+        map.addLayer({
+            id: 'parcelles-outline',
+            type: 'line',
+            source: 'parcelles',
+            paint: {
+                'line-color': '#2563eb',
+                'line-width': 3
+            }
+        });
+
+        // Couche de hover
+        map.addLayer({
+            id: 'parcelles-hover',
+            type: 'line',
+            source: 'parcelles',
+            paint: {
+                'line-color': '#1e40af',
+                'line-width': 5,
+                'line-opacity': 0
+            }
+        });
+
+        // Zoom sur toutes les parcelles
+        const bounds = new mapboxgl.LngLatBounds();
+        features.forEach(feature => {
+            feature.geometry.coordinates[0].forEach(coord => {
+                bounds.extend(coord);
+            });
+        });
+
+        map.fitBounds(bounds, {
+            padding: { top: 100, bottom: 60, left: 360, right: 320 },
+            duration: 2000
+        });
+
+        // Interactions
+        map.on('mouseenter', 'parcelles-fill', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'parcelles-fill', () => {
+            map.getCanvas().style.cursor = '';
+        });
+
+        map.on('click', 'parcelles-fill', (e) => {
+            const props = e.features[0].properties;
+
+            new mapboxgl.Popup({ offset: 15 })
+                .setLngLat(e.lngLat)
+                .setHTML(`
+                    <div class="popup-header">
+                        <div class="popup-title">Parcelle ${props.id}</div>
+                        <div class="popup-subtitle">${props.filename}</div>
+                    </div>
+                    <div class="popup-body">
+                        <div class="popup-row">
+                            <span class="popup-label">ID</span>
+                            <span class="popup-value">${props.id}</span>
+                        </div>
+                        <div class="popup-row">
+                            <span class="popup-label">Surface</span>
+                            <span class="popup-value">${(props.area / 10000).toFixed(4)} ha</span>
+                        </div>
+                        <div class="popup-row">
+                            <span class="popup-label">Surface</span>
+                            <span class="popup-value">${props.area.toFixed(2)} m²</span>
+                        </div>
+                    </div>
+                `)
+                .addTo(map);
+        });
+
+    } catch (err) {
+        console.error('Erreur:', err);
+        document.getElementById('loading').innerHTML = `
+            <div style="text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
+                <div class="loading-text">Erreur de chargement: ${err.message}</div>
+            </div>
+        `;
+    }
+});
+
+// Changer le style de carte
+const styles = {
+    satellite: 'mapbox://styles/mapbox/satellite-streets-v12',
+    streets: 'mapbox://styles/mapbox/streets-v12',
+    terrain: 'mapbox://styles/mapbox/outdoors-v12'
+};
+
+function changeMapStyle(styleKey, button) {
+    const currentSource = map.getSource('parcelles');
+    const sourceData = currentSource ? currentSource._data : null;
+
+    map.setStyle(styles[styleKey]);
+
+    map.once('style.load', () => {
+        if (sourceData) {
+            map.addSource('parcelles', {
+                type: 'geojson',
+                data: sourceData
+            });
+
+            map.addLayer({
+                id: 'parcelles-fill',
+                type: 'fill',
+                source: 'parcelles',
+                paint: {
+                    'fill-color': '#2563eb',
+                    'fill-opacity': 0.2
+                }
+            });
+
+            map.addLayer({
+                id: 'parcelles-outline',
+                type: 'line',
+                source: 'parcelles',
+                paint: {
+                    'line-color': '#2563eb',
+                    'line-width': 3
+                }
+            });
+
+            map.addLayer({
+                id: 'parcelles-hover',
+                type: 'line',
+                source: 'parcelles',
+                paint: {
+                    'line-color': '#1e40af',
+                    'line-width': 5,
+                    'line-opacity': 0
+                }
+            });
+        }
+    });
+
+    document.querySelectorAll('.style-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    button.classList.add('active');
+}
+
+// Export des données
+function exportData() {
+    if (!currentGeojson) return;
+
+    const dataStr = JSON.stringify(currentGeojson, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `parcelles_${new Date().toISOString().split('T')[0]}.geojson`;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+// Mesure (placeholder)
+function toggleMeasure() {
+    alert('Fonctionnalité de mesure en développement');
+}
+</script>
+
+</body>
+</html>
