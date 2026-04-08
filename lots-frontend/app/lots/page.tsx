@@ -25,7 +25,7 @@ export default async function LotsPage() {
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <h1 className="text-4xl font-bold text-text">🚢 Lots d'export</h1>
-          <Link href="/" className="text-primary hover:underline">← Retour</Link>
+          <Link href="/dashboard" className="text-primary hover:underline">← Retour</Link>
         </div>
         <Link 
           href="/lots/nouveau" 

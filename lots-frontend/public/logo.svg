@@ -1,0 +1,14 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Concentric circles - evenly spaced, uniform style -->
+  <circle cx="60" cy="60" r="55" stroke="#2ac1a3" stroke-width="1.5" fill="none"/>
+  <circle cx="60" cy="60" r="47" stroke="#2ac1a3" stroke-width="1.5" fill="none"/>
+  <circle cx="60" cy="60" r="39" stroke="#2ac1a3" stroke-width="1.5" fill="none"/>
+  <circle cx="60" cy="60" r="31" stroke="#2ac1a3" stroke-width="1.5" fill="none"/>
+  <circle cx="60" cy="60" r="23" stroke="#2ac1a3" stroke-width="1.5" fill="none"/>
+  <circle cx="60" cy="60" r="15" stroke="#2ac1a3" stroke-width="1.5" fill="none"/>
+  <circle cx="60" cy="60" r="7" stroke="#2ac1a3" stroke-width="1.5" fill="none"/>
+  <!-- Leaf sprout at top-right of outer circle -->
+  <path d="M95 18 C98 10 108 6 112 10 C116 14 112 24 104 27 C100 28.5 96 26 95 22Z" fill="#2ac1a3"/>
+  <path d="M96 22 C100 16 106 12 110 12" stroke="#f0f4f5" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+  <path d="M99 24 C102 19 105 16 108 15" stroke="#f0f4f5" stroke-width="0.6" fill="none" stroke-linecap="round"/>
+</svg>

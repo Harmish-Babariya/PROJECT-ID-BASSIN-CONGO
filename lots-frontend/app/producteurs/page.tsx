@@ -61,7 +61,7 @@ export default async function ProducteursPage({
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <h1 className="text-4xl font-bold text-text">Producteurs</h1>
-          <Link href="/" className="text-primary hover:underline">← Retour</Link>
+          <Link href="/dashboard" className="text-primary hover:underline">← Retour</Link>
         </div>
         
         <div className="mt-4 flex gap-3">
