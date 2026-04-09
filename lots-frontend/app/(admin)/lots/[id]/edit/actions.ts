@@ -1,57 +1,40 @@
 "use server"
-import { supabaseAdmin } from "@/lib/supabase-server"
+import { updateLotById, deleteLotCollectes, insertLotCollectes } from "@/lib/services/lots"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 export async function updateLot(
-  lotId: number, 
-  formData: any, 
+  lotId: number,
+  formData: any,
   collectesSelectionnees: number[],
   poidsTotal: number
 ) {
   try {
-    // 1. Mettre à jour les infos du lot
-    const { error: lotError } = await supabaseAdmin
-      .from("lots")
-      .update({
-        produit: formData.produit,
-        poids_total_kg: poidsTotal,
-        destination_pays: formData.destination_pays || null,
-        acheteur: formData.acheteur || null,
-        date_expedition: formData.date_expedition || null,
-        statut: formData.statut
-      })
-      .eq("id", lotId)
+    const { error: lotError } = await updateLotById(lotId, {
+      produit: formData.produit,
+      poids_total_kg: poidsTotal,
+      destination_pays: formData.destination_pays || null,
+      acheteur: formData.acheteur || null,
+      date_expedition: formData.date_expedition || null,
+      statut: formData.statut
+    })
 
     if (lotError) {
-      console.error("Erreur update lot:", lotError)
       return { error: lotError.message }
     }
 
-    // 2. Supprimer TOUTES les anciennes associations
-    const { error: deleteError } = await supabaseAdmin
-      .from("lot_collectes")
-      .delete()
-      .eq("lot_id", lotId)
-
+    const { error: deleteError } = await deleteLotCollectes(lotId)
     if (deleteError) {
-      console.error("Erreur suppression associations:", deleteError)
       return { error: deleteError.message }
     }
 
-    // 3. Créer les NOUVELLES associations
     if (collectesSelectionnees.length > 0) {
       const associations = collectesSelectionnees.map(collecteId => ({
         lot_id: lotId,
         collecte_id: collecteId
       }))
-
-      const { error: insertError } = await supabaseAdmin
-        .from("lot_collectes")
-        .insert(associations)
-
+      const { error: insertError } = await insertLotCollectes(associations)
       if (insertError) {
-        console.error("Erreur insertion associations:", insertError)
         return { error: insertError.message }
       }
     }
@@ -61,7 +44,6 @@ export async function updateLot(
     revalidatePath('/collectes')
     redirect(`/lots/${lotId}`)
   } catch (error: any) {
-    console.error("Erreur:", error)
-    return { error: error.message || "Erreur lors de la mise à jour" }
+    return { error: error.message || "Erreur lors de la mise a jour" }
   }
 }

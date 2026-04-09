@@ -11,6 +11,7 @@ import {
   FileBarChart,
   UserCog,
   LogOut,
+  User,
 } from "lucide-react"
 
 const dataLinks = [
@@ -25,8 +26,8 @@ const donneesLinks = [
 ]
 
 const gestionLinks = [
-  { href: "/lots", label: "DDS / Export", icon: FileBarChart },
-  { href: "#", label: "Utilisateurs", icon: UserCog },
+  { href: "/export", label: "DDS / Export", icon: FileBarChart },
+  { href: "/utilisateurs", label: "Utilisateurs", icon: UserCog },
 ]
 
 export default function Sidebar() {
@@ -71,12 +72,23 @@ export default function Sidebar() {
             Gestion
           </p>
           {gestionLinks.map((link) => (
-            <NavItem key={link.href + link.label} {...link} active={false} />
+            <NavItem key={link.href + link.label} {...link} active={isActive(link.href)} />
           ))}
         </div>
       </nav>
 
-      <div className="px-3 pb-4">
+      <div className="px-3 pb-4 space-y-1">
+        <Link
+          href="/profil"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${
+            pathname === "/profil"
+              ? "bg-[#2ac1a3]/10 text-[#2ac1a3] font-medium"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <User className="w-4 h-4" />
+          Mon profil
+        </Link>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-red-400 hover:bg-white/5 transition"

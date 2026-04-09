@@ -1,50 +1,47 @@
-import { supabaseAdmin } from "@/lib/supabase-server"
 import Link from "next/link"
 import CarteMapbox from "./CarteMapbox"
+import { getProducteursStats } from "@/lib/services/producteurs"
+import { getParcellesStats, getParcellesWithProducteurs } from "@/lib/services/parcelles"
+import { getLotsStats } from "@/lib/services/lots"
+import { getCollectesStats } from "@/lib/services/collectes"
 
 async function getStats() {
-  const [
-    { data: producteurs },
-    { data: parcelles },
-    { data: lots },
-    { data: collectes },
-  ] = await Promise.all([
-    supabaseAdmin.from("producteurs").select("id, sexe, annee_naissance"),
-    supabaseAdmin.from("parcelles").select("id, producteur_id, status_eudr, surface_ha"),
-    supabaseAdmin.from("lots").select("id, statut, poids_total_kg"),
-    supabaseAdmin.from("collectes").select("id, poids_net_kg"),
+  const [producteurs, parcelles, lots, collectes] = await Promise.all([
+    getProducteursStats(),
+    getParcellesStats(),
+    getLotsStats(),
+    getCollectesStats(),
   ])
 
-  const totalProducteurs = producteurs?.length || 0
-  const femmes = producteurs?.filter(p => p.sexe === "Femme").length || 0
+  const totalProducteurs = producteurs.length
+  const femmes = producteurs.filter(p => p.sexe === "Femme").length
   const pourcentageFemmes =
     totalProducteurs > 0 ? ((femmes / totalProducteurs) * 100).toFixed(1) : 0
 
   const anneeActuelle = new Date().getFullYear()
-  const ages =
-    producteurs
-      ?.filter(p => p.annee_naissance)
-      .map(p => anneeActuelle - Number(p.annee_naissance)) || []
+  const ages = producteurs
+    .filter(p => p.annee_naissance)
+    .map(p => anneeActuelle - Number(p.annee_naissance))
   const ageMoyen =
     ages.length > 0
       ? (ages.reduce((s, a) => s + a, 0) / ages.length).toFixed(0)
       : 0
 
-  const totalParcelles = parcelles?.length || 0
-  const conformes = parcelles?.filter(p => p.status_eudr === "CONFORME").length || 0
+  const totalParcelles = parcelles.length
+  const conformes = parcelles.filter(p => p.status_eudr === "CONFORME").length
   const pourcentageConformite =
     totalParcelles > 0 ? ((conformes / totalParcelles) * 100).toFixed(0) : 0
   const superficieTotale =
-    parcelles?.reduce((s, p) => s + (Number(p.surface_ha) || 0), 0).toFixed(2) || 0
+    parcelles.reduce((s, p) => s + (Number(p.surface_ha) || 0), 0).toFixed(2)
 
-  const totalLots = lots?.length || 0
-  const lotsExportes = lots?.filter(l => l.statut === "Exporté").length || 0
+  const totalLots = lots.length
+  const lotsExportes = lots.filter(l => l.statut === "Exporte").length
   const poidsTotalLots =
-    lots?.reduce((s, l) => s + (Number(l.poids_total_kg) || 0), 0) || 0
+    lots.reduce((s, l) => s + (Number(l.poids_total_kg) || 0), 0)
 
-  const totalCollectes = collectes?.length || 0
+  const totalCollectes = collectes.length
   const poidsCollectes =
-    collectes?.reduce((s, c) => s + (Number(c.poids_net_kg) || 0), 0) || 0
+    collectes.reduce((s, c) => s + (Number(c.poids_net_kg) || 0), 0)
 
   return {
     producteurs: { total: totalProducteurs, pourcentageFemmes, ageMoyen, parcellesTotal: totalParcelles, superficieTotale, pourcentageConformite, conformes },
@@ -55,13 +52,8 @@ async function getStats() {
 
 export default async function Dashboard() {
   const stats = await getStats()
-
-  const { data: parcelles } = await supabaseAdmin
-    .from("parcelles")
-    .select("*, producteurs(code_producteur, nom)")
-    .order("code_parcelle")
-
-  const parcellesAvecCoords = parcelles?.filter(p => p.latitude && p.longitude) || []
+  const parcelles = await getParcellesWithProducteurs()
+  const parcellesAvecCoords = parcelles.filter(p => p.latitude && p.longitude)
 
   const statCards = [
     { label: "PRODUCTEURS", value: stats.producteurs.total, href: "/producteurs" },

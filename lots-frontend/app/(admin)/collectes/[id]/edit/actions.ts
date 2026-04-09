@@ -1,5 +1,5 @@
 "use server"
-import { supabaseAdmin } from "@/lib/supabase-server"
+import { updateCollecteById } from "@/lib/services/collectes"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
@@ -17,13 +17,9 @@ export async function updateCollecte(id: number, formData: any) {
       qualite: formData.qualite || null
     }
 
-    const { error } = await supabaseAdmin
-      .from("collectes")
-      .update(dataToUpdate)
-      .eq("id", id)
+    const { error } = await updateCollecteById(id, dataToUpdate)
 
     if (error) {
-      console.error("Erreur update collecte:", error)
       return { error: error.message }
     }
 
@@ -31,7 +27,6 @@ export async function updateCollecte(id: number, formData: any) {
     revalidatePath(`/collectes/${id}`)
     redirect(`/collectes/${id}`)
   } catch (error: any) {
-    console.error("Erreur:", error)
-    return { error: error.message || "Erreur lors de la mise à jour" }
+    return { error: error.message || "Erreur lors de la mise a jour" }
   }
 }

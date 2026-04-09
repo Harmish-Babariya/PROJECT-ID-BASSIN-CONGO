@@ -1,25 +1,24 @@
-import { supabaseAdmin } from "@/lib/supabase"
 import { notFound } from "next/navigation"
 import ParcelleForm from "./ParcelleForm"
+import { getParcelleById } from "@/lib/services/parcelles"
+import { getProducteursAll } from "@/lib/services/producteurs"
+import { getZones } from "@/lib/services/common"
 
 export default async function EditParcelle({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  
-  const { data: parcelle } = await supabaseAdmin
-    .from("parcelles")
-    .select("*")
-    .eq("id", id)
-    .single()
+
+  const [parcelle, producteurs, zones] = await Promise.all([
+    getParcelleById(id),
+    getProducteursAll(),
+    getZones(),
+  ])
 
   if (!parcelle) notFound()
 
-  const { data: producteurs } = await supabaseAdmin.from("producteurs").select("*").order("code_producteur")
-  const { data: zones } = await supabaseAdmin.from("zones").select("*").order("nom")
-
   return (
-    <div className="min-h-screen p-8 bg-background">
-      <h1 className="text-3xl font-bold text-text mb-8">Modifier la parcelle</h1>
-      <ParcelleForm parcelle={parcelle} producteurs={producteurs || []} zones={zones || []} />
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Modifier la parcelle</h1>
+      <ParcelleForm parcelle={parcelle} producteurs={producteurs} zones={zones} />
     </div>
   )
 }

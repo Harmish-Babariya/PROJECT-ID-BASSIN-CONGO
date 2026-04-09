@@ -5,16 +5,18 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes that don't require authentication
-  const publicPaths = ["/", "/login", "/register", "/api/auth/login", "/api/auth/register"]
-  const isPublicPath = publicPaths.includes(pathname) || pathname.startsWith("/api/auth/")
+  const publicPaths = ["/", "/login"]
+  const isPublicPath = publicPaths.includes(pathname) || pathname.startsWith("/api/auth/") || pathname.startsWith("/api/seed")
 
-  // If no token and trying to access protected route, redirect to /
+  // Unauthenticated user trying to access protected route -> redirect to login
   if (!token && !isPublicPath) {
-    return NextResponse.redirect(new URL("/", request.url))
+    const loginUrl = new URL("/login", request.url)
+    loginUrl.searchParams.set("redirect", pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
-  // If has token and trying to access auth pages, redirect to dashboard
-  if (token && (pathname === "/" || pathname === "/login" || pathname === "/register")) {
+  // Authenticated user trying to access auth pages -> redirect to dashboard
+  if (token && (pathname === "/" || pathname === "/login")) {
     return NextResponse.redirect(new URL("/dashboard", request.url))
   }
 

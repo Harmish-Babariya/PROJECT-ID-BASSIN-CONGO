@@ -33,14 +33,14 @@ export default function ParcelleForm({ parcelle, producteurs, zones }: ParcelleF
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#1e272e] rounded-lg shadow p-8 max-w-2xl">
+    <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-lg shadow p-8 max-w-2xl">
       <div className="grid grid-cols-2 gap-6">
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Producteur *</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Producteur *</label>
           <select
             value={formData.producteur_id}
             onChange={(e) => setFormData({...formData, producteur_id: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             required
           >
             <option value="">Sélectionner un producteur</option>
@@ -53,11 +53,11 @@ export default function ParcelleForm({ parcelle, producteurs, zones }: ParcelleF
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Zone *</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Zone *</label>
           <select
             value={formData.zone_id}
             onChange={(e) => setFormData({...formData, zone_id: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             required
           >
             <option value="">Sélectionner une zone</option>
@@ -66,23 +66,23 @@ export default function ParcelleForm({ parcelle, producteurs, zones }: ParcelleF
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Surface (ha) *</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Surface (ha) *</label>
           <input
             type="number"
             step="0.01"
             value={formData.surface_ha}
             onChange={(e) => setFormData({...formData, surface_ha: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             required
           />
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Culture *</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Culture *</label>
           <select
             value={formData.culture}
             onChange={(e) => setFormData({...formData, culture: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             required
           >
             <option value="Cacao">Cacao</option>
@@ -92,22 +92,22 @@ export default function ParcelleForm({ parcelle, producteurs, zones }: ParcelleF
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Année plantation</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Année plantation</label>
           <input
             type="number"
             value={formData.annee_plantation}
             onChange={(e) => setFormData({...formData, annee_plantation: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
           />
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Date de création</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Date de création</label>
           <input
             type="date"
             value={formData.date_creation}
             onChange={(e) => setFormData({...formData, date_creation: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
           />
         </div>
       </div>
@@ -116,11 +116,11 @@ export default function ParcelleForm({ parcelle, producteurs, zones }: ParcelleF
         <button
           type="submit"
           disabled={loading}
-          className="bg-primary text-[#2d3436] px-6 py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
+          className="bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
         >
           {loading ? "Enregistrement..." : "Enregistrer"}
         </button>
-        <Link href={`/parcelles/${parcelle.id}`} className="bg-gray-500 text-text px-6 py-3 rounded-lg font-semibold hover:bg-gray-600">
+        <Link href={`/parcelles/${parcelle.id}`} className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300">
           Annuler
         </Link>
       </div>

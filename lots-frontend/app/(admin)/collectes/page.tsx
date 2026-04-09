@@ -1,23 +1,14 @@
-import { supabaseAdmin } from "@/lib/supabase-server"
 import Link from "next/link"
+import { getCollectes, getCollecteLotMap } from "@/lib/services/collectes"
 
 export default async function CollectesPage() {
-  const { data: collectes } = await supabaseAdmin
-    .from("collectes")
-    .select(`
-      *,
-      producteurs (id, code_producteur, nom, prenom),
-      parcelles (id, code_parcelle),
-      zones (nom)
-    `)
-    .order("date_collecte", { ascending: false })
-
-  const { data: lotCollectes } = await supabaseAdmin
-    .from("lot_collectes")
-    .select("collecte_id, lot_id, lots (id, code_lot)")
+  const [collectes, lotCollectes] = await Promise.all([
+    getCollectes(),
+    getCollecteLotMap(),
+  ])
 
   const collecteLotsMap = new Map(
-    lotCollectes?.map(lc => [lc.collecte_id, lc.lots?.[0]]) || []
+    lotCollectes.map(lc => [lc.collecte_id, lc.lots?.[0]])
   )
 
   return (
@@ -51,7 +42,7 @@ export default async function CollectesPage() {
             </tr>
           </thead>
           <tbody>
-            {collectes?.map((c) => {
+            {collectes.map((c) => {
               const dateCollecte = new Date(c.date_collecte)
               if (isNaN(dateCollecte.getTime())) return null
               const lotAssigne = collecteLotsMap.get(c.id)

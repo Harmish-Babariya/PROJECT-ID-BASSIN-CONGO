@@ -2,6 +2,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { updateProducteur } from "./actions"
+import { Toast, useToast } from "@/components/Toast"
 
 interface ProducteurFormProps {
   producteur?: any
@@ -11,6 +12,7 @@ interface ProducteurFormProps {
 
 export default function ProducteurForm({ producteur, zones, pays }: ProducteurFormProps) {
   const [loading, setLoading] = useState(false)
+  const { toast, showError, hideToast } = useToast()
   const [formData, setFormData] = useState({
     nom: producteur?.nom || "",
     prenom: producteur?.prenom || "",
@@ -25,46 +27,49 @@ export default function ProducteurForm({ producteur, zones, pays }: ProducteurFo
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (loading) return
     setLoading(true)
 
     const result = await updateProducteur(producteur.id, formData)
-    
+
     if (result?.error) {
-      alert("Erreur: " + result.error)
+      showError("Erreur: " + result.error)
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#1e272e] rounded-lg shadow p-8 max-w-2xl">
+    <>
+    {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
+    <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-lg shadow p-8 max-w-2xl">
       <div className="grid grid-cols-2 gap-6">
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Nom *</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Nom *</label>
           <input
             type="text"
             value={formData.nom}
             onChange={(e) => setFormData({...formData, nom: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             required
           />
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Prénom</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Prénom</label>
           <input
             type="text"
             value={formData.prenom}
             onChange={(e) => setFormData({...formData, prenom: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
           />
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Sexe *</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Sexe *</label>
           <select
             value={formData.sexe}
             onChange={(e) => setFormData({...formData, sexe: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             required
           >
             <option value="Homme">Homme</option>
@@ -73,32 +78,32 @@ export default function ProducteurForm({ producteur, zones, pays }: ProducteurFo
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Année de naissance</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Année de naissance</label>
           <input
             type="number"
             value={formData.annee_naissance}
             onChange={(e) => setFormData({...formData, annee_naissance: parseInt(e.target.value)})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
           />
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Village *</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Village *</label>
           <input
             type="text"
             value={formData.village}
             onChange={(e) => setFormData({...formData, village: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             required
           />
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Zone *</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Zone *</label>
           <select
             value={formData.zone_id}
             onChange={(e) => setFormData({...formData, zone_id: parseInt(e.target.value)})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             required
           >
             <option value="">Sélectionner une zone</option>
@@ -107,11 +112,11 @@ export default function ProducteurForm({ producteur, zones, pays }: ProducteurFo
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Pays *</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Pays *</label>
           <select
             value={formData.pays_id}
             onChange={(e) => setFormData({...formData, pays_id: parseInt(e.target.value)})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             required
           >
             <option value="">Sélectionner un pays</option>
@@ -120,21 +125,21 @@ export default function ProducteurForm({ producteur, zones, pays }: ProducteurFo
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Téléphone</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Téléphone</label>
           <input
             type="tel"
             value={formData.telephone}
             onChange={(e) => setFormData({...formData, telephone: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
           />
         </div>
 
         <div>
-          <label className="block text-text text-sm font-medium mb-2">Statut</label>
+          <label className="block text-gray-900 text-sm font-medium mb-2">Statut</label>
           <select
             value={formData.statut}
             onChange={(e) => setFormData({...formData, statut: e.target.value})}
-            className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
           >
             <option value="Actif">Actif</option>
             <option value="Inactif">Inactif</option>
@@ -150,10 +155,11 @@ export default function ProducteurForm({ producteur, zones, pays }: ProducteurFo
         >
           {loading ? "Enregistrement..." : "Enregistrer"}
         </button>
-        <Link href={`/producteurs/${producteur.id}`} className="bg-gray-500 text-text px-6 py-3 rounded-lg font-semibold hover:bg-gray-600">
+        <Link href={`/producteurs/${producteur.id}`} className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300">
           Annuler
         </Link>
       </div>
     </form>
+    </>
   )
 }

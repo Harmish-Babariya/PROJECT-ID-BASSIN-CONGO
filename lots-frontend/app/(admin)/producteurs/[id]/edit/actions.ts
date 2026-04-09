@@ -1,13 +1,10 @@
 "use server"
-import { supabaseAdmin } from "@/lib/supabase"
+import { updateProducteurById } from "@/lib/services/producteurs"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 export async function updateProducteur(id: number, formData: any) {
-  const { error } = await supabaseAdmin
-    .from("producteurs")
-    .update(formData)
-    .eq("id", id)
+  const { error } = await updateProducteurById(id, formData)
 
   if (error) {
     return { error: error.message }

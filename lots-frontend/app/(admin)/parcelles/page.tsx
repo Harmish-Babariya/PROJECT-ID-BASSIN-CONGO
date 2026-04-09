@@ -1,7 +1,9 @@
-import { supabaseAdmin } from "@/lib/supabase-server"
 import Link from "next/link"
 import FiltresBar from "./FiltresBar"
 import ExportButton from "./ExportButton"
+import { getParcelles } from "@/lib/services/parcelles"
+import { getProducteursForSelect } from "@/lib/services/producteurs"
+import { getZones } from "@/lib/services/common"
 
 export default async function ParcellesPage({
   searchParams
@@ -15,36 +17,13 @@ export default async function ParcellesPage({
   }>
 }) {
   const params = await searchParams
+  const [parcelles, zones, producteurs] = await Promise.all([
+    getParcelles(params),
+    getZones(),
+    getProducteursForSelect(),
+  ])
 
-  let query = supabaseAdmin
-    .from("parcelles")
-    .select("*")
-
-  if (params.recherche) {
-    query = query.ilike('code_parcelle', `%${params.recherche}%`)
-  }
-  if (params.zone_id) {
-    query = query.eq('zone_id', parseInt(params.zone_id))
-  }
-  if (params.culture) {
-    query = query.eq('culture', params.culture)
-  }
-  if (params.status_eudr) {
-    query = query.eq('status_eudr', params.status_eudr)
-  }
-  if (params.producteur_id) {
-    query = query.eq('producteur_id', parseInt(params.producteur_id))
-  }
-
-  const { data: parcelles } = await query.order("code_parcelle")
-
-  const { data: zones } = await supabaseAdmin.from("zones").select("*").order("nom")
-  const { data: producteurs } = await supabaseAdmin
-    .from("producteurs")
-    .select("id, code_producteur, nom")
-    .order("code_producteur")
-
-  const producteursMap = new Map(producteurs?.map(p => [p.id, p]))
+  const producteursMap = new Map(producteurs.map(p => [p.id, p]))
 
   return (
     <div className="space-y-6">
@@ -55,7 +34,7 @@ export default async function ParcellesPage({
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Parcelles</h1>
           <div className="flex gap-3">
-            <ExportButton data={parcelles || []} />
+            <ExportButton data={parcelles} />
             <Link
               href="/parcelles/nouveau"
               className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#24a88e] transition"
@@ -80,7 +59,7 @@ export default async function ParcellesPage({
             </tr>
           </thead>
           <tbody>
-            {parcelles?.map((p) => {
+            {parcelles.map((p) => {
               const producteur = producteursMap.get(p.producteur_id)
               return (
                 <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
@@ -99,7 +78,7 @@ export default async function ParcellesPage({
                   <td className="px-6 py-4">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                       p.status_eudr === 'CONFORME' ? 'bg-[#2ac1a3]/10 text-[#2ac1a3]' :
-                      p.status_eudr === 'RISQUE NON NÉGLIGEABLE' ? 'bg-yellow-100 text-yellow-700' :
+                      p.status_eudr === 'RISQUE NON NEGLIGEABLE' ? 'bg-yellow-100 text-yellow-700' :
                       p.status_eudr === 'NON CONFORME' ? 'bg-red-100 text-red-600' :
                       'bg-gray-100 text-gray-400'
                     }`}>
@@ -114,7 +93,7 @@ export default async function ParcellesPage({
       </div>
 
       <p className="text-gray-400 text-sm">
-        {parcelles?.length || 0} parcelle(s)
+        {parcelles.length} parcelle(s)
       </p>
     </div>
   )

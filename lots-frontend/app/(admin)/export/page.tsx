@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { getLots, getAllLotCollectes } from "@/lib/services/lots"
 
-export default async function LotsPage() {
+export default async function ExportDDSPage() {
   const [lots, lotCollectes] = await Promise.all([
     getLots(),
     getAllLotCollectes(),
@@ -16,17 +16,14 @@ export default async function LotsPage() {
     <div className="space-y-6">
       <div>
         <p className="text-xs text-gray-400 tracking-widest uppercase mb-1">
-          ID BASSIN CONGO / LOTS
+          ID BASSIN CONGO / DDS EXPORT
         </p>
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Lots d&apos;export</h1>
-          <Link
-            href="/lots/nouveau"
-            className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#24a88e] transition"
-          >
-            + Nouveau lot
-          </Link>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Declaration de Diligence Raisonnee (DDS)
+        </h1>
+        <p className="text-gray-500 text-sm mt-1">
+          Generez et telechargez les DDS pour chaque lot conformement au reglement EUDR.
+        </p>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -70,9 +67,20 @@ export default async function LotsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex gap-3 text-sm">
-                      <Link href={`/lots/${lot.id}`} className="text-[#2ac1a3] hover:underline">Voir</Link>
-                      <Link href={`/lots/${lot.id}/edit`} className="text-gray-500 hover:underline">Modifier</Link>
+                    <div className="flex gap-3 items-center">
+                      <a
+                        href={`/api/generate-dss/${lot.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition"
+                        download
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        PDF
+                      </a>
+                      <Link href={`/lots/${lot.id}`} className="text-[#2ac1a3] hover:underline text-sm">
+                        Voir
+                      </Link>
                     </div>
                   </td>
                 </tr>
@@ -81,6 +89,15 @@ export default async function LotsPage() {
           </tbody>
         </table>
       </div>
+
+      {lots.length === 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <p className="text-gray-500 mb-4">Aucun lot disponible</p>
+          <Link href="/lots/nouveau" className="text-[#2ac1a3] hover:underline text-sm font-semibold">
+            Creer un lot
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

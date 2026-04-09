@@ -1,16 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient as createSSRClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+import { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY } from '@/lib/env'
 
 // Client avec session utilisateur (Server Components)
 export async function createServerClient() {
   const cookieStore = await cookies()
-  
-  return createSSRClient(supabaseUrl, supabaseAnonKey, {
+
+  return createSSRClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
       getAll() {
         return cookieStore.getAll()
@@ -26,8 +23,8 @@ export async function createServerClient() {
   })
 }
 
-// Admin client (scripts/migrations uniquement)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+// Admin client (server-side only, bypasses RLS)
+export const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: {
     autoRefreshToken: false,
     persistSession: false

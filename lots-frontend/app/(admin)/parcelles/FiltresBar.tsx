@@ -27,20 +27,20 @@ export default function FiltresBar({ zones, producteurs }: any) {
   }
 
   return (
-    <div className="bg-[#1e272e] rounded-lg p-4 mb-6">
+    <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
       <div className="grid grid-cols-5 gap-4">
         <input
           type="text"
           placeholder="🔍 Code parcelle..."
           value={filtres.recherche}
           onChange={(e) => setFiltres({...filtres, recherche: e.target.value})}
-          className="px-4 py-2 bg-background text-text border border-gray-600 rounded-lg"
+          className="px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
         />
         
         <select
           value={filtres.zone_id}
           onChange={(e) => setFiltres({...filtres, zone_id: e.target.value})}
-          className="px-4 py-2 bg-background text-text border border-gray-600 rounded-lg"
+          className="px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
         >
           <option value="">Toutes les zones</option>
           {zones?.map((z: any) => <option key={z.id} value={z.id}>{z.nom}</option>)}
@@ -49,7 +49,7 @@ export default function FiltresBar({ zones, producteurs }: any) {
         <select
           value={filtres.culture}
           onChange={(e) => setFiltres({...filtres, culture: e.target.value})}
-          className="px-4 py-2 bg-background text-text border border-gray-600 rounded-lg"
+          className="px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
         >
           <option value="">Toutes cultures</option>
           <option value="Cacao">Cacao</option>
@@ -60,7 +60,7 @@ export default function FiltresBar({ zones, producteurs }: any) {
         <select
           value={filtres.status_eudr}
           onChange={(e) => setFiltres({...filtres, status_eudr: e.target.value})}
-          className="px-4 py-2 bg-background text-text border border-gray-600 rounded-lg"
+          className="px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
         >
           <option value="">Tous statuts EUDR</option>
           <option value="CONFORME">Conforme</option>
@@ -71,7 +71,7 @@ export default function FiltresBar({ zones, producteurs }: any) {
         <select
           value={filtres.producteur_id}
           onChange={(e) => setFiltres({...filtres, producteur_id: e.target.value})}
-          className="px-4 py-2 bg-background text-text border border-gray-600 rounded-lg"
+          className="px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
         >
           <option value="">Tous producteurs</option>
           {producteurs?.map((p: any) => (

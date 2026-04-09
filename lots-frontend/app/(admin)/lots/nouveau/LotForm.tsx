@@ -2,6 +2,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { createLot } from "./actions"
+import { Toast, useToast } from "@/components/Toast"
 
 interface LotFormProps {
   collectesDisponibles: any[]
@@ -9,6 +10,7 @@ interface LotFormProps {
 
 export default function LotForm({ collectesDisponibles }: LotFormProps) {
   const [loading, setLoading] = useState(false)
+  const { toast, showError, hideToast } = useToast()
   const [collectesSelectionnees, setCollectes] = useState<number[]>([])
   
   const [formData, setFormData] = useState({
@@ -31,31 +33,34 @@ export default function LotForm({ collectesDisponibles }: LotFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    
+    if (loading) return
+
     if (collectesSelectionnees.length === 0) {
-      alert("Vous devez sélectionner au moins une collecte")
+      showError("Vous devez sélectionner au moins une collecte")
       return
     }
 
     setLoading(true)
     const result = await createLot(formData, collectesSelectionnees, poidsTotal)
     if (result?.error) {
-      alert("Erreur: " + result.error)
+      showError(result.error)
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#1e272e] rounded-lg shadow p-8 max-w-4xl">
+    <>
+    {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
+    <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-lg shadow p-8 max-w-4xl">
       <div className="mb-8">
         <h2 className="text-xl font-bold text-primary mb-4">Informations du lot</h2>
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Produit *</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Produit *</label>
             <select
               value={formData.produit}
               onChange={(e) => setFormData({...formData, produit: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
               required
             >
               <option value="Cacao">Cacao</option>
@@ -65,42 +70,42 @@ export default function LotForm({ collectesDisponibles }: LotFormProps) {
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Destination</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Destination</label>
             <input
               type="text"
               value={formData.destination_pays}
               onChange={(e) => setFormData({...formData, destination_pays: e.target.value})}
               placeholder="Ex: Belgique, France..."
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
             />
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Acheteur</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Acheteur</label>
             <input
               type="text"
               value={formData.acheteur}
               onChange={(e) => setFormData({...formData, acheteur: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
             />
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Date d'expédition</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Date d'expédition</label>
             <input
               type="date"
               value={formData.date_expedition}
               onChange={(e) => setFormData({...formData, date_expedition: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
             />
           </div>
 
           <div className="col-span-2">
-            <label className="block text-text text-sm font-medium mb-2">Statut *</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Statut *</label>
             <select
               value={formData.statut}
               onChange={(e) => setFormData({...formData, statut: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
               required
             >
               <option value="En préparation">En préparation</option>
@@ -111,11 +116,11 @@ export default function LotForm({ collectesDisponibles }: LotFormProps) {
         </div>
       </div>
 
-      <div className="mb-8 p-4 bg-primary/10 rounded-lg border border-primary/30">
-        <p className="text-text font-semibold">
+      <div className="mb-8 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+        <p className="text-gray-900 font-semibold">
           Poids total : <span className="text-primary text-2xl">{poidsTotal.toFixed(2)} kg</span>
         </p>
-        <p className="text-text/70 text-sm mt-1">
+        <p className="text-gray-500 text-sm mt-1">
           {collectesSelectionnees.length} collecte(s) sélectionnée(s)
         </p>
       </div>
@@ -134,22 +139,22 @@ export default function LotForm({ collectesDisponibles }: LotFormProps) {
                 className={`p-4 rounded-lg cursor-pointer transition-all ${
                   estSelectionnee 
                     ? 'bg-primary/20 border-2 border-primary' 
-                    : 'bg-[#34495e] border-2 border-transparent hover:border-gray-500'
+                    : 'bg-gray-50 border-2 border-transparent hover:border-gray-500'
                 }`}
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-text font-medium">
+                    <p className="text-gray-900 font-medium">
                       {c.producteurs?.code_producteur} - {c.producteurs?.nom} {c.producteurs?.prenom}
                     </p>
-                    <p className="text-text/70 text-sm">
+                    <p className="text-gray-500 text-sm">
                       {c.parcelles?.code_parcelle} | {new Date(c.date_collecte).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-primary font-bold">{c.poids_net_kg} kg</p>
                     {c.qualite && (
-                      <p className="text-text/70 text-sm">{c.qualite}</p>
+                      <p className="text-gray-500 text-sm">{c.qualite}</p>
                     )}
                   </div>
                 </div>
@@ -166,17 +171,18 @@ export default function LotForm({ collectesDisponibles }: LotFormProps) {
         <button
           type="submit"
           disabled={loading || collectesSelectionnees.length === 0}
-          className="bg-primary text-[#2d3436] px-6 py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
+          className="bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
         >
           {loading ? "⏳ Création..." : "✅ Créer le lot"}
         </button>
         <Link 
           href="/lots" 
-          className="bg-gray-500 text-text px-6 py-3 rounded-lg font-semibold hover:bg-gray-600"
+          className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300"
         >
           Annuler
         </Link>
       </div>
     </form>
+    </>
   )
 }

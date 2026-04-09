@@ -2,7 +2,6 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { Eye, EyeOff, Mail, AlertCircle } from "lucide-react"
 
@@ -169,13 +168,8 @@ export default function LoginForm() {
             {loading ? t.login.loading : t.login.submit}
           </button>
 
-          {/* Link to Register */}
-          <p className="text-center text-sm text-gray-500">
-            {t.login.noAccount}{" "}
-            <Link href="/register" className="font-semibold text-[#2ac1a3] tracking-wider hover:underline">
-              {t.login.register}
-            </Link>
-          </p>
+          {/* Footer spacer */}
+          <div className="h-4" />
         </form>
       </div>
 

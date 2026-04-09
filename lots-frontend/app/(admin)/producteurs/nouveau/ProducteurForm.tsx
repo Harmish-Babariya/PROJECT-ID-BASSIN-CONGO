@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { createProducteur } from "./actions"
+import { Toast, useToast } from "@/components/Toast"
 
 interface ProducteurFormProps {
   zones: any[]
@@ -12,6 +13,7 @@ interface ProducteurFormProps {
 
 export default function ProducteurForm({ zones, pays, villages, returnTo }: ProducteurFormProps) {
   const [loading, setLoading] = useState(false)
+  const { toast, showError, hideToast } = useToast()
   const [filteredZones, setFilteredZones] = useState(zones)
   const [filteredVillages, setFilteredVillages] = useState(villages || [])
   const [showAutreActivites, setShowAutreActivites] = useState(false)
@@ -103,12 +105,13 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (loading) return
     setLoading(true)
 
     const result = await createProducteur(formData, returnTo)
-    
+
     if (result?.error) {
-      alert("Erreur: " + result.error)
+      showError("Erreur: " + result.error)
       setLoading(false)
     }
   }
@@ -124,38 +127,40 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#1e272e] rounded-lg shadow p-8 max-w-4xl">
+    <>
+    {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
+    <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-lg shadow p-8 max-w-4xl">
       {/* SECTION 1: IDENTIFICATION */}
       <div className="mb-8">
         <h2 className="text-xl font-bold text-primary mb-4">1. Identification</h2>
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Nom *</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Nom *</label>
             <input
               type="text"
               value={formData.nom}
               onChange={(e) => setFormData({...formData, nom: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
               required
             />
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Prénom</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Prénom</label>
             <input
               type="text"
               value={formData.prenom}
               onChange={(e) => setFormData({...formData, prenom: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Sexe *</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Sexe *</label>
             <select
               value={formData.sexe}
               onChange={(e) => setFormData({...formData, sexe: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
               required
             >
               <option value="Homme">Homme</option>
@@ -164,23 +169,23 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Année de naissance</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Année de naissance</label>
             <input
               type="number"
               value={formData.annee_naissance}
               onChange={(e) => setFormData({...formData, annee_naissance: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
               min="1900"
               max={new Date().getFullYear()}
             />
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Nationalité</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Nationalité</label>
             <select
               value={formData.nationalite}
               onChange={(e) => setFormData({...formData, nationalite: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             >
               <option value="">Sélectionner</option>
               <option value="Algérie">Algérie</option>
@@ -241,12 +246,12 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Téléphone</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Téléphone</label>
             <input
               type="tel"
               value={formData.telephone}
               onChange={(e) => setFormData({...formData, telephone: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>
@@ -257,11 +262,11 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
         <h2 className="text-xl font-bold text-primary mb-4">2. Localisation</h2>
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Pays *</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Pays *</label>
             <select
               value={formData.pays_id}
               onChange={(e) => setFormData({...formData, pays_id: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
               required
             >
               <option value="">Sélectionner un pays</option>
@@ -270,11 +275,11 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Zone *</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Zone *</label>
             <select
               value={formData.zone_id}
               onChange={(e) => setFormData({...formData, zone_id: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
               required
               disabled={!formData.pays_id}
             >
@@ -284,11 +289,11 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div className="col-span-2">
-            <label className="block text-text text-sm font-medium mb-2">Village *</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Village *</label>
             <select
               value={formData.village}
               onChange={(e) => setFormData({...formData, village: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
               required
               disabled={!formData.zone_id}
             >
@@ -316,22 +321,22 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
         <h2 className="text-xl font-bold text-primary mb-4">3. Structure et rôle</h2>
         <div className="grid grid-cols-1 gap-6">
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Structure d'embauche de l'enquêteur</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Structure d'embauche de l'enquêteur</label>
             <input
               type="text"
               value={formData.structure_embauche}
               onChange={(e) => setFormData({...formData, structure_embauche: e.target.value})}
               placeholder="Ex: ASV, Lonswiss, CNSCPCA-CA..."
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary placeholder:text-gray-500"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary placeholder:text-gray-500"
             />
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Que représentez-vous dans votre activité cacaoyère?</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Que représentez-vous dans votre activité cacaoyère?</label>
             <select
               value={formData.role_activite_cacao}
               onChange={(e) => setFormData({...formData, role_activite_cacao: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             >
               <option value="">Sélectionner</option>
               <option value="Copropriétaire">Copropriétaire</option>
@@ -348,11 +353,11 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Quel type de propriétaire êtes-vous?</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Quel type de propriétaire êtes-vous?</label>
             <select
               value={formData.type_proprietaire}
               onChange={(e) => setFormData({...formData, type_proprietaire: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             >
               <option value="">Sélectionner</option>
               <option value="Héritier">Héritier</option>
@@ -363,11 +368,11 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">À quelle communauté appartenez-vous?</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">À quelle communauté appartenez-vous?</label>
             <select
               value={formData.communaute}
               onChange={(e) => setFormData({...formData, communaute: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             >
               <option value="">Sélectionner</option>
               <option value="Bantou">Bantou</option>
@@ -383,10 +388,10 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
         <h2 className="text-xl font-bold text-primary mb-4">4. Activités économiques</h2>
         <div className="space-y-6">
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Autres activités (en dehors de l'agriculture)</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Autres activités (en dehors de l'agriculture)</label>
             <div className="grid grid-cols-3 gap-2">
               {["Artisanat", "Pêche", "Élevage", "Autre", "Aucune"].map(act => (
-                <label key={act} className="flex items-center space-x-2 text-text text-sm">
+                <label key={act} className="flex items-center space-x-2 text-gray-900 text-sm">
                   <input
                     type="checkbox"
                     checked={formData.autres_activites.includes(act)}
@@ -401,10 +406,10 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
 
           {showAutreActivites && (
             <div>
-              <label className="block text-text text-sm font-medium mb-2">Si Autre, lesquelles?</label>
-              <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-background rounded">
+              <label className="block text-gray-900 text-sm font-medium mb-2">Si Autre, lesquelles?</label>
+              <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded">
                 {["Abateur-scilleur", "Agent de sécurité", "Agriculture", "Agriculture vivrière", "Apiculture", "Petit commerce", "Architecte", "Aucun", "Auxiliaire de la douane", "Boulanger", "Commerce de vin de palme", "Cueillette", "Champêtre", "Champs vivrières", "Charbon", "Charbonnier", "Charpentier", "Commerce", "Chasse", "Chasse de subsistance", "Orpaillage", "Maçonnerie", "Chauffeur", "Coiffure", "Menuiserie", "Piège", "Prospecteur", "Récolte des termites", "Récolte de vin local", "Soudure", "Mécanique", "Commerce des divers", "Rentier", "Taximan", "Comptable", "Conducteur", "Construction", "Couture", "Commerce de manioc", "Maïs", "Cultivateur", "Ministère", "Douane", "Electricien", "Enseignement", "Études", "Fabrication vin local", "Fonctionnaire", "Frigoriste", "Gardien", "Journaliste", "Guérisseur traditionnel", "Infirmier", "Armée", "Ménagere", "Pasteur", "Photographe", "Pisciculture", "Hôtellerie", "Plomberie", "Politique", "Salarié", "Sciage", "Scieur", "Secourisme médicale", "Sécurité", "Tailleur", "Taxi Moto", "Technicien de moto", "Technicien en Froid", "Transport", "Travaux champêtre", "Trésorière", "Vie associative"].map(det => (
-                  <label key={det} className="flex items-center space-x-2 text-text text-xs">
+                  <label key={det} className="flex items-center space-x-2 text-gray-900 text-xs">
                     <input
                       type="checkbox"
                       checked={formData.autres_activites_details.includes(det)}
@@ -419,11 +424,11 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           )}
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Source principale de revenus</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Source principale de revenus</label>
             <select
               value={formData.source_principale_revenus}
               onChange={(e) => setFormData({...formData, source_principale_revenus: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             >
               <option value="">Sélectionner</option>
               <option value="Agriculture">Agriculture</option>
@@ -433,10 +438,10 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Cultures phares de votre activité agricole</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Cultures phares de votre activité agricole</label>
             <div className="grid grid-cols-3 gap-2">
               {["Autres", "Avocatier", "Cacaoyer", "Manioc", "Safoutier"].map(cult => (
-                <label key={cult} className="flex items-center space-x-2 text-text text-sm">
+                <label key={cult} className="flex items-center space-x-2 text-gray-900 text-sm">
                   <input
                     type="checkbox"
                     checked={formData.cultures_phares.includes(cult)}
@@ -450,10 +455,10 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Autres cultures phares</label>
-            <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-2 bg-background rounded">
+            <label className="block text-gray-900 text-sm font-medium mb-2">Autres cultures phares</label>
+            <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-2 bg-white rounded">
               {["Ananas", "Citron", "Mangue", "Orange", "Mandarine", "Banane", "Goyave", "mandariniers", "Papaye", "Tarot", "Palmier à huile", "Igname", "Canne sucre", "Arachide", "Maïs", "Tomate", "Choux", "Carotte", "Noix de coco", "Patate douce", "Piment", "Concombre", "Banane plantain", "Cola", "Courge", "Palmier", "Figue", "Pamplemousse", "Poivron", "Corrossol", "Pomme sauvage", "Autre"].map(autr => (
-                <label key={autr} className="flex items-center space-x-2 text-text text-xs">
+                <label key={autr} className="flex items-center space-x-2 text-gray-900 text-xs">
                   <input
                     type="checkbox"
                     checked={formData.autres_cultures.includes(autr)}
@@ -467,11 +472,11 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Place de l'activité cacaoyère dans votre activité agricole</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Place de l'activité cacaoyère dans votre activité agricole</label>
             <select
               value={formData.place_cacao}
               onChange={(e) => setFormData({...formData, place_cacao: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             >
               <option value="">Sélectionner</option>
               <option value="1er rang">1er rang</option>
@@ -487,11 +492,11 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
         <h2 className="text-xl font-bold text-primary mb-4">5. Exploitation cacaoyère</h2>
         <div className="space-y-6">
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Utilisez-vous une main d'œuvre supplémentaire?</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Utilisez-vous une main d'œuvre supplémentaire?</label>
             <select
               value={formData.main_oeuvre_supplementaire}
               onChange={(e) => setFormData({...formData, main_oeuvre_supplementaire: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             >
               <option value="">Sélectionner</option>
               <option value="Oui">Oui</option>
@@ -500,11 +505,11 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Avez-vous récolté le cacao l'année dernière?</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Avez-vous récolté le cacao l'année dernière?</label>
             <select
               value={formData.recolte_annee_derniere}
               onChange={(e) => setFormData({...formData, recolte_annee_derniere: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             >
               <option value="">Sélectionner</option>
               <option value="Oui">Oui</option>
@@ -513,10 +518,10 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Qu'avez-vous fait du cacao récolté?</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Qu'avez-vous fait du cacao récolté?</label>
             <div className="grid grid-cols-3 gap-2">
               {["Autre", "Don", "Vente", "Partage", "Semis", "Transformation"].map(usage => (
-                <label key={usage} className="flex items-center space-x-2 text-text text-sm">
+                <label key={usage} className="flex items-center space-x-2 text-gray-900 text-sm">
                   <input
                     type="checkbox"
                     checked={formData.usage_cacao_recolte.includes(usage)}
@@ -530,10 +535,10 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Comment avez-vous vendu votre cacao?</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Comment avez-vous vendu votre cacao?</label>
             <div className="grid grid-cols-3 gap-2">
               {["Cabosse", "Par pesage", "Par sac"].map(mode => (
-                <label key={mode} className="flex items-center space-x-2 text-text text-sm">
+                <label key={mode} className="flex items-center space-x-2 text-gray-900 text-sm">
                   <input
                     type="checkbox"
                     checked={formData.mode_vente.includes(mode)}
@@ -548,41 +553,41 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-text text-sm font-medium mb-2">Combien de kilos avez-vous vendu?</label>
+              <label className="block text-gray-900 text-sm font-medium mb-2">Combien de kilos avez-vous vendu?</label>
               <input
                 type="number"
                 value={formData.kilos_vendus}
                 onChange={(e) => setFormData({...formData, kilos_vendus: e.target.value})}
-                className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label className="block text-text text-sm font-medium mb-2">Prix du kilo (Franc CFA)</label>
+              <label className="block text-gray-900 text-sm font-medium mb-2">Prix du kilo (Franc CFA)</label>
               <input
                 type="number"
                 value={formData.prix_kilo}
                 onChange={(e) => setFormData({...formData, prix_kilo: e.target.value})}
-                className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Où avez-vous vendu votre cacao?</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Où avez-vous vendu votre cacao?</label>
             <input
               type="text"
               value={formData.lieu_vente}
               onChange={(e) => setFormData({...formData, lieu_vente: e.target.value})}
-              className="w-full px-4 py-2 bg-background text-text border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div>
-            <label className="block text-text text-sm font-medium mb-2">Chez qui avez-vous vendu votre cacao?</label>
+            <label className="block text-gray-900 text-sm font-medium mb-2">Chez qui avez-vous vendu votre cacao?</label>
             <div className="grid grid-cols-3 gap-2">
               {["Camerounais", "CIB Olam", "Congolais", "Ouest Africain", "Diamant", "Non identifié", "Autre"].map(ach => (
-                <label key={ach} className="flex items-center space-x-2 text-text text-sm">
+                <label key={ach} className="flex items-center space-x-2 text-gray-900 text-sm">
                   <input
                     type="checkbox"
                     checked={formData.acheteur.includes(ach)}
@@ -598,7 +603,7 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
       </div>
 
       {/* BOUTONS */}
-      <div className="flex gap-4 mt-8 pt-8 border-t border-gray-600">
+      <div className="flex gap-4 mt-8 pt-8 border-t border-gray-200">
         <button
           type="submit"
           disabled={loading}
@@ -608,11 +613,12 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
         </button>
         <Link 
           href={returnTo || "/producteurs"} 
-          className="bg-gray-600 text-text px-8 py-4 rounded-lg font-semibold hover:bg-gray-700 transition-all"
+          className="bg-gray-200 text-gray-700 px-8 py-4 rounded-lg font-semibold hover:bg-gray-300 transition-all"
         >
           Annuler
         </Link>
       </div>
     </form>
+    </>
   )
 }

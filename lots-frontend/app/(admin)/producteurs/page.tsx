@@ -1,7 +1,8 @@
-import { supabaseAdmin } from "@/lib/supabase-server"
 import Link from "next/link"
 import FiltresBar from "./FiltresBar"
 import ExportButton from "./ExportButton"
+import { getProducteurs } from "@/lib/services/producteurs"
+import { getZones } from "@/lib/services/common"
 
 export default async function ProducteursPage({
   searchParams
@@ -15,43 +16,8 @@ export default async function ProducteursPage({
   }>
 }) {
   const params = await searchParams
-
-  let query = supabaseAdmin
-    .from("producteurs")
-    .select("*, zones(nom)")
-
-  if (params.recherche) {
-    query = query.or(`code_producteur.ilike.%${params.recherche}%,nom.ilike.%${params.recherche}%`)
-  }
-  if (params.zone_id) {
-    query = query.eq('zone_id', parseInt(params.zone_id))
-  }
-  if (params.sexe) {
-    query = query.eq('sexe', params.sexe)
-  }
-  if (params.statut) {
-    query = query.eq('statut', params.statut)
-  }
-
-  const { data: producteurs } = await query.order("code_producteur")
-
-  let producteursAvecParcelles = await Promise.all(
-    (producteurs || []).map(async (p) => {
-      const { count } = await supabaseAdmin
-        .from("parcelles")
-        .select("*", { count: 'exact', head: true })
-        .eq("producteur_id", p.id)
-      return { ...p, nombre_parcelles: count || 0 }
-    })
-  )
-
-  if (params.avec_parcelles === 'oui') {
-    producteursAvecParcelles = producteursAvecParcelles.filter(p => p.nombre_parcelles > 0)
-  } else if (params.avec_parcelles === 'non') {
-    producteursAvecParcelles = producteursAvecParcelles.filter(p => p.nombre_parcelles === 0)
-  }
-
-  const { data: zones } = await supabaseAdmin.from("zones").select("*").order("nom")
+  const producteursAvecParcelles = await getProducteurs(params)
+  const zones = await getZones()
 
   return (
     <div className="space-y-6">

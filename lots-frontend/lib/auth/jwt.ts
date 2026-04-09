@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken"
+import { JWT_SECRET as SECRET } from "@/lib/env"
 
-const JWT_SECRET = process.env.JWT_SECRET || "default-secret-change-in-production"
+const JWT_SECRET = SECRET || "default-secret-change-in-production"
 
 export type JWTPayload = {
   userId: string
