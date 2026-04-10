@@ -42,7 +42,7 @@ export default function Sidebar({ counts }: { counts?: Record<string, number> })
   }
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-[180px] bg-[#1A1A1A] flex flex-col z-50">
+    <aside className="fixed top-0 left-0 h-screen w-[210px] bg-[#1A1A1A] flex flex-col z-50">
       <div className="px-5 pt-6 pb-8">
         <Image src="/logo.png" alt="ID Bassin Congo" width={140} height={44} priority />
       </div>

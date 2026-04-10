@@ -89,7 +89,7 @@ export default function ProfileClient({
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-6 py-5">
             <p className="text-[9px] text-gray-400 tracking-[0.15em] uppercase font-medium">{s.label}</p>
-            <p className="text-[28px] font-bold text-gray-900 mt-1">{s.value}</p>
+            <p className="text-[28px] font-bold text-gray-900 mt-1 font-numbers">{s.value}</p>
           </div>
         ))}
       </div>

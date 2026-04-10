@@ -121,8 +121,8 @@ export default async function Dashboard() {
             <div className="flex flex-col xl:flex-row items-start gap-6">
               <div className="min-w-0 flex-1">
                 <div className="flex items-end gap-0.5">
-                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none">{eudrPercent}</span>
-                  <span className="text-[26px] font-bold text-[#1A1A1A] mb-1.5">%</span>
+                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers">{eudrPercent}</span>
+                  <span className="text-[26px] font-bold text-[#1A1A1A] mb-1.5 font-numbers">%</span>
                 </div>
                 <span className="inline-block text-[11px] text-[#2AC1A3] bg-[#E8F8F4] px-3 py-1 rounded-full mt-2.5 font-medium">+4% cette campagne</span>
                 <div className="w-full h-2.5 bg-[#E8E8E3] rounded-full mt-3.5 overflow-hidden">
@@ -132,17 +132,17 @@ export default async function Dashboard() {
               <div className="flex gap-3 shrink-0">
                 <div className="bg-[#F5F5F2] rounded-xl w-[110px] h-[100px] px-4 py-3.5 flex flex-col justify-center">
                   <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold">SUPERFICIE</p>
-                  <p className="text-[22px] font-bold text-[#1A1A1A] leading-tight mt-1">{Math.round(stats.parcelles.superficieTotale).toLocaleString()}</p>
+                  <p className="text-[22px] font-bold text-[#1A1A1A] leading-tight mt-1 font-numbers">{Math.round(stats.parcelles.superficieTotale).toLocaleString()}</p>
                   <p className="text-[9px] text-[#AAAAAA] tracking-[0.1em] uppercase mt-0.5">HECTARES</p>
                 </div>
                 <div className="bg-[#F5F5F2] rounded-xl w-[110px] h-[100px] px-4 py-3.5 flex flex-col justify-center">
                   <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold">PARCELLES</p>
-                  <p className="text-[22px] font-bold text-[#1A1A1A] leading-tight mt-1">{stats.parcelles.total.toLocaleString()}</p>
+                  <p className="text-[22px] font-bold text-[#1A1A1A] leading-tight mt-1 font-numbers">{stats.parcelles.total.toLocaleString()}</p>
                   <p className="text-[9px] text-[#AAAAAA] tracking-[0.1em] uppercase mt-0.5">TOTAL</p>
                 </div>
                 <div className="bg-[#F5F5F2] rounded-xl w-[110px] h-[100px] px-4 py-3.5 flex flex-col justify-center">
                   <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold">MOY./PROD.</p>
-                  <p className="text-[22px] font-bold text-[#1A1A1A] leading-tight mt-1">{stats.parcelles.haParProducteur}</p>
+                  <p className="text-[22px] font-bold text-[#1A1A1A] leading-tight mt-1 font-numbers">{stats.parcelles.haParProducteur}</p>
                   <p className="text-[9px] text-[#AAAAAA] tracking-[0.1em] uppercase mt-0.5">HA / PROD.</p>
                 </div>
               </div>
@@ -190,7 +190,7 @@ export default async function Dashboard() {
               <div>
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">TOTAL</p>
                 <div className="flex items-end gap-3">
-                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none tracking-tight">{stats.producteurs.total}</span>
+                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.producteurs.total}</span>
                   <span className="text-[12px] text-[#2AC1A3] font-bold mb-2.5 bg-[#E8F8F4] px-2.5 py-1 rounded-full">+12</span>
                 </div>
                 <p className="text-[10px] text-[#AAAAAA] tracking-[0.1em] uppercase mt-3">PRODUCTEURS ENREGISTRES</p>
@@ -198,7 +198,7 @@ export default async function Dashboard() {
               <div>
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">FEMMES</p>
                 <div className="flex items-end gap-3">
-                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none tracking-tight">{stats.producteurs.pourcentageFemmes}<span className="text-[28px]">%</span></span>
+                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.producteurs.pourcentageFemmes}<span className="text-[28px]">%</span></span>
                   <span className="text-[12px] text-[#2AC1A3] font-bold mb-2.5 bg-[#E8F8F4] px-2.5 py-1 rounded-full">+2%</span>
                 </div>
                 <p className="text-[10px] text-[#AAAAAA] tracking-[0.1em] uppercase mt-3">{stats.producteurs.femmes} / {stats.producteurs.total} PRODUCTRICES</p>
@@ -206,7 +206,7 @@ export default async function Dashboard() {
               <div>
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">AGE MOYEN</p>
                 <div className="flex items-end gap-2">
-                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none tracking-tight">{stats.producteurs.ageMoyen}</span>
+                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.producteurs.ageMoyen}</span>
                   <span className="text-[18px] text-[#AAAAAA] font-normal mb-2">ans</span>
                 </div>
                 <p className="text-[10px] text-[#AAAAAA] tracking-[0.1em] uppercase mt-3">PLAGE : {stats.producteurs.ageMin} – {stats.producteurs.ageMax} ANS</p>
@@ -238,21 +238,21 @@ export default async function Dashboard() {
               <div className="flex-1 min-w-0 pr-8">
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">COLLECTES</p>
                 <div className="flex items-end gap-3">
-                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none tracking-tight">{stats.collectes.total.toLocaleString()}</span>
+                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.collectes.total.toLocaleString()}</span>
                   <span className="text-[12px] text-[#2AC1A3] font-bold mb-2.5 bg-[#E8F8F4] px-2.5 py-1 rounded-full">+8%</span>
                 </div>
               </div>
               <div className="flex-1 min-w-0 pr-8">
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">POIDS NET TOTAL COLLECTE (KG)</p>
                 <div className="flex items-end gap-3">
-                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none tracking-tight">{stats.collectes.poids.toLocaleString()}</span>
+                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.collectes.poids.toLocaleString()}</span>
                   <span className="text-[12px] text-[#8B7355] font-bold mb-2.5 bg-[#F5EEE0] px-2.5 py-1 rounded-full">-2%</span>
                 </div>
               </div>
               <div className="flex-1 min-w-0 pr-8">
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">POIDS MOYEN PAR COLLECTE (KG)</p>
                 <div className="flex items-end gap-3">
-                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none tracking-tight">{stats.collectes.poidsMoyen.toLocaleString()}</span>
+                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.collectes.poidsMoyen.toLocaleString()}</span>
                   <span className="text-[12px] text-[#C4943A] font-bold mb-2.5 bg-[#FFF3E0] px-2.5 py-1 rounded-full">-10%</span>
                 </div>
               </div>
@@ -261,15 +261,15 @@ export default async function Dashboard() {
             <div className="flex flex-1 min-w-0">
               <div className="flex-1 min-w-0 pr-8">
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">LOTS CONSTITUES</p>
-                <span className="text-[52px] font-bold text-[#1A1A1A] leading-none tracking-tight">{stats.lots.total.toLocaleString()}</span>
+                <span className="text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.lots.total.toLocaleString()}</span>
               </div>
               <div className="flex-1 min-w-0 pr-8">
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">POIDS TOTAL EXPORTE (KG)</p>
-                <span className="text-[52px] font-bold text-[#1A1A1A] leading-none tracking-tight">{stats.lots.poidsTotal.toLocaleString()}</span>
+                <span className="text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.lots.poidsTotal.toLocaleString()}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">POIDS MOYEN PAR LOT (KG)</p>
-                <span className="text-[52px] font-bold text-[#1A1A1A] leading-none tracking-tight">{stats.lots.poidsMoyen.toLocaleString()}</span>
+                <span className="text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.lots.poidsMoyen.toLocaleString()}</span>
               </div>
             </div>
           </div>
