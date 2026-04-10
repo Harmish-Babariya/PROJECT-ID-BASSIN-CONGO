@@ -87,6 +87,15 @@ export async function insertLotCollectes(associations: { lot_id: number; collect
   return { error }
 }
 
+export async function getRecentLots(limit = 3) {
+  const { data } = await supabaseAdmin
+    .from("lots")
+    .select("id, code_lot, statut, poids_total_kg, date_creation, zones(nom)")
+    .order("date_creation", { ascending: false })
+    .limit(limit)
+  return data || []
+}
+
 // Stats for dashboard
 export async function getLotsStats() {
   const { data } = await supabaseAdmin

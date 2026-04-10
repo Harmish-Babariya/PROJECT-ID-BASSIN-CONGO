@@ -97,6 +97,19 @@ export async function updateCollecteById(id: number, dataToUpdate: Record<string
   return { error }
 }
 
+export async function getRecentCollectes(limit = 3) {
+  const { data } = await supabaseAdmin
+    .from("collectes")
+    .select(`
+      id, date_collecte, poids_net_kg, produit,
+      producteurs (code_producteur, nom, prenom),
+      zones (nom)
+    `)
+    .order("date_collecte", { ascending: false })
+    .limit(limit)
+  return data || []
+}
+
 // Stats for dashboard
 export async function getCollectesStats() {
   const { data } = await supabaseAdmin
