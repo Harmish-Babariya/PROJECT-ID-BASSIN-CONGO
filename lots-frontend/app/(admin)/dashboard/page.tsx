@@ -117,51 +117,49 @@ export default async function Dashboard() {
             <p className="text-[10px] font-semibold text-[#AAAAAA] tracking-[0.15em] uppercase whitespace-nowrap">VERIFICATION EUDR</p>
             <div className="flex-1 h-0 border-t border-solid border-[#DDDDD8]" />
           </div>
-          <div className="bg-white rounded-xl border border-[#E8E8E3] p-5">
-            <div className="flex flex-col xl:flex-row items-start gap-5">
-              <div className="min-w-0">
+          <div className="bg-white rounded-xl border border-[#E8E8E3] p-6">
+            <div className="flex flex-col xl:flex-row items-start gap-6">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-end gap-0.5">
-                  <span className="text-[48px] font-bold text-[#1A1A1A] leading-none">{eudrPercent}</span>
-                  <span className="text-[24px] font-bold text-[#1A1A1A] mb-1">%</span>
+                  <span className="text-[52px] font-bold text-[#1A1A1A] leading-none">{eudrPercent}</span>
+                  <span className="text-[26px] font-bold text-[#1A1A1A] mb-1.5">%</span>
                 </div>
-                <span className="inline-block text-[11px] text-[#2AC1A3] bg-[#E8F8F4] px-3 py-1 rounded-full mt-2 font-medium">+4% cette campagne</span>
-                <div className="w-full max-w-[200px] h-2.5 bg-[#E8E8E3] rounded-full mt-3">
-                  <div className="h-2.5 bg-[#2AC1A3] rounded-full" style={{ width: `${eudrPercent}%` }} />
+                <span className="inline-block text-[11px] text-[#2AC1A3] bg-[#E8F8F4] px-3 py-1 rounded-full mt-2.5 font-medium">+4% cette campagne</span>
+                <div className="w-full h-2.5 bg-[#E8E8E3] rounded-full mt-3.5 overflow-hidden">
+                  <div className="h-2.5 rounded-full" style={{ width: `${eudrPercent}%`, background: "linear-gradient(90deg, #2AC1A3 0%, #2AC1A3 70%, #A8DDD2 100%)" }} />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 w-full xl:w-auto xl:flex-1">
-                <div className="border border-[#E8E8E3] rounded-lg px-3 py-2.5">
-                  <p className="text-[8px] text-[#AAAAAA] tracking-wider uppercase font-semibold">SUPERFICIE</p>
-                  <p className="text-[20px] font-bold text-[#1A1A1A] leading-tight mt-0.5">{Math.round(stats.parcelles.superficieTotale).toLocaleString()}</p>
-                  <p className="text-[8px] text-[#AAAAAA] tracking-wider uppercase">HECTARES</p>
+              <div className="flex gap-3 shrink-0">
+                <div className="bg-[#F5F5F2] rounded-xl w-[110px] h-[100px] px-4 py-3.5 flex flex-col justify-center">
+                  <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold">SUPERFICIE</p>
+                  <p className="text-[22px] font-bold text-[#1A1A1A] leading-tight mt-1">{Math.round(stats.parcelles.superficieTotale).toLocaleString()}</p>
+                  <p className="text-[9px] text-[#AAAAAA] tracking-[0.1em] uppercase mt-0.5">HECTARES</p>
                 </div>
-                <div className="border border-[#E8E8E3] rounded-lg px-3 py-2.5">
-                  <p className="text-[8px] text-[#AAAAAA] tracking-wider uppercase font-semibold">PARCELLES</p>
-                  <p className="text-[20px] font-bold text-[#1A1A1A] leading-tight mt-0.5">{stats.parcelles.total.toLocaleString()}</p>
-                  <p className="text-[8px] text-[#AAAAAA] tracking-wider uppercase">TOTAL</p>
+                <div className="bg-[#F5F5F2] rounded-xl w-[110px] h-[100px] px-4 py-3.5 flex flex-col justify-center">
+                  <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold">PARCELLES</p>
+                  <p className="text-[22px] font-bold text-[#1A1A1A] leading-tight mt-1">{stats.parcelles.total.toLocaleString()}</p>
+                  <p className="text-[9px] text-[#AAAAAA] tracking-[0.1em] uppercase mt-0.5">TOTAL</p>
                 </div>
-                <div className="border border-[#E8E8E3] rounded-lg px-3 py-2.5">
-                  <p className="text-[8px] text-[#AAAAAA] tracking-wider uppercase font-semibold">MOY./PROD.</p>
-                  <p className="text-[20px] font-bold text-[#1A1A1A] leading-tight mt-0.5">{stats.parcelles.haParProducteur}</p>
-                  <p className="text-[8px] text-[#AAAAAA] tracking-wider uppercase">HA / PROD.</p>
+                <div className="bg-[#F5F5F2] rounded-xl w-[110px] h-[100px] px-4 py-3.5 flex flex-col justify-center">
+                  <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold">MOY./PROD.</p>
+                  <p className="text-[22px] font-bold text-[#1A1A1A] leading-tight mt-1">{stats.parcelles.haParProducteur}</p>
+                  <p className="text-[9px] text-[#AAAAAA] tracking-[0.1em] uppercase mt-0.5">HA / PROD.</p>
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 mt-5">
-              <span className="inline-flex items-center gap-1.5 text-[10px] bg-[#E8F8F4] text-[#1A1A1A] px-3 py-1.5 rounded-full font-semibold">
+            <div className="flex gap-2.5 mt-5">
+              <span className="inline-flex items-center gap-1.5 text-[10px] bg-[#E8F8F4] text-[#1A1A1A] px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#2AC1A3"/><path d="M3.5 6L5.5 8L8.5 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 {stats.parcelles.conformes} VERIFIEES
               </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] bg-[#FFF3E0] text-[#1A1A1A] px-3 py-1.5 rounded-full font-semibold">
+              <span className="inline-flex items-center gap-1.5 text-[10px] bg-[#FFF3E0] text-[#1A1A1A] px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#C4943A"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
                 {stats.parcelles.aTraiter} A TRAITER
               </span>
-              {stats.parcelles.nonConformes > 0 && (
-                <span className="inline-flex items-center gap-1.5 text-[10px] bg-[#FDE8E8] text-[#1A1A1A] px-3 py-1.5 rounded-full font-semibold">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#D44"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                  {stats.parcelles.nonConformes} NON CONFORMES
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1.5 text-[10px] bg-[#F0E6D6] text-[#1A1A1A] px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#C4943A"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {stats.parcelles.nonConformes} NON CONFORMES
+              </span>
             </div>
           </div>
         </div>
@@ -235,7 +233,7 @@ export default async function Dashboard() {
 
         <div className="bg-white rounded-xl border border-[#E8E8E3] px-10 py-9">
           {/* 6 Stats Row */}
-          <div className="flex flex-wrap pb-8 border-b border-[#EEEEEA]">
+          <div className="flex pb-8">
             <div className="flex flex-1 min-w-0">
               <div className="flex-1 min-w-0 pr-8">
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">COLLECTES</p>
@@ -251,7 +249,7 @@ export default async function Dashboard() {
                   <span className="text-[12px] text-[#8B7355] font-bold mb-2.5 bg-[#F5EEE0] px-2.5 py-1 rounded-full">-2%</span>
                 </div>
               </div>
-              <div className="flex-1 min-w-0 pr-10">
+              <div className="flex-1 min-w-0 pr-8">
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">POIDS MOYEN PAR COLLECTE (KG)</p>
                 <div className="flex items-end gap-3">
                   <span className="text-[52px] font-bold text-[#1A1A1A] leading-none tracking-tight">{stats.collectes.poidsMoyen.toLocaleString()}</span>
@@ -259,7 +257,7 @@ export default async function Dashboard() {
                 </div>
               </div>
             </div>
-            <div className="w-px bg-[#EEEEEA] mx-6 self-stretch hidden lg:block" />
+            <div className="mx-6" />
             <div className="flex flex-1 min-w-0">
               <div className="flex-1 min-w-0 pr-8">
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">LOTS CONSTITUES</p>
@@ -277,12 +275,10 @@ export default async function Dashboard() {
           </div>
 
           {/* Recent Tables */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-7">
+          <div className="flex pt-0 gap-10">
             {/* Recent Collectes */}
-            <div>
-              <p className="text-[9px] font-semibold text-[#AAAAAA] tracking-[0.12em] uppercase mb-5">
-                DERNIERES COLLECTES
-              </p>
+            <div className="flex-1 min-w-0">
+              <div className="h-px bg-[#EEEEEA] mb-7" />
               <div className="space-y-2">
                 {recentCollectes.map((c) => {
                   const prod = Array.isArray(c.producteurs) ? c.producteurs[0] : c.producteurs
@@ -302,10 +298,8 @@ export default async function Dashboard() {
             </div>
 
             {/* Recent Lots */}
-            <div>
-              <p className="text-[9px] font-semibold text-[#AAAAAA] tracking-[0.12em] uppercase mb-5">
-                DERNIERS LOTS EXPORTES
-              </p>
+            <div className="flex-1 min-w-0">
+              <div className="h-px bg-[#EEEEEA] mb-7" />
               <div className="space-y-2.5">
                 {recentLots.map((l) => {
                   const zone = Array.isArray(l.zones) ? l.zones[0] : l.zones

@@ -49,31 +49,34 @@ export default function ProfileClient({
         <h1 className="text-[22px] font-bold text-gray-900 tracking-tight">PROFIL</h1>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 px-8 py-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-5">
-            <div className="w-[72px] h-[72px] rounded-full bg-[#2AC1A3]/10 border-2 border-[#2AC1A3] flex items-center justify-center">
-              <span className="text-[22px] font-bold text-[#2AC1A3]">{initials}</span>
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden relative">
+        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#2AC1A3] rounded-l-xl" />
+        <div className="px-8 py-7">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="w-[80px] h-[80px] rounded-full bg-[#2AC1A3]/8 border-[2.5px] border-[#2AC1A3] flex items-center justify-center">
+              <span className="text-[24px] font-bold text-[#2AC1A3]">{initials}</span>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">{displayName}</h2>
-              <p className="text-sm text-gray-400 mt-0.5">{displayEmail}</p>
-              <div className="flex gap-2 mt-2.5">
-                <span className="px-3 py-1 bg-[#2AC1A3] text-white text-[10px] font-semibold tracking-[0.1em] rounded-full uppercase">
+              <h2 className="text-[22px] font-bold text-gray-900">{displayName}</h2>
+              <p className="text-[13px] text-gray-400 mt-0.5">{displayEmail}</p>
+              <div className="flex gap-2.5 mt-3">
+                <span className="px-3.5 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.12em] rounded-full uppercase">
                   ADMIN
                 </span>
-                <span className="px-3 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.1em] rounded-full uppercase">
+                <span className="px-3.5 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.12em] rounded-full uppercase">
                   {displayOrg}
                 </span>
               </div>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-gray-400 tracking-[0.1em] uppercase">Derniere Connexion</p>
+            <p className="text-[9px] text-gray-400 tracking-[0.12em] uppercase font-medium">Derniere Connexion</p>
             <p className="text-[13px] font-semibold text-gray-900 mt-0.5">03/04/2026 · 08:42</p>
-            <p className="text-[9px] text-gray-400 tracking-[0.1em] uppercase mt-2">Identifiant</p>
+            <p className="text-[9px] text-gray-400 tracking-[0.12em] uppercase font-medium mt-3">Identifiant</p>
             <p className="text-[13px] font-semibold text-[#2AC1A3] mt-0.5">USR-ADMIN-001</p>
           </div>
+        </div>
         </div>
       </div>
 
