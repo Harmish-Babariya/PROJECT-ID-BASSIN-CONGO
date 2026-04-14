@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { AlertTriangle } from "lucide-react"
 import PeriodFilter from "./PeriodFilter"
-import MockMap from "./MockMap"
+import DashboardMap from "./DashboardMap"
 import { getProducteursStats } from "@/lib/services/producteurs"
 import { getParcellesStats, getParcellesWithProducteurs } from "@/lib/services/parcelles"
 import { getLotsStats, getRecentLots } from "@/lib/services/lots"
@@ -170,11 +170,7 @@ export default async function Dashboard() {
             <p className="text-[10px] font-semibold text-[#AAAAAA] tracking-[0.15em] uppercase whitespace-nowrap">PARCELLES GEOLOCALISEES</p>
             <div className="flex-1 h-0 border-t border-solid border-[#DDDDD8]" />
           </div>
-          <MockMap
-            conformes={stats.parcelles.conformes}
-            nonConformes={stats.parcelles.nonConformes}
-            totalPoints={parcellesAvecCoords.length}
-          />
+          <DashboardMap />
         </div>
       </div>
 
