@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Courier_Prime, Archivo_Narrow } from "next/font/google"
+import Providers from "@/components/Providers"
 import "./globals.css"
 
 const courierPrime = Courier_Prime({
@@ -27,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${courierPrime.variable} ${archivoNarrow.variable} antialiased`}>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

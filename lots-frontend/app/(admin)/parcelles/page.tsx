@@ -1,12 +1,9 @@
-import Link from "next/link"
-import FiltresBar from "./FiltresBar"
-import ExportButton from "./ExportButton"
+import ParcellesContent from "./ParcellesContent"
 import { getParcelles } from "@/lib/services/parcelles"
 import { getProducteursForSelect } from "@/lib/services/producteurs"
-import { getZones } from "@/lib/services/common"
 
 export default async function ParcellesPage({
-  searchParams
+  searchParams,
 }: {
   searchParams: Promise<{
     recherche?: string
@@ -17,84 +14,18 @@ export default async function ParcellesPage({
   }>
 }) {
   const params = await searchParams
-  const [parcelles, zones, producteurs] = await Promise.all([
+  const [parcelles, producteurs] = await Promise.all([
     getParcelles(params),
-    getZones(),
     getProducteursForSelect(),
   ])
 
   const producteursMap = new Map(producteurs.map(p => [p.id, p]))
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-xs text-gray-400 tracking-widest uppercase mb-1">
-          ID BASSIN CONGO / PARCELLES
-        </p>
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Parcelles</h1>
-          <div className="flex gap-3">
-            <ExportButton data={parcelles} />
-            <Link
-              href="/parcelles/nouveau"
-              className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#24a88e] transition"
-            >
-              + Nouvelle parcelle
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <FiltresBar zones={zones} producteurs={producteurs} />
-
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="min-w-full">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-500 tracking-widest uppercase">Code</th>
-              <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-500 tracking-widest uppercase">Producteur</th>
-              <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-500 tracking-widest uppercase">Surface (ha)</th>
-              <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-500 tracking-widest uppercase">Date creation</th>
-              <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-500 tracking-widest uppercase">Statut EUDR</th>
-            </tr>
-          </thead>
-          <tbody>
-            {parcelles.map((p) => {
-              const producteur = producteursMap.get(p.producteur_id)
-              return (
-                <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                  <td className="px-6 py-4">
-                    <Link href={`/parcelles/${p.id}`} className="font-mono text-sm text-[#2ac1a3] font-medium hover:underline">
-                      {p.code_parcelle}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {producteur ? `${producteur.code_producteur} - ${producteur.nom}` : '-'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 font-medium">{p.surface_ha || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {p.date_creation ? new Date(p.date_creation).toLocaleDateString('fr-FR') : '-'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      p.status_eudr === 'CONFORME' ? 'bg-[#2ac1a3]/10 text-[#2ac1a3]' :
-                      p.status_eudr === 'RISQUE NON NEGLIGEABLE' ? 'bg-yellow-100 text-yellow-700' :
-                      p.status_eudr === 'NON CONFORME' ? 'bg-red-100 text-red-600' :
-                      'bg-gray-100 text-gray-400'
-                    }`}>
-                      {p.status_eudr || 'Non verifie'}
-                    </span>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <p className="text-gray-400 text-sm">
-        {parcelles.length} parcelle(s)
-      </p>
-    </div>
+    <ParcellesContent
+      parcelles={parcelles}
+      producteursMap={producteursMap}
+      exportButton={null}
+    />
   )
 }
