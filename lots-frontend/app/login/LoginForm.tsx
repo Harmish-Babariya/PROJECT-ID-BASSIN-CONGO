@@ -3,6 +3,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useLanguage } from "@/contexts/LanguageContext"
+import LanguageSwitcher from "@/components/LanguageSwitcher"
 import { Eye, EyeOff, Mail, AlertCircle } from "lucide-react"
 
 export default function LoginForm() {
@@ -54,6 +55,11 @@ export default function LoginForm() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#edf1f2] relative">
+      {/* Language Switcher - top right */}
+      <div className="absolute top-5 right-5">
+        <LanguageSwitcher variant="auth" />
+      </div>
+
       {/* Centered Content */}
       <div className="w-full max-w-md flex flex-col items-center px-6">
         {/* Logo */}

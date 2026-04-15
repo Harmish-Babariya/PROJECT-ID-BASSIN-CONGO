@@ -2,6 +2,8 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
+import { useLanguage } from "@/contexts/LanguageContext"
+import LanguageSwitcher from "./LanguageSwitcher"
 import {
   LayoutDashboard,
   Users,
@@ -12,23 +14,27 @@ import {
   UserCog,
   LogOut,
   User,
+  Globe,
 } from "lucide-react"
-
-const donneesLinks = [
-  { href: "/producteurs", label: "Producteurs", badgeKey: "producteurs" },
-  { href: "/parcelles", label: "Parcelles", badgeKey: "parcelles" },
-  { href: "/collectes", label: "Collectes", badgeKey: "collectes" },
-  { href: "/lots", label: "Lots", badgeKey: "lots" },
-]
-
-const gestionLinks = [
-  { href: "/export", label: "DDS / Export", icon: FileBarChart },
-  { href: "/utilisateurs", label: "Utilisateurs", icon: UserCog },
-]
 
 export default function Sidebar({ counts }: { counts?: Record<string, number> }) {
   const pathname = usePathname()
   const router = useRouter()
+  const { t } = useLanguage()
+
+  const s = t.sidebar
+
+  const donneesLinks = [
+    { href: "/producteurs", label: s.producers, badgeKey: "producteurs" },
+    { href: "/parcelles", label: s.parcels, badgeKey: "parcelles" },
+    { href: "/collectes", label: s.collections, badgeKey: "collectes" },
+    { href: "/lots", label: s.lots, badgeKey: "lots" },
+  ]
+
+  const gestionLinks = [
+    { href: "/export", label: s.export, icon: FileBarChart },
+    { href: "/utilisateurs", label: s.users, icon: UserCog },
+  ]
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" })
@@ -42,12 +48,15 @@ export default function Sidebar({ counts }: { counts?: Record<string, number> })
   }
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-[210px] bg-[#1A1A1A] flex flex-col z-50">
+    <aside className="fixed top-0 left-0 h-screen w-52.5 bg-[#1A1A1A] flex flex-col z-50">
+      {/* Logo */}
       <div className="px-5 pt-6 pb-8">
         <Image src="/logo.png" alt="ID Bassin Congo" width={140} height={44} priority />
       </div>
 
+      {/* Nav */}
       <nav className="flex-1 px-3 space-y-5 overflow-y-auto">
+        {/* Dashboard */}
         <div>
           <Link
             href="/dashboard"
@@ -58,13 +67,14 @@ export default function Sidebar({ counts }: { counts?: Record<string, number> })
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#2AC1A3]" />
-            Tableau de bord
+            {s.dashboard}
           </Link>
         </div>
 
+        {/* Données */}
         <div>
           <p className="px-3 mb-2 text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
-            Donnees
+            {s.data}
           </p>
           {donneesLinks.map((link) => (
             <Link
@@ -89,9 +99,10 @@ export default function Sidebar({ counts }: { counts?: Record<string, number> })
           ))}
         </div>
 
+        {/* Gestion */}
         <div>
           <p className="px-3 mb-2 text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
-            Gestion
+            {s.management}
           </p>
           {gestionLinks.map((link) => (
             <Link
@@ -110,19 +121,40 @@ export default function Sidebar({ counts }: { counts?: Record<string, number> })
         </div>
       </nav>
 
-      <div className="px-3 pb-5 border-t border-white/5 pt-3">
-        <Link
-          href="/profil"
-          className="flex items-center gap-3 px-2 py-2"
-        >
-          <div className="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center">
-            <User className="w-4 h-4 text-white/50" />
+      {/* Bottom section */}
+      <div className="px-3 pb-4 space-y-3">
+        {/* Language switcher */}
+        <div className="border-t border-white/5 pt-3">
+          <div className="flex items-center gap-2 px-1 mb-2">
+            <Globe className="w-3 h-3 text-white/30" />
+            <span className="text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
+              {s.language}
+            </span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] text-white font-medium truncate">Admin</p>
-            <p className="text-[10px] text-[#2AC1A3] uppercase tracking-wider">Admin</p>
-          </div>
-        </Link>
+          <LanguageSwitcher variant="sidebar" />
+        </div>
+
+        {/* User profile + logout */}
+        <div className="border-t border-white/5 pt-3 flex items-center gap-2">
+          <Link href="/profil" className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center shrink-0">
+              <User className="w-4 h-4 text-white/50" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[12px] text-white font-medium truncate">Admin</p>
+              <p className="text-[10px] text-[#2AC1A3] uppercase tracking-wider truncate">
+                {s.admin}
+              </p>
+            </div>
+          </Link>
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-white/30 hover:text-white/80 hover:bg-white/5 transition"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </aside>
   )

@@ -2,6 +2,19 @@ export type Locale = "fr" | "en"
 
 export const translations = {
   fr: {
+    sidebar: {
+      dashboard: "Tableau de bord",
+      data: "Données",
+      management: "Gestion",
+      producers: "Producteurs",
+      parcels: "Parcelles",
+      collections: "Collectes",
+      lots: "Lots",
+      export: "DDS / Export",
+      users: "Utilisateurs",
+      language: "Langue",
+      admin: "Administrateur",
+    },
     login: {
       title: "CONNEXION",
       subtitle: "Accedez a votre espace de gestion de la tracabilite agricole.",
@@ -44,6 +57,19 @@ export const translations = {
     },
   },
   en: {
+    sidebar: {
+      dashboard: "Dashboard",
+      data: "Data",
+      management: "Management",
+      producers: "Producers",
+      parcels: "Parcels",
+      collections: "Collections",
+      lots: "Lots",
+      export: "DDS / Export",
+      users: "Users",
+      language: "Language",
+      admin: "Administrator",
+    },
     login: {
       title: "LOGIN",
       subtitle: "Access your agricultural traceability management space.",
