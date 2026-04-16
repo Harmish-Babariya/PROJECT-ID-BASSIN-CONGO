@@ -1,4 +1,5 @@
 "use client"
+import Link from "next/link"
 import { User } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 
@@ -69,9 +70,12 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
           </h1>
           <p className="text-gray-400 text-xs sm:text-sm mt-2">{u.subtitle}</p>
         </div>
-        <button className="self-start sm:self-auto shrink-0 px-4 sm:px-6 py-2.5 sm:py-3 bg-[#2AC1A3] hover:bg-[#25ad92] text-white text-[10px] sm:text-[11px] font-bold tracking-[0.15em] sm:tracking-[0.18em] rounded-lg transition font-mono shadow-sm">
+        <Link
+          href="/utilisateurs/inviter"
+          className="self-start sm:self-auto shrink-0 px-4 sm:px-6 py-2.5 sm:py-3 bg-[#2AC1A3] hover:bg-[#25ad92] text-white text-[10px] sm:text-[11px] font-bold tracking-[0.15em] sm:tracking-[0.18em] rounded-lg transition font-mono shadow-sm"
+        >
           {u.inviteBtn}
-        </button>
+        </Link>
       </div>
 
       {/* Stats cards */}
