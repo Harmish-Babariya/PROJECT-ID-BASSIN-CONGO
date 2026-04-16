@@ -1,7 +1,12 @@
+import { redirect } from "next/navigation"
 import ExportContent from "./ExportContent"
 import { getLots, getAllLotCollectes } from "@/lib/services/lots"
+import { getCurrentUser } from "@/lib/services/auth"
 
 export default async function ExportDDSPage() {
+  const user = await getCurrentUser()
+  if (user?.role !== "admin") redirect("/dashboard")
+
   const [lots, lotCollectes] = await Promise.all([
     getLots(),
     getAllLotCollectes(),

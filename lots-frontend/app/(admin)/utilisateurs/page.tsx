@@ -7,5 +7,16 @@ export default async function UtilisateursPage() {
     .select("*, pays(nom)")
     .order("created_at", { ascending: false })
 
-  return <UtilisateursContent profiles={profiles || []} />
+  const { data: authList } = await supabaseAdmin.auth.admin.listUsers()
+  const lastSignInById = new Map<string, string | null>()
+  for (const u of authList?.users || []) {
+    lastSignInById.set(u.id, u.last_sign_in_at ?? null)
+  }
+
+  const enriched = (profiles || []).map((p) => ({
+    ...p,
+    last_sign_in_at: lastSignInById.get(p.id) ?? null,
+  }))
+
+  return <UtilisateursContent profiles={enriched} />
 }

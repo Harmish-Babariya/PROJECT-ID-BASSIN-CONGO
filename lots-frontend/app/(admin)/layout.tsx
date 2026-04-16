@@ -3,13 +3,15 @@ import { getProducteursStats } from "@/lib/services/producteurs"
 import { getParcellesStats } from "@/lib/services/parcelles"
 import { getLotsStats } from "@/lib/services/lots"
 import { getCollectesStats } from "@/lib/services/collectes"
+import { getCurrentUser } from "@/lib/services/auth"
 
 export default async function AdminGroupLayout({ children }: { children: React.ReactNode }) {
-  const [producteurs, parcelles, lots, collectes] = await Promise.all([
+  const [producteurs, parcelles, lots, collectes, user] = await Promise.all([
     getProducteursStats(),
     getParcellesStats(),
     getLotsStats(),
     getCollectesStats(),
+    getCurrentUser(),
   ])
 
   const counts = {
@@ -19,5 +21,7 @@ export default async function AdminGroupLayout({ children }: { children: React.R
     collectes: collectes.length,
   }
 
-  return <AdminLayout counts={counts}>{children}</AdminLayout>
+  const role = user?.role ?? "point_focal"
+
+  return <AdminLayout counts={counts} role={role}>{children}</AdminLayout>
 }

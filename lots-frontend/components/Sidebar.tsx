@@ -5,11 +5,6 @@ import { usePathname, useRouter } from "next/navigation"
 import { useLanguage } from "@/contexts/LanguageContext"
 import LanguageSwitcher from "./LanguageSwitcher"
 import {
-  LayoutDashboard,
-  Users,
-  Map,
-  Package,
-  Scale,
   FileBarChart,
   UserCog,
   LogOut,
@@ -17,12 +12,19 @@ import {
   Globe,
 } from "lucide-react"
 
-export default function Sidebar({ counts }: { counts?: Record<string, number> }) {
+export default function Sidebar({
+  counts,
+  role,
+}: {
+  counts?: Record<string, number>
+  role?: string
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useLanguage()
 
   const s = t.sidebar
+  const isAdmin = role === "admin"
 
   const donneesLinks = [
     { href: "/producteurs", label: s.producers, badgeKey: "producteurs" },
@@ -99,26 +101,28 @@ export default function Sidebar({ counts }: { counts?: Record<string, number> })
           ))}
         </div>
 
-        {/* Gestion */}
-        <div>
-          <p className="px-3 mb-2 text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
-            {s.management}
-          </p>
-          {gestionLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition ${
-                isActive(link.href)
-                  ? "bg-white/10 text-white font-medium"
-                  : "text-white/55 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#2AC1A3]" />
-              {link.label}
-            </Link>
-          ))}
-        </div>
+        {/* Gestion - admin only */}
+        {isAdmin && (
+          <div>
+            <p className="px-3 mb-2 text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
+              {s.management}
+            </p>
+            {gestionLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition ${
+                  isActive(link.href)
+                    ? "bg-white/10 text-white font-medium"
+                    : "text-white/55 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2AC1A3]" />
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* Bottom section */}
@@ -141,9 +145,11 @@ export default function Sidebar({ counts }: { counts?: Record<string, number> })
               <User className="w-4 h-4 text-white/50" />
             </div>
             <div className="min-w-0">
-              <p className="text-[12px] text-white font-medium truncate">Admin</p>
+              <p className="text-[12px] text-white font-medium truncate">
+                {isAdmin ? "Admin" : "Point Focal"}
+              </p>
               <p className="text-[10px] text-[#2AC1A3] uppercase tracking-wider truncate">
-                {s.admin}
+                {isAdmin ? s.admin : "Point Focal"}
               </p>
             </div>
           </Link>
