@@ -1,5 +1,7 @@
 "use client"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { User } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 
@@ -35,9 +37,63 @@ function formatDate(d: string | null | undefined) {
   return `${dd}/${mm}/${yyyy} ${hh}:${mi}`
 }
 
+type ActionKind = "resend" | "cancel" | "deactivate" | "reactivate" | "delete"
+
+const ACTION_PATH: Record<ActionKind, string> = {
+  resend: "resend-invite",
+  cancel: "cancel-invite",
+  deactivate: "deactivate",
+  reactivate: "reactivate",
+  delete: "delete",
+}
+
+const CONFIRM_MESSAGES: Record<ActionKind, string | null> = {
+  resend: null,
+  cancel: "Annuler cette invitation ? L'utilisateur sera supprimé.",
+  deactivate: "Désactiver cet utilisateur ? Il ne pourra plus se connecter.",
+  reactivate: null,
+  delete: "Supprimer définitivement cet utilisateur ?",
+}
+
 export default function UtilisateursContent({ profiles }: { profiles: Profile[] }) {
   const { t } = useLanguage()
   const u = t.utilisateurs
+  const router = useRouter()
+  const [pendingAction, setPendingAction] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ kind: "ok" | "err"; message: string } | null>(null)
+
+  async function runAction(userId: string, kind: ActionKind) {
+    const confirmMessage = CONFIRM_MESSAGES[kind]
+    if (confirmMessage && !window.confirm(confirmMessage)) return
+
+    const key = `${userId}:${kind}`
+    setPendingAction(key)
+    setToast(null)
+    try {
+      const res = await fetch(`/api/utilisateurs/${userId}/${ACTION_PATH[kind]}`, {
+        method: "POST",
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setToast({ kind: "err", message: data.error || "Erreur lors de l'action." })
+        return
+      }
+      const successText: Record<ActionKind, string> = {
+        resend: "Invitation renvoyée.",
+        cancel: "Invitation annulée.",
+        deactivate: "Utilisateur désactivé.",
+        reactivate: "Utilisateur réactivé.",
+        delete: "Utilisateur supprimé.",
+      }
+      setToast({ kind: "ok", message: successText[kind] })
+      router.refresh()
+    } catch {
+      setToast({ kind: "err", message: "Erreur réseau." })
+    } finally {
+      setPendingAction(null)
+      setTimeout(() => setToast(null), 3500)
+    }
+  }
 
   const totalUsers = profiles.filter((p) => p.statut !== "inactif" && p.statut !== "en_attente").length
   const admins = profiles.filter((p) => p.role === "admin" && p.statut !== "inactif").length
@@ -58,6 +114,18 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
 
   return (
     <div className="space-y-5 sm:space-y-6">
+      {toast && (
+        <div
+          className={`px-4 py-3 rounded-lg text-[12px] sm:text-[13px] ${
+            toast.kind === "ok"
+              ? "bg-[#E8FAF6] text-[#1F8F77] border border-[#B6E8DC]"
+              : "bg-[#FDECEC] text-[#C2413A] border border-[#F2B4B0]"
+          }`}
+          role={toast.kind === "err" ? "alert" : "status"}
+        >
+          {toast.message}
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
@@ -284,18 +352,55 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                       <div className="flex items-center gap-3 lg:gap-5 text-[9px] lg:text-[10px] tracking-[0.12em] lg:tracking-[0.15em] font-semibold uppercase font-mono whitespace-nowrap">
                         {isPending ? (
                           <>
-                            <button className="text-gray-500 hover:text-gray-900">{u.actionResend}</button>
-                            <button className="text-[#d97757] hover:text-[#c04d2e]">{u.actionCancel}</button>
+                            <button
+                              type="button"
+                              disabled={pendingAction === `${user.id}:resend`}
+                              onClick={() => runAction(user.id, "resend")}
+                              className="text-gray-500 hover:text-gray-900 disabled:opacity-50"
+                            >
+                              {u.actionResend}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={pendingAction === `${user.id}:cancel`}
+                              onClick={() => runAction(user.id, "cancel")}
+                              className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                            >
+                              {u.actionCancel}
+                            </button>
                           </>
                         ) : isInactive ? (
                           <>
-                            <button className="text-gray-500 hover:text-gray-900">{u.actionReactivate}</button>
-                            <button className="text-[#d97757] hover:text-[#c04d2e]">{u.actionDelete}</button>
+                            <button
+                              type="button"
+                              disabled={pendingAction === `${user.id}:reactivate`}
+                              onClick={() => runAction(user.id, "reactivate")}
+                              className="text-gray-500 hover:text-gray-900 disabled:opacity-50"
+                            >
+                              {u.actionReactivate}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={pendingAction === `${user.id}:delete`}
+                              onClick={() => runAction(user.id, "delete")}
+                              className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                            >
+                              {u.actionDelete}
+                            </button>
                           </>
                         ) : (
                           <>
-                            <button className="text-gray-500 hover:text-gray-900">{u.actionEdit}</button>
-                            <button className="text-[#d97757] hover:text-[#c04d2e]">{u.actionDisable}</button>
+                            <button type="button" className="text-gray-500 hover:text-gray-900">
+                              {u.actionEdit}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={pendingAction === `${user.id}:deactivate`}
+                              onClick={() => runAction(user.id, "deactivate")}
+                              className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                            >
+                              {u.actionDisable}
+                            </button>
                           </>
                         )}
                       </div>
@@ -390,18 +495,55 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
               <div className="flex items-center gap-4 pt-3 border-t border-gray-100 text-[10px] tracking-widest font-semibold uppercase font-mono">
                 {isPending ? (
                   <>
-                    <button className="text-gray-600 hover:text-gray-900">{u.actionResend}</button>
-                    <button className="text-[#d97757] hover:text-[#c04d2e]">{u.actionCancel}</button>
+                    <button
+                      type="button"
+                      disabled={pendingAction === `${user.id}:resend`}
+                      onClick={() => runAction(user.id, "resend")}
+                      className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                    >
+                      {u.actionResend}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pendingAction === `${user.id}:cancel`}
+                      onClick={() => runAction(user.id, "cancel")}
+                      className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                    >
+                      {u.actionCancel}
+                    </button>
                   </>
                 ) : isInactive ? (
                   <>
-                    <button className="text-gray-600 hover:text-gray-900">{u.actionReactivate}</button>
-                    <button className="text-[#d97757] hover:text-[#c04d2e]">{u.actionDelete}</button>
+                    <button
+                      type="button"
+                      disabled={pendingAction === `${user.id}:reactivate`}
+                      onClick={() => runAction(user.id, "reactivate")}
+                      className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                    >
+                      {u.actionReactivate}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pendingAction === `${user.id}:delete`}
+                      onClick={() => runAction(user.id, "delete")}
+                      className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                    >
+                      {u.actionDelete}
+                    </button>
                   </>
                 ) : (
                   <>
-                    <button className="text-gray-600 hover:text-gray-900">{u.actionEdit}</button>
-                    <button className="text-[#d97757] hover:text-[#c04d2e]">{u.actionDisable}</button>
+                    <button type="button" className="text-gray-600 hover:text-gray-900">
+                      {u.actionEdit}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pendingAction === `${user.id}:deactivate`}
+                      onClick={() => runAction(user.id, "deactivate")}
+                      className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                    >
+                      {u.actionDisable}
+                    </button>
                   </>
                 )}
               </div>

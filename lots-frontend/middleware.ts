@@ -6,7 +6,10 @@ export function middleware(request: NextRequest) {
 
   // Public routes that don't require authentication
   const publicPaths = ["/", "/login"]
-  const isPublicPath = publicPaths.includes(pathname) || pathname.startsWith("/api/auth/") || pathname.startsWith("/api/seed")
+  const isPublicPath =
+    publicPaths.includes(pathname) ||
+    pathname.startsWith("/api/auth/") ||
+    pathname.startsWith("/api/seed")
 
   // Unauthenticated user trying to access protected route -> redirect to login
   if (!token && !isPublicPath) {

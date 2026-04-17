@@ -16,3 +16,9 @@ export const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ""
 // Server-only variables
 export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 export const JWT_SECRET = process.env.JWT_SECRET || ""
+
+// Mailjet transactional email
+export const MAILJET_API_KEY = process.env.MAILJET_API_KEY || ""
+export const MAILJET_API_SECRET = process.env.MAILJET_API_SECRET || ""
+export const MAILJET_FROM_EMAIL = process.env.MAILJET_FROM_EMAIL || ""
+export const MAILJET_FROM_NAME = process.env.MAILJET_FROM_NAME || "ID Bassin Congo"

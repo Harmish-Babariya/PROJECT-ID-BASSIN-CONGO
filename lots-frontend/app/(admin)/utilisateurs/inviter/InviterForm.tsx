@@ -1,15 +1,33 @@
 "use client"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { User } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 
 type Pays = { id: number | string; nom: string }
 
+const ERROR_MESSAGES: Record<string, string> = {
+  INVALID_EMAIL: "Adresse e-mail invalide.",
+  NAME_REQUIRED: "Le nom complet est requis.",
+  COUNTRY_REQUIRED: "Un pays doit être sélectionné pour un point focal.",
+  USER_EXISTS: "Un utilisateur avec cet e-mail existe déjà.",
+  UNAUTHORIZED: "Vous devez être connecté.",
+  FORBIDDEN: "Accès refusé : réservé aux administrateurs.",
+  CREATE_FAILED: "Impossible de créer le compte. Réessayez.",
+  PROFILE_INSERT_FAILED: "Impossible de créer le profil utilisateur.",
+  MAIL_NOT_CONFIGURED:
+    "Le service d'e-mail Mailjet n'est pas configuré. Contactez l'administrateur technique.",
+  MAIL_SEND_FAILED:
+    "Impossible d'envoyer l'e-mail d'invitation. Vérifiez la configuration Mailjet.",
+  SERVER_ERROR: "Erreur du serveur. Veuillez réessayer.",
+}
+
 export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode: string }) {
   const { t } = useLanguage()
   const u = t.utilisateurs
   const i = u.invite
+  const router = useRouter()
 
   const [role, setRole] = useState<"admin" | "focal">("admin")
   const [form, setForm] = useState({
@@ -18,11 +36,62 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
     organisation: "",
     pays_id: "",
   })
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const isAdmin = role === "admin"
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }))
+  }
+
+  async function handleSubmit() {
+    if (submitting) return
+    setError(null)
+    setSuccess(null)
+
+    if (!form.nom.trim()) {
+      setError(ERROR_MESSAGES.NAME_REQUIRED)
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setError(ERROR_MESSAGES.INVALID_EMAIL)
+      return
+    }
+    if (!isAdmin && !form.pays_id) {
+      setError(ERROR_MESSAGES.COUNTRY_REQUIRED)
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch("/api/utilisateurs/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nom: form.nom.trim(),
+          email: form.email.trim(),
+          organisation: form.organisation.trim() || null,
+          pays_id: isAdmin ? null : form.pays_id,
+          role: isAdmin ? "admin" : "point_focal",
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(ERROR_MESSAGES[data.error] || ERROR_MESSAGES.SERVER_ERROR)
+        return
+      }
+      setSuccess(`Invitation envoyée à ${form.email.trim()}.`)
+      setTimeout(() => {
+        router.push("/utilisateurs")
+        router.refresh()
+      }, 900)
+    } catch {
+      setError(ERROR_MESSAGES.SERVER_ERROR)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -255,15 +324,30 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
 
         <div className="border-t border-gray-200 mt-8" />
 
+        {(error || success) && (
+          <div
+            className={`mt-6 px-4 py-3 rounded-lg text-[12px] sm:text-[13px] ${
+              error
+                ? "bg-[#FDECEC] text-[#C2413A] border border-[#F2B4B0]"
+                : "bg-[#E8FAF6] text-[#1F8F77] border border-[#B6E8DC]"
+            }`}
+            role={error ? "alert" : "status"}
+          >
+            {error || success}
+          </div>
+        )}
+
         {/* Footer actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6">
           <p className="text-[12px] sm:text-[13px] text-gray-400 flex-1">{i.footerNote}</p>
           <div className="flex items-center gap-5 sm:gap-6 self-end sm:self-auto">
             <button
               type="button"
-              className="px-6 sm:px-7 py-3 sm:py-3.5 bg-[#2AC1A3] hover:bg-[#25ad92] text-white text-[11px] sm:text-[12px] font-bold tracking-[0.2em] rounded-lg transition font-mono shadow-sm"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="px-6 sm:px-7 py-3 sm:py-3.5 bg-[#2AC1A3] hover:bg-[#25ad92] disabled:opacity-60 disabled:cursor-not-allowed text-white text-[11px] sm:text-[12px] font-bold tracking-[0.2em] rounded-lg transition font-mono shadow-sm"
             >
-              {i.submit}
+              {submitting ? "..." : i.submit}
             </button>
             <Link
               href="/utilisateurs"
