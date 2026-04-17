@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
+import { randomBytes } from "crypto"
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { getCurrentUser } from "@/lib/services/auth"
-import { sendMail, buildInviteEmail } from "@/lib/services/mail"
+import { sendMail, buildVerifyEmail } from "@/lib/services/mail"
+import { apiError } from "@/lib/api-errors"
 
 function buildUserCode(count: number) {
   const seq = String(count + 1).padStart(5, "0")
@@ -9,24 +11,23 @@ function buildUserCode(count: number) {
   return `USR-${seq}-${rand}`
 }
 
-function buildTempPassword() {
-  const letters = "ABCDEFGHJKMNPQRSTUVWXYZ"
-  const lowers = "abcdefghijkmnpqrstuvwxyz"
-  const digits = "23456789"
-  const all = letters + lowers + digits
-  const pick = (src: string) => src[Math.floor(Math.random() * src.length)]
-  const chars = [pick(letters), pick(lowers), pick(digits), pick(digits)]
-  for (let i = 0; i < 8; i++) chars.push(pick(all))
-  return chars.sort(() => Math.random() - 0.5).join("")
+function buildRandomPassword() {
+  // Used as the placeholder password until the user verifies their email.
+  // Nobody ever sees this value.
+  return randomBytes(24).toString("base64url")
+}
+
+function buildVerifyToken() {
+  return randomBytes(32).toString("hex")
 }
 
 export async function POST(request: NextRequest) {
   const me = await getCurrentUser()
   if (!me) {
-    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 })
+    return apiError("UNAUTHORIZED", 401)
   }
   if (me.role !== "admin") {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 })
+    return apiError("FORBIDDEN", 403)
   }
 
   let body: {
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 })
+    return apiError("INVALID_BODY", 400)
   }
 
   const email = (body.email || "").toLowerCase().trim()
@@ -49,13 +50,13 @@ export async function POST(request: NextRequest) {
   const pays_id = rawRole === "admin" ? null : body.pays_id || null
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: "INVALID_EMAIL" }, { status: 400 })
+    return apiError("INVALID_EMAIL", 400)
   }
   if (!nom) {
-    return NextResponse.json({ error: "NAME_REQUIRED" }, { status: 400 })
+    return apiError("NAME_REQUIRED", 400)
   }
   if (rawRole === "point_focal" && !pays_id) {
-    return NextResponse.json({ error: "COUNTRY_REQUIRED" }, { status: 400 })
+    return apiError("COUNTRY_REQUIRED", 400)
   }
 
   const { data: existingProfile } = await supabaseAdmin
@@ -64,28 +65,25 @@ export async function POST(request: NextRequest) {
     .eq("email", email)
     .maybeSingle()
   if (existingProfile) {
-    return NextResponse.json({ error: "USER_EXISTS" }, { status: 409 })
+    return apiError("USER_EXISTS", 409)
   }
 
-  const tempPassword = buildTempPassword()
-
-  // Create the auth user directly with a temporary password
+  // Create the auth user, unverified. Placeholder password is never revealed —
+  // it'll be overwritten when the user clicks the verify link.
+  const placeholderPassword = buildRandomPassword()
   const { data: created, error: createError } =
     await supabaseAdmin.auth.admin.createUser({
       email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { name: nom, organisation },
+      password: placeholderPassword,
+      email_confirm: false,
+      user_metadata: { name: nom, organisation, pending_verification: true },
     })
 
   if (createError || !created?.user) {
     if (createError?.message?.toLowerCase().includes("already")) {
-      return NextResponse.json({ error: "USER_EXISTS" }, { status: 409 })
+      return apiError("USER_EXISTS", 409)
     }
-    return NextResponse.json(
-      { error: "CREATE_FAILED", detail: createError?.message },
-      { status: 500 }
-    )
+    return apiError("CREATE_FAILED", 500, { detail: createError?.message })
   }
 
   const userId = created.user.id
@@ -95,17 +93,25 @@ export async function POST(request: NextRequest) {
     .select("id", { count: "exact", head: true })
   const user_code = buildUserCode(count ?? 0)
 
+  const verifyToken = buildVerifyToken()
+  const verifyExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
   const insertPayload: Record<string, unknown> = {
     id: userId,
     email,
     nom_complet: nom,
     role: rawRole,
     pays_id,
-    statut: "actif",
+    statut: "en_attente",
     user_code,
     organisation,
+    verify_token: verifyToken,
+    verify_token_expires_at: verifyExpiresAt,
   }
 
+  // Strip columns that don't exist in this schema, but verify_token /
+  // verify_token_expires_at are load-bearing — if they're missing, fail loudly.
+  const requiredColumns = new Set(["verify_token", "verify_token_expires_at"])
   const optionalColumns = ["statut", "user_code", "organisation"]
   let insertError: { message?: string } | null = null
   while (true) {
@@ -117,6 +123,13 @@ export async function POST(request: NextRequest) {
       break
     }
     const msg = error.message || ""
+    if (requiredColumns.has("verify_token") && /verify_token/.test(msg)) {
+      insertError = {
+        message:
+          "La colonne verify_token manque dans user_profiles. Exécutez la migration SQL indiquée dans le README.",
+      }
+      break
+    }
     const missingCol = optionalColumns.find(
       (col) => msg.includes(`'${col}'`) || msg.includes(`"${col}"`)
     )
@@ -129,20 +142,23 @@ export async function POST(request: NextRequest) {
 
   if (insertError) {
     await supabaseAdmin.auth.admin.deleteUser(userId)
-    return NextResponse.json(
-      { error: "PROFILE_INSERT_FAILED", detail: insertError.message },
-      { status: 500 }
-    )
+    return apiError("PROFILE_INSERT_FAILED", 500, {
+      detail: insertError.message,
+      message: insertError.message?.includes("verify_token")
+        ? "Les colonnes de vérification manquent dans la table user_profiles. Exécutez la migration SQL indiquée dans le README."
+        : undefined,
+    })
   }
 
-  // Send credentials by email via Mailjet
-  const loginUrl = new URL("/login", request.nextUrl.origin).toString()
+  const verifyUrl = new URL(
+    `/verify-invite?token=${encodeURIComponent(verifyToken)}`,
+    request.nextUrl.origin
+  ).toString()
+
   const roleLabel = rawRole === "admin" ? "Administrateur" : "Point focal"
-  const { subject, textPart, htmlPart } = buildInviteEmail({
+  const { subject, textPart, htmlPart } = buildVerifyEmail({
     fullName: nom,
-    email,
-    tempPassword,
-    loginUrl,
+    verifyUrl,
     roleLabel,
   })
 
@@ -155,21 +171,18 @@ export async function POST(request: NextRequest) {
   })
 
   if (!mailResult.ok) {
-    // Email delivery failed — roll back the created user so the admin can retry cleanly
     await supabaseAdmin.from("user_profiles").delete().eq("id", userId)
     await supabaseAdmin.auth.admin.deleteUser(userId)
     const code =
       mailResult.error === "MAIL_NOT_CONFIGURED"
         ? "MAIL_NOT_CONFIGURED"
         : "MAIL_SEND_FAILED"
-    return NextResponse.json(
-      { error: code, detail: mailResult.error },
-      { status: 500 }
-    )
+    return apiError(code, 500, { detail: mailResult.error })
   }
 
   return NextResponse.json({
     success: true,
+    message: `Invitation envoyée à ${email}. L'utilisateur recevra un e-mail de vérification.`,
     user: { id: userId, email, nom_complet: nom, role: rawRole, pays_id, user_code },
   })
 }

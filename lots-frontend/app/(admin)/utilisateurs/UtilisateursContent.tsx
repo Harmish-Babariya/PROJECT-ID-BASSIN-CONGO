@@ -75,20 +75,26 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setToast({ kind: "err", message: data.error || "Erreur lors de l'action." })
+        setToast({
+          kind: "err",
+          message: data?.message || "Erreur lors de l'action.",
+        })
         return
       }
-      const successText: Record<ActionKind, string> = {
+      const successFallback: Record<ActionKind, string> = {
         resend: "Invitation renvoyée.",
         cancel: "Invitation annulée.",
         deactivate: "Utilisateur désactivé.",
         reactivate: "Utilisateur réactivé.",
         delete: "Utilisateur supprimé.",
       }
-      setToast({ kind: "ok", message: successText[kind] })
+      setToast({
+        kind: "ok",
+        message: data?.message || successFallback[kind],
+      })
       router.refresh()
     } catch {
-      setToast({ kind: "err", message: "Erreur réseau." })
+      setToast({ kind: "err", message: "Erreur réseau. Vérifiez votre connexion." })
     } finally {
       setPendingAction(null)
       setTimeout(() => setToast(null), 3500)

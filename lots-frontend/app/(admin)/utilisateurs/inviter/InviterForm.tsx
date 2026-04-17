@@ -79,14 +79,20 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(ERROR_MESSAGES[data.error] || ERROR_MESSAGES.SERVER_ERROR)
+        setError(
+          data?.message ||
+            ERROR_MESSAGES[data?.error] ||
+            ERROR_MESSAGES.SERVER_ERROR
+        )
         return
       }
-      setSuccess(`Invitation envoyée à ${form.email.trim()}.`)
+      setSuccess(
+        data?.message || `Invitation envoyée à ${form.email.trim()}.`
+      )
       setTimeout(() => {
         router.push("/utilisateurs")
         router.refresh()
-      }, 900)
+      }, 1100)
     } catch {
       setError(ERROR_MESSAGES.SERVER_ERROR)
     } finally {

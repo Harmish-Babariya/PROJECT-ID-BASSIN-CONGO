@@ -1,38 +1,33 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { signToken } from "@/lib/auth/jwt"
+import { apiError } from "@/lib/api-errors"
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password, rememberMe } = await request.json()
 
     if (!email || !password) {
-      return NextResponse.json(
-        { error: "EMAIL_PASSWORD_REQUIRED" },
-        { status: 400 }
-      )
+      return apiError("EMAIL_PASSWORD_REQUIRED", 400)
     }
 
-    // Authenticate via Supabase Auth
     const { data, error: authError } = await supabaseAdmin.auth.signInWithPassword({
       email: email.toLowerCase().trim(),
       password,
     })
 
     if (authError || !data.user) {
-      return NextResponse.json(
-        { error: "INVALID_CREDENTIALS" },
-        { status: 401 }
-      )
+      return apiError("INVALID_CREDENTIALS", 401)
     }
 
-    // Sign JWT token
     const token = signToken(
       { userId: data.user.id, email: data.user.email! },
       rememberMe
     )
 
     const response = NextResponse.json({
+      success: true,
+      message: "Connexion réussie.",
       user: {
         id: data.user.id,
         email: data.user.email,
@@ -50,9 +45,6 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch {
-    return NextResponse.json(
-      { error: "SERVER_ERROR" },
-      { status: 500 }
-    )
+    return apiError("SERVER_ERROR", 500)
   }
 }

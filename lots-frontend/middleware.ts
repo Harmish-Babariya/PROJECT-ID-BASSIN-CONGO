@@ -8,6 +8,7 @@ export function middleware(request: NextRequest) {
   const publicPaths = ["/", "/login"]
   const isPublicPath =
     publicPaths.includes(pathname) ||
+    pathname.startsWith("/verify-invite") ||
     pathname.startsWith("/api/auth/") ||
     pathname.startsWith("/api/seed")
 
