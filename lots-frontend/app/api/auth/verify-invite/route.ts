@@ -29,15 +29,11 @@ export async function POST(request: NextRequest) {
 
   const { data: profile, error: lookupError } = await supabaseAdmin
     .from("user_profiles")
-    .select(
-      "id, email, nom_complet, role, statut, verify_token, verify_token_expires_at"
-    )
+    .select("id, email, nom_complet, role, statut, verify_token_expires_at")
     .eq("verify_token", token)
     .maybeSingle()
 
-  if (lookupError || !profile) {
-    return apiError("INVALID_TOKEN", 400)
-  }
+  if (lookupError || !profile) return apiError("INVALID_TOKEN", 400)
 
   const expiresAt = profile.verify_token_expires_at
     ? new Date(profile.verify_token_expires_at).getTime()
@@ -46,8 +42,7 @@ export async function POST(request: NextRequest) {
     return apiError("TOKEN_EXPIRED", 400)
   }
 
-  // Idempotency: if the token matches an already-verified account, treat as success
-  // but don't re-send credentials and don't rotate the password.
+  // Already verified → don't rotate the password or re-send credentials.
   if (profile.statut === "actif") {
     return NextResponse.json({
       success: true,
@@ -74,7 +69,6 @@ export async function POST(request: NextRequest) {
     return apiError("VERIFY_FAILED", 500, { detail: updateError.message })
   }
 
-  // Clear the token and activate the profile
   await supabaseAdmin
     .from("user_profiles")
     .update({
@@ -85,8 +79,7 @@ export async function POST(request: NextRequest) {
     .eq("id", profile.id)
 
   const loginUrl = new URL("/login", request.nextUrl.origin).toString()
-  const roleLabel =
-    profile.role === "admin" ? "Administrateur" : "Point focal"
+  const roleLabel = profile.role === "admin" ? "Administrateur" : "Point focal"
 
   const { subject, textPart, htmlPart } = buildCredentialsEmail({
     fullName: profile.nom_complet || profile.email || "",
@@ -105,18 +98,13 @@ export async function POST(request: NextRequest) {
   })
 
   if (!mailResult.ok) {
-    // The account is already activated; the user can request a password reset.
-    // Report soft failure so the UI can tell them to contact support.
-    return NextResponse.json(
-      {
-        success: true,
-        mailFailed: true,
-        detail: mailResult.error,
-        message:
-          "Votre e-mail est vérifié, mais l'envoi des identifiants a échoué. Contactez l'administrateur.",
-      },
-      { status: 200 }
-    )
+    return NextResponse.json({
+      success: true,
+      mailFailed: true,
+      detail: mailResult.error,
+      message:
+        "Votre e-mail est vérifié, mais l'envoi des identifiants a échoué. Contactez l'administrateur.",
+    })
   }
 
   return NextResponse.json({
@@ -125,30 +113,3 @@ export async function POST(request: NextRequest) {
     message: `Votre e-mail est vérifié. Vos identifiants de connexion ont été envoyés à ${profile.email}.`,
   })
 }
-
-// Also allow GET for debugging: only checks if the token is valid, no side effects.
-export async function GET(request: NextRequest) {
-  const token = request.nextUrl.searchParams.get("token") || ""
-  if (!token || !/^[a-f0-9]{32,128}$/i.test(token)) {
-    return NextResponse.json({ valid: false, reason: "INVALID_TOKEN" })
-  }
-  const { data: profile } = await supabaseAdmin
-    .from("user_profiles")
-    .select("id, statut, verify_token_expires_at")
-    .eq("verify_token", token)
-    .maybeSingle()
-  if (!profile) {
-    return NextResponse.json({ valid: false, reason: "INVALID_TOKEN" })
-  }
-  const expiresAt = profile.verify_token_expires_at
-    ? new Date(profile.verify_token_expires_at).getTime()
-    : 0
-  if (!expiresAt || expiresAt < Date.now()) {
-    return NextResponse.json({ valid: false, reason: "TOKEN_EXPIRED" })
-  }
-  return NextResponse.json({
-    valid: true,
-    alreadyVerified: profile.statut === "actif",
-  })
-}
-

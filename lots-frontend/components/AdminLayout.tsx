@@ -13,7 +13,7 @@ export default function AdminLayout({
   return (
     <div className="flex min-h-screen bg-[#f5f7fa]">
       <Sidebar counts={counts} role={role} />
-      <main className="ml-52.5 flex-1 min-w-0 p-8 overflow-x-hidden">
+      <main className="flex-1 min-w-0 overflow-x-hidden lg:ml-52.5 px-4 sm:px-6 lg:px-8 pt-20 lg:pt-8 pb-8">
         {children}
       </main>
     </div>

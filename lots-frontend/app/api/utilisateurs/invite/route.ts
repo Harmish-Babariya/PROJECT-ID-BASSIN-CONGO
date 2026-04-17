@@ -11,24 +11,10 @@ function buildUserCode(count: number) {
   return `USR-${seq}-${rand}`
 }
 
-function buildRandomPassword() {
-  // Used as the placeholder password until the user verifies their email.
-  // Nobody ever sees this value.
-  return randomBytes(24).toString("base64url")
-}
-
-function buildVerifyToken() {
-  return randomBytes(32).toString("hex")
-}
-
 export async function POST(request: NextRequest) {
   const me = await getCurrentUser()
-  if (!me) {
-    return apiError("UNAUTHORIZED", 401)
-  }
-  if (me.role !== "admin") {
-    return apiError("FORBIDDEN", 403)
-  }
+  if (!me) return apiError("UNAUTHORIZED", 401)
+  if (me.role !== "admin") return apiError("FORBIDDEN", 403)
 
   let body: {
     nom?: string
@@ -52,9 +38,7 @@ export async function POST(request: NextRequest) {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return apiError("INVALID_EMAIL", 400)
   }
-  if (!nom) {
-    return apiError("NAME_REQUIRED", 400)
-  }
+  if (!nom) return apiError("NAME_REQUIRED", 400)
   if (rawRole === "point_focal" && !pays_id) {
     return apiError("COUNTRY_REQUIRED", 400)
   }
@@ -64,13 +48,10 @@ export async function POST(request: NextRequest) {
     .select("id")
     .eq("email", email)
     .maybeSingle()
-  if (existingProfile) {
-    return apiError("USER_EXISTS", 409)
-  }
+  if (existingProfile) return apiError("USER_EXISTS", 409)
 
-  // Create the auth user, unverified. Placeholder password is never revealed —
-  // it'll be overwritten when the user clicks the verify link.
-  const placeholderPassword = buildRandomPassword()
+  // Placeholder password is overwritten when the user clicks the verify link.
+  const placeholderPassword = randomBytes(24).toString("base64url")
   const { data: created, error: createError } =
     await supabaseAdmin.auth.admin.createUser({
       email,
@@ -93,60 +74,30 @@ export async function POST(request: NextRequest) {
     .select("id", { count: "exact", head: true })
   const user_code = buildUserCode(count ?? 0)
 
-  const verifyToken = buildVerifyToken()
-  const verifyExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  const verifyToken = randomBytes(32).toString("hex")
+  const verifyExpiresAt = new Date(
+    Date.now() + 24 * 60 * 60 * 1000
+  ).toISOString()
 
-  const insertPayload: Record<string, unknown> = {
-    id: userId,
-    email,
-    nom_complet: nom,
-    role: rawRole,
-    pays_id,
-    statut: "en_attente",
-    user_code,
-    organisation,
-    verify_token: verifyToken,
-    verify_token_expires_at: verifyExpiresAt,
-  }
-
-  // Strip columns that don't exist in this schema, but verify_token /
-  // verify_token_expires_at are load-bearing — if they're missing, fail loudly.
-  const requiredColumns = new Set(["verify_token", "verify_token_expires_at"])
-  const optionalColumns = ["statut", "user_code", "organisation"]
-  let insertError: { message?: string } | null = null
-  while (true) {
-    const { error } = await supabaseAdmin
-      .from("user_profiles")
-      .insert(insertPayload)
-    if (!error) {
-      insertError = null
-      break
-    }
-    const msg = error.message || ""
-    if (requiredColumns.has("verify_token") && /verify_token/.test(msg)) {
-      insertError = {
-        message:
-          "La colonne verify_token manque dans user_profiles. Exécutez la migration SQL indiquée dans le README.",
-      }
-      break
-    }
-    const missingCol = optionalColumns.find(
-      (col) => msg.includes(`'${col}'`) || msg.includes(`"${col}"`)
-    )
-    if (!missingCol || !(missingCol in insertPayload)) {
-      insertError = error
-      break
-    }
-    delete insertPayload[missingCol]
-  }
+  const { error: insertError } = await supabaseAdmin
+    .from("user_profiles")
+    .insert({
+      id: userId,
+      email,
+      nom_complet: nom,
+      role: rawRole,
+      pays_id,
+      statut: "en_attente",
+      user_code,
+      organisation,
+      verify_token: verifyToken,
+      verify_token_expires_at: verifyExpiresAt,
+    })
 
   if (insertError) {
     await supabaseAdmin.auth.admin.deleteUser(userId)
     return apiError("PROFILE_INSERT_FAILED", 500, {
       detail: insertError.message,
-      message: insertError.message?.includes("verify_token")
-        ? "Les colonnes de vérification manquent dans la table user_profiles. Exécutez la migration SQL indiquée dans le README."
-        : undefined,
     })
   }
 
@@ -154,8 +105,8 @@ export async function POST(request: NextRequest) {
     `/verify-invite?token=${encodeURIComponent(verifyToken)}`,
     request.nextUrl.origin
   ).toString()
-
   const roleLabel = rawRole === "admin" ? "Administrateur" : "Point focal"
+
   const { subject, textPart, htmlPart } = buildVerifyEmail({
     fullName: nom,
     verifyUrl,

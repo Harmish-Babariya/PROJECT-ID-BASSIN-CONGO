@@ -6,10 +6,6 @@ import {
   MAILJET_FROM_NAME,
 } from "@/lib/env"
 
-// Mailjet SMTP relay config:
-//   SMTP Server: in-v3.mailjet.com
-//   Username: MAILJET_API_KEY, Password: MAILJET_API_SECRET
-//   Port 587 (STARTTLS, preferred) or 465 (TLS)
 type SendArgs = {
   to: string
   toName?: string
@@ -26,11 +22,8 @@ function getTransporter(): Transporter | null {
   cachedTransporter = nodemailer.createTransport({
     host: "in-v3.mailjet.com",
     port: 587,
-    secure: false, // STARTTLS on 587
-    auth: {
-      user: MAILJET_API_KEY,
-      pass: MAILJET_API_SECRET,
-    },
+    secure: false,
+    auth: { user: MAILJET_API_KEY, pass: MAILJET_API_SECRET },
   })
   return cachedTransporter
 }
@@ -103,7 +96,7 @@ export function buildVerifyEmail(opts: {
       <p>Un compte vient de vous être créé pour la plateforme de traçabilité ID Bassin Congo (rôle&nbsp;: <strong>${escapeHtml(opts.roleLabel)}</strong>).</p>
       <p>Cliquez sur le bouton ci-dessous pour vérifier votre adresse e-mail et activer votre compte&nbsp;:</p>
       <p style="text-align:center; margin:26px 0;">
-        <a href="${escapeAttr(opts.verifyUrl)}" style="display:inline-block; background:#2ac1a3; color:#ffffff; text-decoration:none; padding:12px 26px; border-radius:8px; font-weight:600; letter-spacing:0.08em;">VÉRIFIER MON E-MAIL</a>
+        <a href="${escapeHtml(opts.verifyUrl)}" style="display:inline-block; background:#2ac1a3; color:#ffffff; text-decoration:none; padding:12px 26px; border-radius:8px; font-weight:600; letter-spacing:0.08em;">VÉRIFIER MON E-MAIL</a>
       </p>
       <p style="font-size:13px; color:#6b7280;">Ou copiez ce lien dans votre navigateur&nbsp;:</p>
       <p style="font-family:monospace; font-size:12px; word-break:break-all; color:#374151;">${escapeHtml(opts.verifyUrl)}</p>
@@ -156,7 +149,7 @@ export function buildCredentialsEmail(opts: {
         <p style="margin:0; font-size:14px;">${escapeHtml(opts.roleLabel)}</p>
       </div>
       <p style="text-align:center; margin:24px 0;">
-        <a href="${escapeAttr(opts.loginUrl)}" style="display:inline-block; background:#2ac1a3; color:#ffffff; text-decoration:none; padding:12px 22px; border-radius:8px; font-weight:600; letter-spacing:0.08em;">SE CONNECTER</a>
+        <a href="${escapeHtml(opts.loginUrl)}" style="display:inline-block; background:#2ac1a3; color:#ffffff; text-decoration:none; padding:12px 22px; border-radius:8px; font-weight:600; letter-spacing:0.08em;">SE CONNECTER</a>
       </p>
       <p style="font-size:13px; color:#6b7280;">Pour votre sécurité, pensez à changer ce mot de passe après votre première connexion.</p>
       <p style="font-size:12px; color:#9ca3af; margin-top:28px;">— ID Bassin Congo</p>
@@ -174,8 +167,4 @@ function escapeHtml(s: string) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;")
-}
-
-function escapeAttr(s: string) {
-  return escapeHtml(s)
 }

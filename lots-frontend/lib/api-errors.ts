@@ -1,39 +1,23 @@
 import { NextResponse } from "next/server"
 
-// Central error-code → human-readable message map used by all API routes.
-// Keep messages in French to match the rest of the platform.
 const ERROR_MESSAGES: Record<string, string> = {
-  // Auth / access
   UNAUTHORIZED:
     "Vous devez être connecté pour effectuer cette action. Connectez-vous puis réessayez.",
-  FORBIDDEN:
-    "Accès refusé : cette action est réservée aux administrateurs.",
-  CANNOT_DELETE_SELF:
-    "Vous ne pouvez pas supprimer votre propre compte.",
-  CANNOT_DEACTIVATE_SELF:
-    "Vous ne pouvez pas désactiver votre propre compte.",
+  FORBIDDEN: "Accès refusé : cette action est réservée aux administrateurs.",
+  CANNOT_DELETE_SELF: "Vous ne pouvez pas supprimer votre propre compte.",
+  CANNOT_DEACTIVATE_SELF: "Vous ne pouvez pas désactiver votre propre compte.",
 
-  // Request / payload
-  INVALID_BODY:
-    "Le corps de la requête est invalide. Envoyez un JSON valide.",
+  INVALID_BODY: "Le corps de la requête est invalide. Envoyez un JSON valide.",
   INVALID_EMAIL:
     "Adresse e-mail invalide. Vérifiez le format (ex. nom@domaine.com).",
-  NAME_REQUIRED:
-    "Le nom complet est requis.",
-  COUNTRY_REQUIRED:
-    "Un pays doit être sélectionné pour un rôle Point focal.",
-  PASSWORD_TOO_SHORT:
-    "Le mot de passe doit contenir au moins 8 caractères.",
+  NAME_REQUIRED: "Le nom complet est requis.",
+  COUNTRY_REQUIRED: "Un pays doit être sélectionné pour un rôle Point focal.",
+  PASSWORD_TOO_SHORT: "Le mot de passe doit contenir au moins 8 caractères.",
 
-  // Resource state
-  USER_EXISTS:
-    "Un utilisateur avec cet e-mail existe déjà.",
-  NOT_FOUND:
-    "Ressource introuvable.",
-  NOT_PENDING:
-    "Cette action n'est possible que pour une invitation en attente.",
+  USER_EXISTS: "Un utilisateur avec cet e-mail existe déjà.",
+  NOT_FOUND: "Ressource introuvable.",
+  NOT_PENDING: "Cette action n'est possible que pour une invitation en attente.",
 
-  // Token flow
   INVALID_TOKEN:
     "Ce lien de vérification est invalide. Demandez à un administrateur de vous renvoyer une invitation.",
   TOKEN_EXPIRED:
@@ -41,31 +25,21 @@ const ERROR_MESSAGES: Record<string, string> = {
   VERIFY_FAILED:
     "La vérification a échoué. Réessayez dans un instant ou contactez l'administrateur.",
 
-  // Downstream failures
-  CREATE_FAILED:
-    "Impossible de créer le compte. Réessayez dans un instant.",
-  PROFILE_INSERT_FAILED:
-    "Impossible d'enregistrer le profil utilisateur.",
-  UPDATE_FAILED:
-    "La mise à jour a échoué. Réessayez.",
-  DELETE_FAILED:
-    "La suppression a échoué. Réessayez.",
-  INVITE_FAILED:
-    "L'envoi de l'invitation a échoué. Réessayez.",
+  CREATE_FAILED: "Impossible de créer le compte. Réessayez dans un instant.",
+  PROFILE_INSERT_FAILED: "Impossible d'enregistrer le profil utilisateur.",
+  UPDATE_FAILED: "La mise à jour a échoué. Réessayez.",
+  DELETE_FAILED: "La suppression a échoué. Réessayez.",
+  INVITE_FAILED: "L'envoi de l'invitation a échoué. Réessayez.",
   MAIL_NOT_CONFIGURED:
     "Le service d'e-mail n'est pas configuré. Contactez l'administrateur technique.",
   MAIL_SEND_FAILED:
     "L'envoi de l'e-mail a échoué. Vérifiez la configuration Mailjet et réessayez.",
 
-  // Login-specific
-  EMAIL_PASSWORD_REQUIRED:
-    "E-mail et mot de passe sont requis.",
+  EMAIL_PASSWORD_REQUIRED: "E-mail et mot de passe sont requis.",
   INVALID_CREDENTIALS:
     "Identifiants incorrects. Vérifiez votre e-mail et votre mot de passe.",
 
-  // Generic fallback
-  SERVER_ERROR:
-    "Erreur serveur. Veuillez réessayer dans un instant.",
+  SERVER_ERROR: "Erreur serveur. Veuillez réessayer dans un instant.",
 }
 
 export function apiError(
@@ -74,9 +48,7 @@ export function apiError(
   extra?: { detail?: string; message?: string }
 ) {
   const message =
-    extra?.message ||
-    ERROR_MESSAGES[code] ||
-    ERROR_MESSAGES.SERVER_ERROR
+    extra?.message || ERROR_MESSAGES[code] || ERROR_MESSAGES.SERVER_ERROR
   return NextResponse.json(
     {
       error: code,
@@ -85,8 +57,4 @@ export function apiError(
     },
     { status }
   )
-}
-
-export function getErrorMessage(code: string): string {
-  return ERROR_MESSAGES[code] || ERROR_MESSAGES.SERVER_ERROR
 }
