@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Shield, TriangleAlert, Monitor, Trash2 } from "lucide-react"
 import type { AuditLogEntry } from "@/lib/services/audit"
@@ -59,19 +59,16 @@ export default function ProfileClient({
     setSessionsLoading(true)
     try {
       const res = await fetch("/api/auth/sessions")
-      if (res.ok) {
-        const data = await res.json()
-        setSessions(data.sessions ?? [])
-      }
+      const data = await res.json()
+      setSessions(data.sessions ?? [])
+    } catch {
+      setSessions([])
     } finally {
       setSessionsLoading(false)
     }
   }, [])
 
-  const openSessionsModal = useCallback(() => {
-    setShowSessionsModal(true)
-    fetchSessions()
-  }, [fetchSessions])
+
 
   async function handleDeleteSession(id: string) {
     setDeletingId(id)
@@ -148,9 +145,6 @@ export default function ProfileClient({
     return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`
   }
 
-  const sessionDesc = user?.last_sign_in_at
-    ? p.secSessionsActive(formatDate(user.last_sign_in_at))
-    : p.secSessionsNever
 
   function formatActivityLabel(entry: AuditLogEntry): string {
     const table = entry.table_name
@@ -521,15 +515,17 @@ export default function ProfileClient({
                   </div>
                   <div>
                     <p className="text-[13px] font-semibold text-gray-900">{p.secSessions}</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">{sessionDesc}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      {sessionsLoading ? "…" : `${sessions.length} ${p.secActive.toLowerCase()}`}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="px-3 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.08em] rounded-full uppercase">
-                    {user?.last_sign_in_at ? `1 ${p.secActive}` : "0"}
+                    {sessionsLoading ? "…" : `${sessions.length} ${p.secActive}`}
                   </span>
                   <button
-                    onClick={openSessionsModal}
+                    onClick={() => { setShowSessionsModal(true); fetchSessions() }}
                     className="px-3.5 py-1.5 border border-gray-200 bg-white text-gray-600 text-[10px] font-semibold tracking-[0.08em] rounded-lg uppercase hover:bg-gray-50 transition"
                   >
                     {p.secManage}

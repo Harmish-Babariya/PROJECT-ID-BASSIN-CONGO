@@ -14,6 +14,23 @@ export async function GET(request: NextRequest) {
   const payload = token ? verifyToken(token) : null
   const currentSessionId = payload?.sessionId ?? null
 
+  // Token has no sessionId — logged in before session tracking was added.
+  // Insert a row now so this device appears in the list immediately.
+  if (!currentSessionId) {
+    const ua = request.headers.get("user-agent") || null
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      request.headers.get("x-real-ip") ||
+      null
+
+    await supabaseAdmin.from("user_sessions").insert({
+      user_id: me.id,
+      ip_address: ip,
+      user_agent: ua,
+      last_seen_at: new Date().toISOString(),
+    })
+  }
+
   const { data: sessions, error } = await supabaseAdmin
     .from("user_sessions")
     .select("id, ip_address, user_agent, created_at, last_seen_at")
@@ -25,7 +42,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     sessions: (sessions ?? []).map((s) => ({
       ...s,
-      is_current: s.id === currentSessionId,
+      is_current: currentSessionId ? s.id === currentSessionId : false,
     })),
   })
 }

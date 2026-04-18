@@ -38,7 +38,8 @@ export async function getCurrentUser() {
     return null
   }
 
-  // Validate per-session: if sessionId is in the token, check the session row exists
+  // Keep session row fresh. If the row is missing (e.g. table created after
+  // this token was issued), recreate it — never block auth for a missing row.
   if (payload.sessionId) {
     const { data: sessionRow } = await supabaseAdmin
       .from("user_sessions")
@@ -47,14 +48,18 @@ export async function getCurrentUser() {
       .eq("user_id", user.id)
       .single()
 
-    if (!sessionRow) return null
-
-    // Update last_seen_at in background (fire and forget)
-    supabaseAdmin
-      .from("user_sessions")
-      .update({ last_seen_at: new Date().toISOString() })
-      .eq("id", payload.sessionId)
-      .then(() => {})
+    if (sessionRow) {
+      supabaseAdmin
+        .from("user_sessions")
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq("id", payload.sessionId)
+        .then(() => {})
+    } else {
+      supabaseAdmin
+        .from("user_sessions")
+        .insert({ id: payload.sessionId, user_id: user.id, last_seen_at: new Date().toISOString() })
+        .then(() => {})
+    }
   }
 
   // Bootstrap: register route creates auth users without a profile row.
