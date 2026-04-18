@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { createCollecte } from "./actions"
 import { Toast, useToast } from "@/components/Toast"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 interface CollecteFormProps {
   producteurs: any[]
@@ -10,6 +11,7 @@ interface CollecteFormProps {
 }
 
 export default function CollecteForm({ producteurs, parcelles }: CollecteFormProps) {
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const [parcellesFiltrees, setParcellesFiltrees] = useState(parcelles)
   const { toast, showError, hideToast } = useToast()
@@ -42,7 +44,7 @@ export default function CollecteForm({ producteurs, parcelles }: CollecteFormPro
     setLoading(true)
     const result = await createCollecte(formData)
     if (result?.error) {
-      showError(result.error)
+      showError(t.errors[result.error as keyof typeof t.errors] as string || result.error)
       setLoading(false)
     }
   }

@@ -1,10 +1,14 @@
 "use server"
 
 import { insertParcelle, updateParcelleById } from "@/lib/services/parcelles"
+import { getCurrentUser } from "@/lib/services/auth"
+import { insertAuditLog } from "@/lib/services/audit"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 export async function createParcelle(formData: any, returnTo?: string) {
+  const me = await getCurrentUser()
+
   try {
     const dataToInsert = {
       producteur_id: parseInt(formData.producteur_id),
@@ -104,6 +108,14 @@ export async function createParcelle(formData: any, returnTo?: string) {
       return { error: error.message }
     }
 
+    if (me) {
+      await insertAuditLog(me.id, "create", "parcelles", String(data.id), {
+        producteur_id: formData.producteur_id,
+        culture: dataToInsert.culture,
+        surface_ha: dataToInsert.surface_ha,
+      })
+    }
+
     revalidatePath('/parcelles')
     revalidatePath(`/producteurs/${formData.producteur_id}`)
 
@@ -118,6 +130,8 @@ export async function createParcelle(formData: any, returnTo?: string) {
 }
 
 export async function updateParcelle(id: string, formData: any) {
+  const me = await getCurrentUser()
+
   try {
     const dataToUpdate = {
       producteur_id: parseInt(formData.producteur_id),
@@ -208,6 +222,13 @@ export async function updateParcelle(id: string, formData: any) {
 
     if (error) {
       return { error: error.message }
+    }
+
+    if (me) {
+      await insertAuditLog(me.id, "update", "parcelles", id, {
+        culture: dataToUpdate.culture,
+        surface_ha: dataToUpdate.surface_ha,
+      })
     }
 
     revalidatePath('/parcelles')

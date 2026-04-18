@@ -48,14 +48,6 @@ const ACTION_PATH: Record<ActionKind, string> = {
   delete: "delete",
 }
 
-const CONFIRM_MESSAGES: Record<ActionKind, string | null> = {
-  resend: null,
-  cancel: "Annuler cette invitation ? L'utilisateur sera supprimé.",
-  deactivate: "Désactiver cet utilisateur ? Il ne pourra plus se connecter.",
-  reactivate: null,
-  delete: "Supprimer définitivement cet utilisateur ?",
-}
-
 export default function UtilisateursContent({ profiles }: { profiles: Profile[] }) {
   const { t } = useLanguage()
   const u = t.utilisateurs
@@ -85,24 +77,24 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
       if (!res.ok) {
         setToast({
           kind: "err",
-          message: data?.message || "Erreur lors de l'action.",
+          message: t.errors[data?.error as keyof typeof t.errors] || t.errors.actionError,
         })
         return
       }
-      const successFallback: Record<ActionKind, string> = {
-        resend: "Invitation renvoyée.",
-        cancel: "Invitation annulée.",
-        deactivate: "Utilisateur désactivé.",
-        reactivate: "Utilisateur réactivé.",
-        delete: "Utilisateur supprimé.",
+      const successMessages: Record<ActionKind, string> = {
+        resend: t.actions.resendSuccess,
+        cancel: t.actions.cancelSuccess,
+        deactivate: t.actions.deactivateSuccess,
+        reactivate: t.actions.reactivateSuccess,
+        delete: t.actions.deleteSuccess,
       }
       setToast({
         kind: "ok",
-        message: data?.message || successFallback[kind],
+        message: successMessages[kind],
       })
       router.refresh()
     } catch {
-      setToast({ kind: "err", message: "Erreur réseau. Vérifiez votre connexion." })
+      setToast({ kind: "err", message: t.errors.NETWORK_ERROR })
     } finally {
       setPendingAction(null)
       setTimeout(() => setToast(null), 3500)

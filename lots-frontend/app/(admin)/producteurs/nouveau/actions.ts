@@ -1,10 +1,14 @@
 "use server"
 
 import { insertProducteur } from "@/lib/services/producteurs"
+import { getCurrentUser } from "@/lib/services/auth"
+import { insertAuditLog } from "@/lib/services/audit"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 export async function createProducteur(formData: any, returnTo?: string) {
+  const me = await getCurrentUser()
+
   try {
     const dataToInsert = {
       // Identification
@@ -67,6 +71,14 @@ export async function createProducteur(formData: any, returnTo?: string) {
 
     if (error) {
       return { error: error.message }
+    }
+
+    if (me) {
+      await insertAuditLog(me.id, "create", "producteurs", String(data.id), {
+        nom: `${dataToInsert.nom}${dataToInsert.prenom ? " " + dataToInsert.prenom : ""}`,
+        village: dataToInsert.village,
+        pays_id: dataToInsert.pays_id,
+      })
     }
 
     revalidatePath('/producteurs')

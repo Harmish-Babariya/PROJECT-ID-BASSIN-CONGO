@@ -17,16 +17,21 @@ export async function POST(
 
   await insertAuditLog(me.id, "delete", "user_profiles", id)
 
-  const { error } = await supabaseAdmin.auth.admin.deleteUser(id)
-  if (error) {
-    return apiError("DELETE_FAILED", 500, { detail: error.message })
-  }
-
-  // Mark the profile as deleted so data remains linked but the account is gone
+  // Anonymise profile first so the FK no longer blocks auth user deletion
   await supabaseAdmin
     .from("user_profiles")
     .update({ statut: "supprime", email: null, nom_complet: "[Supprimé]" })
     .eq("id", id)
+
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(id)
+  if (error) {
+    // Rollback anonymisation
+    await supabaseAdmin
+      .from("user_profiles")
+      .update({ statut: "actif" })
+      .eq("id", id)
+    return apiError("DELETE_FAILED", 500, { detail: error.message })
+  }
 
   return NextResponse.json({
     success: true,

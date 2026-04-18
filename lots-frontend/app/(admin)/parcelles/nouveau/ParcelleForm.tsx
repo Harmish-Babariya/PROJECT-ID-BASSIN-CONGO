@@ -4,6 +4,7 @@ import Link from "next/link"
 import { createParcelle } from "./actions"
 import { supabase } from "@/lib/supabase"
 import { Toast, useToast } from "@/components/Toast"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 interface ParcelleFormProps {
   producteurs: any[]
@@ -12,12 +13,13 @@ interface ParcelleFormProps {
   producteurPreselectionne?: string
 }
 
-export default function ParcelleForm({ 
-  producteurs, 
-  zones, 
+export default function ParcelleForm({
+  producteurs,
+  zones,
   returnTo,
-  producteurPreselectionne 
+  producteurPreselectionne
 }: ParcelleFormProps) {
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const { toast, showSuccess, showError, hideToast } = useToast()
   const [filteredProducteurs, setFilteredProducteurs] = useState(producteurs)
@@ -144,14 +146,14 @@ export default function ParcelleForm({
 
     // Validate file extension
     if (!file.name.toLowerCase().endsWith('.gpx')) {
-      showError("Seuls les fichiers .gpx sont acceptes")
+      showError(t.errors.gpxOnly)
       return
     }
 
     // Validate max file size (10MB)
     const MAX_SIZE = 10 * 1024 * 1024
     if (file.size > MAX_SIZE) {
-      showError("Le fichier ne doit pas depasser 10 Mo")
+      showError(t.errors.gpxTooLarge)
       return
     }
 
@@ -164,7 +166,7 @@ export default function ParcelleForm({
         .upload(fileName, file)
 
       if (uploadError) {
-        showError("Erreur upload : " + uploadError.message)
+        showError(t.errors.gpxUploadError(uploadError.message))
         setGpxUploading(false)
         return
       }
@@ -205,12 +207,12 @@ export default function ParcelleForm({
         }))
 
         setGpxAnalyse(result)
-        showSuccess("GPX analyse avec succes !")
+        showSuccess(t.actions.gpxSuccess)
       } else {
-        showError("Erreur analyse : " + result.error)
+        showError(t.errors.gpxAnalyseError(result.error))
       }
     } catch (error: any) {
-      showError("Erreur : " + error.message)
+      showError(t.errors.gpxError(error.message))
     } finally {
       setGpxUploading(false)
     }
@@ -222,7 +224,7 @@ export default function ParcelleForm({
     setLoading(true)
     const result = await createParcelle(formData, returnTo)
     if (result?.error) {
-      showError("Erreur: " + result.error)
+      showError(t.errors[result.error as keyof typeof t.errors] as string || result.error)
       setLoading(false)
     }
   }

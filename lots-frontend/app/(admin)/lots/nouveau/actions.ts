@@ -1,5 +1,7 @@
 "use server"
 import { insertLot, insertLotCollectes } from "@/lib/services/lots"
+import { getCurrentUser } from "@/lib/services/auth"
+import { insertAuditLog } from "@/lib/services/audit"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
@@ -8,6 +10,8 @@ export async function createLot(
   collectesSelectionnees: number[],
   poidsTotal: number
 ) {
+  const me = await getCurrentUser()
+
   try {
     const { data: lot, error: lotError } = await insertLot({
       produit: formData.produit,
@@ -30,6 +34,15 @@ export async function createLot(
     const { error: insertError } = await insertLotCollectes(associations)
     if (insertError) {
       return { error: insertError.message }
+    }
+
+    if (me) {
+      await insertAuditLog(me.id, "create", "lots", String(lot.id), {
+        produit: formData.produit,
+        poids_total_kg: poidsTotal,
+        nb_collectes: collectesSelectionnees.length,
+        statut: formData.statut,
+      })
     }
 
     revalidatePath('/lots')

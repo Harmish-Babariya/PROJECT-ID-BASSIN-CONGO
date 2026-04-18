@@ -6,6 +6,7 @@ import "mapbox-gl/dist/mapbox-gl.css"
 import { createClient } from "@supabase/supabase-js"
 import { Maximize2 } from "lucide-react"
 import ExpandedMapModal from "./ExpandedMapModal"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -87,6 +88,7 @@ function addLayersToMap(map: mapboxgl.Map) {
 }
 
 export default function DashboardMap() {
+  const { t } = useLanguage()
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const geojsonRef = useRef<{ type: string; features: ParcelFeature[] } | null>(null)
@@ -122,7 +124,7 @@ export default function DashboardMap() {
 
         if (dbError) throw dbError
         if (!data || data.length === 0) {
-          setError("Aucune parcelle trouvee dans la base de donnees.")
+          setError(t.errors.noParcelsFound)
           setLoading(false)
           return
         }
@@ -213,7 +215,7 @@ export default function DashboardMap() {
       map.remove()
       mapRef.current = null
     }
-  }, [])
+  }, [t.errors.noParcelsFound])
 
   const changeStyle = useCallback((styleKey: string) => {
     const map = mapRef.current

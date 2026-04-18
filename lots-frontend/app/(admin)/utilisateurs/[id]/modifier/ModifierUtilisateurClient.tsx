@@ -28,21 +28,6 @@ type InitialUser = {
   last_sign_in_at: string | null
 }
 
-const ERROR_MESSAGES: Record<string, string> = {
-  INVALID_EMAIL: "Adresse e-mail invalide.",
-  NAME_REQUIRED: "Le nom complet est requis.",
-  COUNTRY_REQUIRED: "Un pays doit être sélectionné pour un point focal.",
-  USER_EXISTS: "Un utilisateur avec cet e-mail existe déjà.",
-  UNAUTHORIZED: "Vous devez être connecté.",
-  FORBIDDEN: "Accès refusé : réservé aux administrateurs.",
-  NOT_FOUND: "Utilisateur introuvable.",
-  UPDATE_FAILED: "La mise à jour a échoué.",
-  DELETE_FAILED: "La suppression a échoué.",
-  MAIL_NOT_CONFIGURED:
-    "Le service d'e-mail Mailjet n'est pas configuré. Contactez l'administrateur technique.",
-  MAIL_SEND_FAILED: "L'envoi de l'e-mail a échoué.",
-  SERVER_ERROR: "Erreur du serveur. Veuillez réessayer.",
-}
 
 function getInitials(name: string, email: string) {
   if (name) {
@@ -123,15 +108,15 @@ export default function ModifierUtilisateurClient({
     setFeedback(null)
 
     if (!form.nom_complet.trim()) {
-      showFeedback("err", ERROR_MESSAGES.NAME_REQUIRED)
+      showFeedback("err", t.errors.NAME_REQUIRED)
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      showFeedback("err", ERROR_MESSAGES.INVALID_EMAIL)
+      showFeedback("err", t.errors.INVALID_EMAIL)
       return
     }
     if (!isAdmin && !form.pays_id) {
-      showFeedback("err", ERROR_MESSAGES.COUNTRY_REQUIRED)
+      showFeedback("err", t.errors.COUNTRY_REQUIRED)
       return
     }
 
@@ -151,9 +136,7 @@ export default function ModifierUtilisateurClient({
       if (!res.ok) {
         showFeedback(
           "err",
-          data?.message ||
-            ERROR_MESSAGES[data?.error] ||
-            ERROR_MESSAGES.SERVER_ERROR
+          t.errors[data?.error as keyof typeof t.errors] || t.errors.SERVER_ERROR
         )
         return
       }
@@ -165,7 +148,7 @@ export default function ModifierUtilisateurClient({
       )
       router.refresh()
     } catch {
-      showFeedback("err", ERROR_MESSAGES.SERVER_ERROR)
+      showFeedback("err", t.errors.NETWORK_ERROR)
     } finally {
       setSubmitting(false)
     }
@@ -191,28 +174,24 @@ export default function ModifierUtilisateurClient({
       if (!res.ok) {
         showFeedback(
           "err",
-          data?.message ||
-            ERROR_MESSAGES[data?.error] ||
-            ERROR_MESSAGES.SERVER_ERROR
+          t.errors[data?.error as keyof typeof t.errors] || t.errors.SERVER_ERROR
         )
         return
       }
-      const fallback =
-        kind === "reset"
-          ? m.resetSuccess
-          : kind === "deactivate"
-          ? "Utilisateur désactivé."
-          : kind === "reactivate"
-          ? "Utilisateur réactivé."
-          : "Utilisateur supprimé."
-      showFeedback("ok", data?.message || fallback)
+      const successMessages = {
+        reset: m.resetSuccess,
+        deactivate: t.actions.deactivateSuccess,
+        reactivate: t.actions.reactivateSuccess,
+        delete: t.actions.deleteSuccess,
+      }
+      showFeedback("ok", successMessages[kind])
       if (kind === "delete") {
         setTimeout(() => router.push("/utilisateurs"), 800)
       } else {
         router.refresh()
       }
     } catch {
-      showFeedback("err", ERROR_MESSAGES.SERVER_ERROR)
+      showFeedback("err", t.errors.NETWORK_ERROR)
     } finally {
       setActionPending(null)
     }

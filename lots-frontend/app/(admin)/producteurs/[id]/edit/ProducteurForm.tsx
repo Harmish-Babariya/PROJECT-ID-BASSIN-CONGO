@@ -3,6 +3,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { updateProducteur } from "./actions"
 import { Toast, useToast } from "@/components/Toast"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 interface ProducteurFormProps {
   producteur?: any
@@ -11,6 +12,7 @@ interface ProducteurFormProps {
 }
 
 export default function ProducteurForm({ producteur, zones, pays }: ProducteurFormProps) {
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const { toast, showError, hideToast } = useToast()
   const [formData, setFormData] = useState({
@@ -33,7 +35,7 @@ export default function ProducteurForm({ producteur, zones, pays }: ProducteurFo
     const result = await updateProducteur(producteur.id, formData)
 
     if (result?.error) {
-      showError("Erreur: " + result.error)
+      showError(t.errors[result.error as keyof typeof t.errors] as string || result.error)
       setLoading(false)
     }
   }

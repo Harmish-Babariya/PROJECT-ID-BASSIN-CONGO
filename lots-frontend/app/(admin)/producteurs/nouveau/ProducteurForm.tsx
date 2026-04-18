@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { createProducteur } from "./actions"
 import { Toast, useToast } from "@/components/Toast"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 interface ProducteurFormProps {
   zones: any[]
@@ -12,6 +13,7 @@ interface ProducteurFormProps {
 }
 
 export default function ProducteurForm({ zones, pays, villages, returnTo }: ProducteurFormProps) {
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const { toast, showError, hideToast } = useToast()
   const [filteredZones, setFilteredZones] = useState(zones)
@@ -111,7 +113,7 @@ export default function ProducteurForm({ zones, pays, villages, returnTo }: Prod
     const result = await createProducteur(formData, returnTo)
 
     if (result?.error) {
-      showError("Erreur: " + result.error)
+      showError(t.errors[result.error as keyof typeof t.errors] as string || result.error)
       setLoading(false)
     }
   }

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { CheckCircle2, AlertCircle } from "lucide-react"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 type Status =
   | { kind: "loading" }
@@ -15,19 +16,10 @@ type Status =
     }
   | { kind: "error"; message: string }
 
-const ERROR_MESSAGES: Record<string, string> = {
-  INVALID_TOKEN:
-    "Ce lien de vérification est invalide. Demandez à un administrateur de vous renvoyer une invitation.",
-  TOKEN_EXPIRED:
-    "Ce lien a expiré. Demandez à un administrateur de vous renvoyer une invitation.",
-  VERIFY_FAILED:
-    "La vérification a échoué. Réessayez dans un instant ou contactez l'administrateur.",
-  SERVER_ERROR: "Erreur serveur. Réessayez dans un instant.",
-}
-
 export default function VerifyInviteClient({ token }: { token: string }) {
+  const { t } = useLanguage()
   const [status, setStatus] = useState<Status>(
-    token ? { kind: "loading" } : { kind: "error", message: ERROR_MESSAGES.INVALID_TOKEN }
+    token ? { kind: "loading" } : { kind: "error", message: t.errors.INVALID_TOKEN }
   )
 
   useEffect(() => {
@@ -45,10 +37,7 @@ export default function VerifyInviteClient({ token }: { token: string }) {
         if (!res.ok || !data?.success) {
           setStatus({
             kind: "error",
-            message:
-              data?.message ||
-              ERROR_MESSAGES[data?.error] ||
-              ERROR_MESSAGES.SERVER_ERROR,
+            message: t.errors[data?.error as keyof typeof t.errors] as string || t.errors.SERVER_ERROR,
           })
           return
         }
@@ -62,7 +51,7 @@ export default function VerifyInviteClient({ token }: { token: string }) {
       })
       .catch(() => {
         if (cancelled) return
-        setStatus({ kind: "error", message: ERROR_MESSAGES.SERVER_ERROR })
+        setStatus({ kind: "error", message: t.errors.SERVER_ERROR })
       })
 
     return () => {

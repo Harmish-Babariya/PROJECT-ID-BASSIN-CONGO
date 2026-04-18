@@ -3,6 +3,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { updateLot } from "./actions"
 import { Toast, useToast } from "@/components/Toast"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 interface LotFormProps {
   lot: any
@@ -11,6 +12,7 @@ interface LotFormProps {
 }
 
 export default function LotForm({ lot, collectesDisponibles, collectesInitiales }: LotFormProps) {
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const { toast, showError, hideToast } = useToast()
   const [collectesSelectionnees, setCollectes] = useState<number[]>(collectesInitiales)
@@ -38,14 +40,14 @@ export default function LotForm({ lot, collectesDisponibles, collectesInitiales 
     if (loading) return
 
     if (collectesSelectionnees.length === 0) {
-      showError("Vous devez sélectionner au moins une collecte")
+      showError(t.errors.collecteRequired)
       return
     }
 
     setLoading(true)
     const result = await updateLot(lot.id, formData, collectesSelectionnees, poidsTotal)
     if (result?.error) {
-      showError(result.error)
+      showError(t.errors[result.error as keyof typeof t.errors] as string || result.error)
       setLoading(false)
     }
   }

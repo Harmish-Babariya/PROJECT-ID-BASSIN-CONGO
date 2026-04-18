@@ -149,10 +149,8 @@ export default function ProfileClient({
   function formatActivityLabel(entry: AuditLogEntry): string {
     const table = entry.table_name
     const action = entry.action.toLowerCase()
-    const meta = entry.metadata as Record<string, string> | null
-    const label =
-      meta?.code || meta?.nom || meta?.email ||
-      (entry.record_id?.slice(0, 8).toUpperCase() ?? "—")
+    const meta = entry.metadata as Record<string, unknown> | null
+
     const tableLabel =
       table === "producteurs" ? p.tableProducteur :
       table === "parcelles" ? p.tableParcelle :
@@ -161,6 +159,7 @@ export default function ProfileClient({
       table === "dds" ? p.tableDds :
       table === "user_profiles" ? p.tableUser :
       table
+
     const actionLabel =
       action === "insert" || action === "create" ? p.actionCreate :
       action === "update" ? p.actionUpdate :
@@ -170,7 +169,33 @@ export default function ProfileClient({
       action === "reactivate" ? p.actionReactivate :
       action === "reset_password" || action === "change_password" ? p.actionResetPwd :
       action
-    return `${actionLabel} ${tableLabel} — ${label}`
+
+    // Build a rich detail string from metadata depending on the entity type
+    let detail = ""
+    if (table === "producteurs" && meta) {
+      detail = String(meta.nom || meta.code || entry.record_id?.slice(0, 8).toUpperCase() || "—")
+    } else if (table === "parcelles" && meta) {
+      const culture = meta.culture ? String(meta.culture) : null
+      const surface = meta.surface_ha ? `${meta.surface_ha} ha` : null
+      detail = [culture, surface].filter(Boolean).join(", ") || entry.record_id?.slice(0, 8).toUpperCase() || "—"
+    } else if (table === "collectes" && meta) {
+      const produit = meta.produit ? String(meta.produit) : null
+      const poids = meta.poids_net_kg ? `${meta.poids_net_kg} kg` : null
+      detail = [produit, poids].filter(Boolean).join(" · ") || entry.record_id?.slice(0, 8).toUpperCase() || "—"
+    } else if (table === "lots" && meta) {
+      const produit = meta.produit ? String(meta.produit) : null
+      const poids = meta.poids_total_kg ? `${meta.poids_total_kg} kg` : null
+      detail = [produit, poids].filter(Boolean).join(" · ") || entry.record_id?.slice(0, 8).toUpperCase() || "—"
+    } else if (table === "user_profiles" && meta) {
+      detail = String(meta.email || meta.user_code || entry.record_id?.slice(0, 8).toUpperCase() || "—")
+    } else {
+      detail = String(
+        meta?.code || meta?.nom || meta?.email ||
+        entry.record_id?.slice(0, 8).toUpperCase() || "—"
+      )
+    }
+
+    return `${actionLabel} ${tableLabel} — ${detail}`
   }
 
   const permissions = isAdmin

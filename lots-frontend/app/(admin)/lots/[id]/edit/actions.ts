@@ -1,5 +1,7 @@
 "use server"
 import { updateLotById, deleteLotCollectes, insertLotCollectes } from "@/lib/services/lots"
+import { getCurrentUser } from "@/lib/services/auth"
+import { insertAuditLog } from "@/lib/services/audit"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
@@ -9,6 +11,8 @@ export async function updateLot(
   collectesSelectionnees: number[],
   poidsTotal: number
 ) {
+  const me = await getCurrentUser()
+
   try {
     const { error: lotError } = await updateLotById(lotId, {
       produit: formData.produit,
@@ -37,6 +41,14 @@ export async function updateLot(
       if (insertError) {
         return { error: insertError.message }
       }
+    }
+
+    if (me) {
+      await insertAuditLog(me.id, "update", "lots", String(lotId), {
+        produit: formData.produit,
+        poids_total_kg: poidsTotal,
+        statut: formData.statut,
+      })
     }
 
     revalidatePath('/lots')

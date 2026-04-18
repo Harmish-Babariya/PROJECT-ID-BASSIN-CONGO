@@ -7,22 +7,6 @@ import { useLanguage } from "@/contexts/LanguageContext"
 
 type Pays = { id: number | string; nom: string }
 
-const ERROR_MESSAGES: Record<string, string> = {
-  INVALID_EMAIL: "Adresse e-mail invalide.",
-  NAME_REQUIRED: "Le nom complet est requis.",
-  COUNTRY_REQUIRED: "Un pays doit être sélectionné pour un point focal.",
-  USER_EXISTS: "Un utilisateur avec cet e-mail existe déjà.",
-  UNAUTHORIZED: "Vous devez être connecté.",
-  FORBIDDEN: "Accès refusé : réservé aux administrateurs.",
-  CREATE_FAILED: "Impossible de créer le compte. Réessayez.",
-  PROFILE_INSERT_FAILED: "Impossible de créer le profil utilisateur.",
-  MAIL_NOT_CONFIGURED:
-    "Le service d'e-mail Mailjet n'est pas configuré. Contactez l'administrateur technique.",
-  MAIL_SEND_FAILED:
-    "Impossible d'envoyer l'e-mail d'invitation. Vérifiez la configuration Mailjet.",
-  SERVER_ERROR: "Erreur du serveur. Veuillez réessayer.",
-}
-
 export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode: string }) {
   const { t } = useLanguage()
   const u = t.utilisateurs
@@ -52,15 +36,15 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
     setSuccess(null)
 
     if (!form.nom.trim()) {
-      setError(ERROR_MESSAGES.NAME_REQUIRED)
+      setError(t.errors.NAME_REQUIRED)
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      setError(ERROR_MESSAGES.INVALID_EMAIL)
+      setError(t.errors.INVALID_EMAIL)
       return
     }
     if (!isAdmin && !form.pays_id) {
-      setError(ERROR_MESSAGES.COUNTRY_REQUIRED)
+      setError(t.errors.COUNTRY_REQUIRED)
       return
     }
 
@@ -80,21 +64,20 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         setError(
-          data?.message ||
-            ERROR_MESSAGES[data?.error] ||
-            ERROR_MESSAGES.SERVER_ERROR
+          t.errors[data?.error as keyof typeof t.errors] ||
+            t.errors.SERVER_ERROR
         )
         return
       }
       setSuccess(
-        data?.message || `Invitation envoyée à ${form.email.trim()}.`
+        t.actions.inviteSent(form.email.trim())
       )
       setTimeout(() => {
         router.push("/utilisateurs")
         router.refresh()
       }, 1100)
     } catch {
-      setError(ERROR_MESSAGES.SERVER_ERROR)
+      setError(t.errors.NETWORK_ERROR)
     } finally {
       setSubmitting(false)
     }

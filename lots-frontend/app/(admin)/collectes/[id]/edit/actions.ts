@@ -1,9 +1,13 @@
 "use server"
 import { updateCollecteById } from "@/lib/services/collectes"
+import { getCurrentUser } from "@/lib/services/auth"
+import { insertAuditLog } from "@/lib/services/audit"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 export async function updateCollecte(id: number, formData: any) {
+  const me = await getCurrentUser()
+
   try {
     const dataToUpdate = {
       producteur_id: parseInt(formData.producteur_id),
@@ -21,6 +25,14 @@ export async function updateCollecte(id: number, formData: any) {
 
     if (error) {
       return { error: error.message }
+    }
+
+    if (me) {
+      await insertAuditLog(me.id, "update", "collectes", String(id), {
+        produit: dataToUpdate.produit,
+        poids_net_kg: dataToUpdate.poids_net_kg,
+        date_collecte: dataToUpdate.date_collecte,
+      })
     }
 
     revalidatePath('/collectes')

@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
     return apiError("COUNTRY_REQUIRED", 400)
   }
 
+  // Check user_profiles first
   const { data: existingProfile } = await supabaseAdmin
     .from("user_profiles")
     .select("id")
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
 
   // Placeholder password is overwritten when the user clicks the verify link.
   const placeholderPassword = randomBytes(24).toString("base64url")
-  const { data: created, error: createError } =
+  let { data: created, error: createError } =
     await supabaseAdmin.auth.admin.createUser({
       email,
       password: placeholderPassword,
@@ -62,10 +63,23 @@ export async function POST(request: NextRequest) {
     })
 
   if (createError || !created?.user) {
-    if (createError?.message?.toLowerCase().includes("already")) {
-      return apiError("USER_EXISTS", 409)
+    const msg = createError?.message?.toLowerCase() ?? ""
+    if (msg.includes("already")) {
+      // Auth user exists but has no profile (orphaned) — find it and reuse its ID
+      const { data: { users: allUsers } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
+      const orphan = allUsers.find(u => u.email?.toLowerCase() === email)
+      if (orphan) {
+        created = { user: orphan } as typeof created
+      } else {
+        return apiError("USER_EXISTS", 409)
+      }
+    } else {
+      return apiError("CREATE_FAILED", 500, { detail: createError?.message })
     }
-    return apiError("CREATE_FAILED", 500, { detail: createError?.message })
+  }
+
+  if (!created?.user) {
+    return apiError("CREATE_FAILED", 500)
   }
 
   const userId = created.user.id
@@ -80,9 +94,10 @@ export async function POST(request: NextRequest) {
     Date.now() + 24 * 60 * 60 * 1000
   ).toISOString()
 
+  // Use upsert so a previously failed insert (orphaned profile) gets overwritten cleanly
   const { error: insertError } = await supabaseAdmin
     .from("user_profiles")
-    .insert({
+    .upsert({
       id: userId,
       email,
       nom_complet: nom,
@@ -93,9 +108,10 @@ export async function POST(request: NextRequest) {
       organisation,
       verify_token: verifyToken,
       verify_token_expires_at: verifyExpiresAt,
-    })
+    }, { onConflict: "id" })
 
   if (insertError) {
+    console.error("[invite] profile upsert failed:", insertError)
     await supabaseAdmin.auth.admin.deleteUser(userId)
     return apiError("PROFILE_INSERT_FAILED", 500, {
       detail: insertError.message,
@@ -123,8 +139,9 @@ export async function POST(request: NextRequest) {
   })
 
   if (!mailResult.ok) {
+    // Clean up both profile and auth user on mail failure
     await supabaseAdmin.from("user_profiles").delete().eq("id", userId)
-    await supabaseAdmin.auth.admin.deleteUser(userId)
+    await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => {})
     const code =
       mailResult.error === "MAIL_NOT_CONFIGURED"
         ? "MAIL_NOT_CONFIGURED"
