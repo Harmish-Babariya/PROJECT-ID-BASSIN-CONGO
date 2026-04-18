@@ -20,8 +20,38 @@ export async function POST(request: NextRequest) {
       return apiError("INVALID_CREDENTIALS", 401)
     }
 
+    // Fetch token_version for session invalidation support
+    const { data: profile } = await supabaseAdmin
+      .from("user_profiles")
+      .select("token_version")
+      .eq("id", data.user.id)
+      .single()
+
+    // Create a session row for per-session revocation
+    const ua = request.headers.get("user-agent") || null
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      request.headers.get("x-real-ip") ||
+      null
+
+    const { data: sessionRow } = await supabaseAdmin
+      .from("user_sessions")
+      .insert({
+        user_id: data.user.id,
+        ip_address: ip,
+        user_agent: ua,
+        last_seen_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single()
+
     const token = signToken(
-      { userId: data.user.id, email: data.user.email! },
+      {
+        userId: data.user.id,
+        email: data.user.email!,
+        tokenVersion: profile?.token_version ?? 0,
+        sessionId: sessionRow?.id ?? undefined,
+      },
       rememberMe
     )
 

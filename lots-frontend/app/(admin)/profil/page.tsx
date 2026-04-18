@@ -1,14 +1,36 @@
 import { getCurrentUser } from "@/lib/services/auth"
-import { getProducteursStats } from "@/lib/services/producteurs"
-import { getLotsStats } from "@/lib/services/lots"
+import { getProfileStats, getRecentActivity } from "@/lib/services/audit"
 import ProfileClient from "./ProfileClient"
 
 export default async function ProfilPage() {
-  const [user, producteurs, lots] = await Promise.all([
-    getCurrentUser(),
-    getProducteursStats(),
-    getLotsStats(),
+  const user = await getCurrentUser()
+
+  const [rawStats, recentActivity] = await Promise.all([
+    user
+      ? getProfileStats(user.id, user.role, user.country_id)
+      : Promise.resolve(null),
+    user
+      ? getRecentActivity(user.id, user.role, 5)
+      : Promise.resolve([]),
   ])
+
+  const isAdmin = user?.role === "admin"
+
+  // Admin: producteurs / lots / dds / actions
+  // Point focal: producteurs / parcelles / collectes / actions (country-scoped)
+  const stats = isAdmin
+    ? {
+        producteurs: rawStats?.producteurs ?? 0,
+        lotsGeneres: rawStats?.lots ?? 0,
+        ddsEmises: rawStats?.dds ?? 0,
+        actionsLoguees: rawStats?.totalActions ?? 0,
+      }
+    : {
+        producteurs: rawStats?.producteurs ?? 0,
+        lotsGeneres: rawStats?.parcelles ?? 0,   // slot 2: parcelles for focal
+        ddsEmises: rawStats?.collectes ?? 0,      // slot 3: collectes for focal
+        actionsLoguees: rawStats?.totalActions ?? 0,
+      }
 
   return (
     <ProfileClient
@@ -22,12 +44,8 @@ export default async function ProfilPage() {
         created_at: user.created_at,
         last_sign_in_at: user.last_sign_in_at,
       } : null}
-      stats={{
-        producteurs: producteurs.length,
-        lotsGeneres: lots.length,
-        ddsEmises: 67,
-        actionsLoguees: 1284,
-      }}
+      stats={stats}
+      recentActivity={recentActivity}
     />
   )
 }

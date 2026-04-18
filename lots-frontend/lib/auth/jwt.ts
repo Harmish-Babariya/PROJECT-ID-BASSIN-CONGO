@@ -6,6 +6,8 @@ const JWT_SECRET = SECRET || "default-secret-change-in-production"
 export type JWTPayload = {
   userId: string
   email: string
+  tokenVersion?: number
+  sessionId?: string
 }
 
 export function signToken(payload: JWTPayload, rememberMe = false): string {

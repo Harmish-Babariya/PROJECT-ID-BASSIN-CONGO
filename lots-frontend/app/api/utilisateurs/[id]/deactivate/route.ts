@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { getCurrentUser } from "@/lib/services/auth"
 import { apiError } from "@/lib/api-errors"
+import { insertAuditLog } from "@/lib/services/audit"
 
 export async function POST(
   _request: NextRequest,
@@ -21,6 +22,8 @@ export async function POST(
   if (error) {
     return apiError("UPDATE_FAILED", 500, { detail: error.message })
   }
+
+  await insertAuditLog(me.id, "deactivate", "user_profiles", id)
 
   return NextResponse.json({
     success: true,

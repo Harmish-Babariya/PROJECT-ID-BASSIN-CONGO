@@ -35,6 +35,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   MAIL_SEND_FAILED:
     "L'envoi de l'e-mail a échoué. Vérifiez la configuration Mailjet et réessayez.",
 
+  MISSING_FIELDS: "Tous les champs sont requis.",
+  WRONG_CURRENT_PASSWORD: "Mot de passe actuel incorrect.",
   EMAIL_PASSWORD_REQUIRED: "E-mail et mot de passe sont requis.",
   INVALID_CREDENTIALS:
     "Identifiants incorrects. Vérifiez votre e-mail et votre mot de passe.",

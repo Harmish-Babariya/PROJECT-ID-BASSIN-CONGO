@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { getCurrentUser } from "@/lib/services/auth"
 import { apiError } from "@/lib/api-errors"
+import { insertAuditLog } from "@/lib/services/audit"
 
 export async function GET(
   _request: NextRequest,
@@ -121,6 +122,9 @@ export async function PATCH(
         detail: profileUpdateError.message,
       })
     }
+    await insertAuditLog(me.id, "update", "user_profiles", id, {
+      fields: Object.keys(update),
+    })
   }
 
   return NextResponse.json({

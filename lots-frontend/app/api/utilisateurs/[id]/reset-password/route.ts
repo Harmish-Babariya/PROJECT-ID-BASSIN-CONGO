@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-server"
 import { getCurrentUser } from "@/lib/services/auth"
 import { sendMail, buildCredentialsEmail } from "@/lib/services/mail"
 import { apiError } from "@/lib/api-errors"
+import { insertAuditLog } from "@/lib/services/audit"
 
 function buildTempPassword() {
   const letters = "ABCDEFGHJKMNPQRSTUVWXYZ"
@@ -67,6 +68,10 @@ export async function POST(
         : "MAIL_SEND_FAILED"
     return apiError(code, 500, { detail: mailResult.error })
   }
+
+  await insertAuditLog(me.id, "reset_password", "user_profiles", id, {
+    email: profile.email,
+  })
 
   return NextResponse.json({
     success: true,

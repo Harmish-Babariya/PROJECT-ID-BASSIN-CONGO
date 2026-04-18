@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-server"
 import { getCurrentUser } from "@/lib/services/auth"
 import { sendMail, buildVerifyEmail } from "@/lib/services/mail"
 import { apiError } from "@/lib/api-errors"
+import { insertAuditLog } from "@/lib/services/audit"
 
 function buildUserCode(count: number) {
   const seq = String(count + 1).padStart(5, "0")
@@ -130,6 +131,12 @@ export async function POST(request: NextRequest) {
         : "MAIL_SEND_FAILED"
     return apiError(code, 500, { detail: mailResult.error })
   }
+
+  await insertAuditLog(me.id, "invite", "user_profiles", userId, {
+    email,
+    role: rawRole,
+    user_code,
+  })
 
   return NextResponse.json({
     success: true,

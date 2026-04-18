@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { getCurrentUser } from "@/lib/services/auth"
 import { apiError } from "@/lib/api-errors"
+import { insertAuditLog } from "@/lib/services/audit"
 
 export async function POST(
   _request: NextRequest,
@@ -13,6 +14,8 @@ export async function POST(
 
   const { id } = await context.params
   if (id === me.id) return apiError("CANNOT_DELETE_SELF", 400)
+
+  await insertAuditLog(me.id, "delete", "user_profiles", id)
 
   const { error } = await supabaseAdmin.auth.admin.deleteUser(id)
   if (error) {

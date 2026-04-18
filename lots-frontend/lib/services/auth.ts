@@ -29,6 +29,34 @@ export async function getCurrentUser() {
     .eq("id", user.id)
     .single()
 
+  // Validate token_version — if DB version is higher, this token has been revoked
+  if (
+    profile &&
+    typeof payload.tokenVersion === "number" &&
+    (profile.token_version ?? 0) > payload.tokenVersion
+  ) {
+    return null
+  }
+
+  // Validate per-session: if sessionId is in the token, check the session row exists
+  if (payload.sessionId) {
+    const { data: sessionRow } = await supabaseAdmin
+      .from("user_sessions")
+      .select("id")
+      .eq("id", payload.sessionId)
+      .eq("user_id", user.id)
+      .single()
+
+    if (!sessionRow) return null
+
+    // Update last_seen_at in background (fire and forget)
+    supabaseAdmin
+      .from("user_sessions")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", payload.sessionId)
+      .then(() => {})
+  }
+
   // Bootstrap: register route creates auth users without a profile row.
   // Create one on first login so admin access works correctly.
   if (!profile) {
