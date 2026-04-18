@@ -5,9 +5,13 @@ import { Shield, TriangleAlert, Monitor } from "lucide-react"
 
 interface ProfileUser {
   email: string
+  nom_complet: string | null
+  organisation: string | null
+  user_code: string | null
   role: string
   country: string | null
   created_at: string
+  last_sign_in_at: string | null
 }
 
 interface ProfileStats {
@@ -27,11 +31,37 @@ export default function ProfileClient({
   const router = useRouter()
   const [loggingOut, setLoggingOut] = useState(false)
 
-  const displayName = "Julia Tankeu"
-  const displayEmail = user?.email || "julia.tankeu@lonswiss.com"
+  const displayName = user?.nom_complet || user?.email || "—"
+  const displayEmail = user?.email || "—"
   const displayRole = user?.role === "admin" ? "Administrateur" : "Point Focal"
-  const displayOrg = "LONSWISS SARL"
-  const initials = "JT"
+  const displayOrg = user?.organisation || "—"
+  const displayCountry = user?.country || "Tous (accès global)"
+  const identifier = user?.user_code || "—"
+  const initials = (() => {
+    const name = user?.nom_complet
+    if (name) {
+      const parts = name.trim().split(/\s+/)
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+      return name.slice(0, 2).toUpperCase()
+    }
+    return user?.email?.slice(0, 2).toUpperCase() || "??"
+  })()
+
+  function formatDate(d: string | null) {
+    if (!d) return "—"
+    const date = new Date(d)
+    const dd = String(date.getDate()).padStart(2, "0")
+    const mm = String(date.getMonth() + 1).padStart(2, "0")
+    const yyyy = date.getFullYear()
+    const hh = String(date.getHours()).padStart(2, "0")
+    const min = String(date.getMinutes()).padStart(2, "0")
+    return `${dd}/${mm}/${yyyy} · ${hh}:${min}`
+  }
+
+  function formatDateLong(d: string | null) {
+    if (!d) return "—"
+    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+  }
 
   async function handleLogout() {
     setLoggingOut(true)
@@ -62,19 +92,21 @@ export default function ProfileClient({
               <p className="text-[13px] text-gray-400 mt-0.5">{displayEmail}</p>
               <div className="flex gap-2.5 mt-3">
                 <span className="px-3.5 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.12em] rounded-full uppercase">
-                  ADMIN
+                  {displayRole}
                 </span>
-                <span className="px-3.5 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.12em] rounded-full uppercase">
-                  {displayOrg}
-                </span>
+                {user?.organisation && (
+                  <span className="px-3.5 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.12em] rounded-full uppercase">
+                    {displayOrg}
+                  </span>
+                )}
               </div>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-gray-400 tracking-[0.12em] uppercase font-medium">Derniere Connexion</p>
-            <p className="text-[13px] font-semibold text-gray-900 mt-0.5">03/04/2026 · 08:42</p>
+            <p className="text-[9px] text-gray-400 tracking-[0.12em] uppercase font-medium">Dernière Connexion</p>
+            <p className="text-[13px] font-semibold text-gray-900 mt-0.5">{formatDate(user?.last_sign_in_at ?? null)}</p>
             <p className="text-[9px] text-gray-400 tracking-[0.12em] uppercase font-medium mt-3">Identifiant</p>
-            <p className="text-[13px] font-semibold text-[#2AC1A3] mt-0.5">USR-ADMIN-001</p>
+            <p className="text-[13px] font-semibold text-[#2AC1A3] mt-0.5">{identifier}</p>
           </div>
         </div>
         </div>
@@ -106,11 +138,10 @@ export default function ProfileClient({
             {[
               { label: "Nom complet", value: displayName },
               { label: "Email", value: displayEmail },
-              { label: "Role", value: displayRole },
+              { label: "Rôle", value: displayRole },
               { label: "Organisation", value: displayOrg },
-              { label: "Pays", value: "Tous (acces global)" },
-              { label: "Langue", value: "Francais" },
-              { label: "Compte cree", value: "15 janvier 2025" },
+              { label: "Pays", value: displayCountry },
+              { label: "Compte créé", value: formatDateLong(user?.created_at ?? null) },
             ].map((row) => (
               <div
                 key={row.label}

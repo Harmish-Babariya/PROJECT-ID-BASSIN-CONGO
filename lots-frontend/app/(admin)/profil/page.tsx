@@ -14,9 +14,13 @@ export default async function ProfilPage() {
     <ProfileClient
       user={user ? {
         email: user.email,
+        nom_complet: user.nom_complet,
+        organisation: user.organisation,
+        user_code: user.user_code,
         role: user.role,
         country: user.country,
         created_at: user.created_at,
+        last_sign_in_at: user.last_sign_in_at,
       } : null}
       stats={{
         producteurs: producteurs.length,
