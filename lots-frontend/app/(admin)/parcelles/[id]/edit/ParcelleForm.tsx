@@ -11,6 +11,7 @@ interface ParcelleFormProps {
 
 export default function ParcelleForm({ parcelle, producteurs, zones }: ParcelleFormProps) {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     producteur_id: parcelle?.producteur_id || "",
     zone_id: parcelle?.zone_id || "",
@@ -24,16 +25,22 @@ export default function ParcelleForm({ parcelle, producteurs, zones }: ParcelleF
     e.preventDefault()
     setLoading(true)
 
+    setError(null)
     const result = await updateParcelle(parcelle.id, formData)
-    
+
     if (result?.error) {
-      alert("Erreur: " + result.error)
+      setError(result.error)
       setLoading(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-lg shadow p-8 max-w-2xl">
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-100 text-[13px] text-red-500">
+          {error}
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-6">
         <div>
           <label className="block text-gray-900 text-sm font-medium mb-2">Producteur *</label>

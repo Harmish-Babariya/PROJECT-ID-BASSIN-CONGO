@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { User } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import ConfirmModal from "@/components/ConfirmModal"
 
 type Profile = {
   id: string
@@ -58,14 +59,21 @@ const CONFIRM_MESSAGES: Record<ActionKind, string | null> = {
 export default function UtilisateursContent({ profiles }: { profiles: Profile[] }) {
   const { t } = useLanguage()
   const u = t.utilisateurs
+  const c = u.confirm
   const router = useRouter()
   const [pendingAction, setPendingAction] = useState<string | null>(null)
   const [toast, setToast] = useState<{ kind: "ok" | "err"; message: string } | null>(null)
+  const [confirmState, setConfirmState] = useState<{ userId: string; kind: ActionKind } | null>(null)
 
-  async function runAction(userId: string, kind: ActionKind) {
-    const confirmMessage = CONFIRM_MESSAGES[kind]
-    if (confirmMessage && !window.confirm(confirmMessage)) return
+  const CONFIRM_CONFIG: Record<ActionKind, { title: string; message: string } | null> = {
+    resend: null,
+    cancel: { title: c.cancelTitle, message: c.cancelMsg },
+    deactivate: { title: c.deactivateTitle, message: c.deactivateMsg },
+    reactivate: null,
+    delete: { title: c.deleteTitle, message: c.deleteMsg },
+  }
 
+  async function executeAction(userId: string, kind: ActionKind) {
     const key = `${userId}:${kind}`
     setPendingAction(key)
     setToast(null)
@@ -98,6 +106,15 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
     } finally {
       setPendingAction(null)
       setTimeout(() => setToast(null), 3500)
+    }
+  }
+
+  function runAction(userId: string, kind: ActionKind) {
+    const cfg = CONFIRM_CONFIG[kind]
+    if (cfg) {
+      setConfirmState({ userId, kind })
+    } else {
+      executeAction(userId, kind)
     }
   }
 
@@ -569,6 +586,20 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmState !== null}
+        title={confirmState ? (CONFIRM_CONFIG[confirmState.kind]?.title ?? "") : ""}
+        message={confirmState ? (CONFIRM_CONFIG[confirmState.kind]?.message ?? "") : ""}
+        confirmLabel={c.confirmBtn}
+        cancelLabel={c.cancelBtn}
+        danger={confirmState?.kind === "delete" || confirmState?.kind === "cancel"}
+        onConfirm={() => {
+          if (confirmState) executeAction(confirmState.userId, confirmState.kind)
+          setConfirmState(null)
+        }}
+        onCancel={() => setConfirmState(null)}
+      />
     </div>
   )
 }

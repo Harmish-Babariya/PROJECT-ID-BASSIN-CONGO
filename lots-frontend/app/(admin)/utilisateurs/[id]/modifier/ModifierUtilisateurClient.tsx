@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { User } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import ConfirmModal from "@/components/ConfirmModal"
 
 type Pays = { id: number | string; nom: string }
 
@@ -95,6 +96,7 @@ export default function ModifierUtilisateurClient({
   })
   const [submitting, setSubmitting] = useState(false)
   const [actionPending, setActionPending] = useState<string | null>(null)
+  const [confirmKind, setConfirmKind] = useState<"reset" | "deactivate" | "delete" | null>(null)
   const [feedback, setFeedback] = useState<{
     kind: "ok" | "err"
     message: string
@@ -169,12 +171,7 @@ export default function ModifierUtilisateurClient({
     }
   }
 
-  async function runExtraAction(
-    kind: "reset" | "deactivate" | "reactivate" | "delete",
-    confirmMessage?: string
-  ) {
-    if (confirmMessage && !window.confirm(confirmMessage)) return
-
+  async function runExtraAction(kind: "reset" | "deactivate" | "reactivate" | "delete") {
     const path =
       kind === "reset"
         ? "reset-password"
@@ -499,12 +496,7 @@ export default function ModifierUtilisateurClient({
             desc={m.resetDesc}
             btn={m.resetBtn}
             pending={actionPending === "reset"}
-            onClick={() =>
-              runExtraAction(
-                "reset",
-                "Réinitialiser le mot de passe et envoyer un nouvel e-mail ?"
-              )
-            }
+            onClick={() => setConfirmKind("reset")}
           />
 
           {isActive ? (
@@ -513,12 +505,7 @@ export default function ModifierUtilisateurClient({
               desc={m.deactivateDesc}
               btn={m.deactivateBtn}
               pending={actionPending === "deactivate"}
-              onClick={() =>
-                runExtraAction(
-                  "deactivate",
-                  "Désactiver ce compte ? L'utilisateur ne pourra plus se connecter."
-                )
-              }
+              onClick={() => setConfirmKind("deactivate")}
             />
           ) : (
             <ExtraAction
@@ -536,15 +523,31 @@ export default function ModifierUtilisateurClient({
             btn={m.deleteBtn}
             danger
             pending={actionPending === "delete"}
-            onClick={() =>
-              runExtraAction(
-                "delete",
-                "Supprimer définitivement cet utilisateur ? Cette action est irréversible."
-              )
-            }
+            onClick={() => setConfirmKind("delete")}
           />
         </div>
       </div>
+
+      {confirmKind && (() => {
+        const c = u.confirm
+        const cfg = {
+          reset:      { title: c.resetTitle,      message: c.resetMsg,      danger: false },
+          deactivate: { title: c.deactivateTitle, message: c.deactivateMsg, danger: false },
+          delete:     { title: c.deleteTitle,     message: c.deleteMsg,     danger: true  },
+        }[confirmKind]
+        return (
+          <ConfirmModal
+            open
+            title={cfg.title}
+            message={cfg.message}
+            confirmLabel={c.confirmBtn}
+            cancelLabel={c.cancelBtn}
+            danger={cfg.danger}
+            onConfirm={() => { setConfirmKind(null); runExtraAction(confirmKind) }}
+            onCancel={() => setConfirmKind(null)}
+          />
+        )
+      })()}
     </div>
   )
 }
