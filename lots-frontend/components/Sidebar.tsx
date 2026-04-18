@@ -88,12 +88,12 @@ export default function Sidebar({
       )}
 
       <aside
-        className={`fixed top-0 left-0 h-screen w-64 lg:w-52.5 bg-[#1A1A1A] flex flex-col z-50 transition-transform duration-200 ease-out ${
+        className={`fixed top-0 left-0 h-dvh w-64 lg:w-52.5 bg-[#1A1A1A] flex flex-col z-50 transition-transform duration-200 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
       >
         {/* Logo + close (mobile) */}
-        <div className="px-5 pt-6 pb-8 flex items-center justify-between">
+        <div className="px-5 pt-6 pb-8 flex items-center justify-between shrink-0">
           <Image src="/logo.png" alt="ID Bassin Congo" width={140} height={44} priority />
           <button
             onClick={() => setOpen(false)}
@@ -104,7 +104,7 @@ export default function Sidebar({
           </button>
         </div>
 
-        <nav className="flex-1 px-3 space-y-5 overflow-y-auto">
+        <nav className="flex-1 px-3 space-y-5 overflow-y-auto min-h-0">
           <div>
             <Link
               href="/dashboard"

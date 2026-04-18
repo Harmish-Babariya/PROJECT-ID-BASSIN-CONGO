@@ -374,7 +374,7 @@ export default function ModifierUtilisateurClient({
               {m.role} <span className="text-gray-400">*</span>
             </label>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <RoleButton
                 active={isAdmin}
                 onClick={() => update("role", "admin")}
@@ -573,7 +573,7 @@ function RoleButton({
     <button
       type="button"
       onClick={onClick}
-      className={`text-left transition px-5 py-4 ${
+      className={`text-left w-full transition px-4 py-4 ${
         active
           ? "border border-[#2AC1A3]"
           : "border border-transparent hover:brightness-[0.98]"
@@ -583,32 +583,32 @@ function RoleButton({
         backgroundColor: active ? "#E8FAF6" : "#F4F6F8",
       }}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-start gap-3">
         <div
-          className={`w-12 h-12 flex items-center justify-center shrink-0 ${
+          className={`w-10 h-10 flex items-center justify-center shrink-0 ${
             active ? "bg-[#2AC1A3] text-white" : "bg-[#4A5568] text-white"
           }`}
-          style={{ borderRadius: 10 }}
+          style={{ borderRadius: 8 }}
         >
-          <User className="w-5 h-5" strokeWidth={1.75} />
+          <User className="w-4 h-4" strokeWidth={1.75} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
             <h3
-              className={`text-[15px] font-semibold ${
+              className={`text-[14px] font-semibold ${
                 active ? "text-[#2AC1A3]" : "text-gray-900"
               }`}
             >
               {title}
             </h3>
             {active && (
-              <span className="text-[12px] text-[#2AC1A3] font-semibold whitespace-nowrap">
+              <span className="text-[11px] text-[#2AC1A3] font-semibold">
                 {selectedLabel}
               </span>
             )}
           </div>
           <p
-            className={`text-[12px] mt-0.5 leading-snug ${
+            className={`text-[12px] mt-1 leading-snug ${
               active ? "text-[#2AC1A3]" : "text-gray-500"
             }`}
           >

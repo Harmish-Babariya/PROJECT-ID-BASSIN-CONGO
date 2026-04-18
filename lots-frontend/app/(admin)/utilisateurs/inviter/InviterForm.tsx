@@ -160,7 +160,7 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
                 value={form.organisation}
                 onChange={(e) => update("organisation", e.target.value)}
                 placeholder={i.organisationPlaceholder}
-                className="w-full md:w-[calc(50%-12px)] px-4 py-3 bg-[#F4F6F8] border border-gray-200 rounded-lg text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#2AC1A3] focus:bg-white transition"
+                className="w-full px-4 py-3 bg-[#F4F6F8] border border-gray-200 rounded-lg text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#2AC1A3] focus:bg-white transition"
               />
             </div>
           </div>
@@ -182,12 +182,12 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
               {i.role} <span className="text-gray-400">*</span>
             </label>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Admin option */}
               <button
                 type="button"
                 onClick={() => setRole("admin")}
-                className={`text-left transition px-5 py-4 ${
+                className={`text-left w-full transition px-4 py-4 ${
                   isAdmin ? "border border-[#2AC1A3]" : "border border-transparent hover:brightness-[0.98]"
                 }`}
                 style={{
@@ -195,27 +195,27 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
                   backgroundColor: isAdmin ? "#E8FAF6" : "#F4F6F8",
                 }}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-start gap-3">
                   <div
-                    className={`w-12 h-12 flex items-center justify-center shrink-0 ${
+                    className={`w-10 h-10 flex items-center justify-center shrink-0 ${
                       isAdmin ? "bg-[#2AC1A3] text-white" : "bg-[#4A5568] text-white"
                     }`}
-                    style={{ borderRadius: 10 }}
+                    style={{ borderRadius: 8 }}
                   >
-                    <User className="w-5 h-5" strokeWidth={1.75} />
+                    <User className="w-4 h-4" strokeWidth={1.75} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className={`text-[15px] font-semibold ${isAdmin ? "text-[#2AC1A3]" : "text-gray-900"}`}>
+                    <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+                      <h3 className={`text-[14px] font-semibold ${isAdmin ? "text-[#2AC1A3]" : "text-gray-900"}`}>
                         {i.roleAdminTitle}
                       </h3>
                       {isAdmin && (
-                        <span className="text-[12px] text-[#2AC1A3] font-semibold whitespace-nowrap">
+                        <span className="text-[11px] text-[#2AC1A3] font-semibold">
                           {i.roleSelected}
                         </span>
                       )}
                     </div>
-                    <p className={`text-[12px] mt-0.5 leading-snug ${isAdmin ? "text-[#2AC1A3]" : "text-gray-500"}`}>
+                    <p className={`text-[12px] mt-1 leading-snug ${isAdmin ? "text-[#2AC1A3]" : "text-gray-500"}`}>
                       {i.roleAdminDesc}
                     </p>
                   </div>
@@ -226,7 +226,7 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
               <button
                 type="button"
                 onClick={() => setRole("focal")}
-                className={`text-left transition px-5 py-4 ${
+                className={`text-left w-full transition px-4 py-4 ${
                   !isAdmin ? "border border-[#2AC1A3]" : "border border-transparent hover:brightness-[0.98]"
                 }`}
                 style={{
@@ -234,27 +234,27 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
                   backgroundColor: !isAdmin ? "#E8FAF6" : "#F4F6F8",
                 }}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-start gap-3">
                   <div
-                    className={`w-12 h-12 flex items-center justify-center shrink-0 ${
+                    className={`w-10 h-10 flex items-center justify-center shrink-0 ${
                       !isAdmin ? "bg-[#2AC1A3] text-white" : "bg-[#4A5568] text-white"
                     }`}
-                    style={{ borderRadius: 10 }}
+                    style={{ borderRadius: 8 }}
                   >
-                    <User className="w-5 h-5" strokeWidth={1.75} />
+                    <User className="w-4 h-4" strokeWidth={1.75} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className={`text-[15px] font-semibold ${!isAdmin ? "text-[#2AC1A3]" : "text-gray-900"}`}>
+                    <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+                      <h3 className={`text-[14px] font-semibold ${!isAdmin ? "text-[#2AC1A3]" : "text-gray-900"}`}>
                         {i.roleFocalTitle}
                       </h3>
                       {!isAdmin && (
-                        <span className="text-[12px] text-[#2AC1A3] font-semibold whitespace-nowrap">
+                        <span className="text-[11px] text-[#2AC1A3] font-semibold">
                           {i.roleSelected}
                         </span>
                       )}
                     </div>
-                    <p className={`text-[12px] mt-0.5 leading-snug ${!isAdmin ? "text-[#2AC1A3]" : "text-gray-500"}`}>
+                    <p className={`text-[12px] mt-1 leading-snug ${!isAdmin ? "text-[#2AC1A3]" : "text-gray-500"}`}>
                       {i.roleFocalDesc}
                     </p>
                   </div>
