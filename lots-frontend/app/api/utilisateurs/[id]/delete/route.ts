@@ -14,11 +14,16 @@ export async function POST(
   const { id } = await context.params
   if (id === me.id) return apiError("CANNOT_DELETE_SELF", 400)
 
-  await supabaseAdmin.from("user_profiles").delete().eq("id", id)
   const { error } = await supabaseAdmin.auth.admin.deleteUser(id)
   if (error) {
     return apiError("DELETE_FAILED", 500, { detail: error.message })
   }
+
+  // Mark the profile as deleted so data remains linked but the account is gone
+  await supabaseAdmin
+    .from("user_profiles")
+    .update({ statut: "supprime", email: null, nom_complet: "[Supprimé]" })
+    .eq("id", id)
 
   return NextResponse.json({
     success: true,

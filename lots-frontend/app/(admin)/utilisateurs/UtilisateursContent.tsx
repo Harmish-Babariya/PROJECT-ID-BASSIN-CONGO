@@ -396,9 +396,12 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                           </>
                         ) : (
                           <>
-                            <button type="button" className="text-gray-500 hover:text-gray-900">
+                            <Link
+                              href={`/utilisateurs/${user.id}/modifier`}
+                              className="text-gray-500 hover:text-gray-900"
+                            >
                               {u.actionEdit}
-                            </button>
+                            </Link>
                             <button
                               type="button"
                               disabled={pendingAction === `${user.id}:deactivate`}
@@ -539,9 +542,12 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                   </>
                 ) : (
                   <>
-                    <button type="button" className="text-gray-600 hover:text-gray-900">
+                    <Link
+                      href={`/utilisateurs/${user.id}/modifier`}
+                      className="text-gray-600 hover:text-gray-900"
+                    >
                       {u.actionEdit}
-                    </button>
+                    </Link>
                     <button
                       type="button"
                       disabled={pendingAction === `${user.id}:deactivate`}
