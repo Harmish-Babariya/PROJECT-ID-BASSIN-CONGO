@@ -38,6 +38,8 @@ export default function LoginForm() {
         const data = await res.json()
         if (data.error === "INVALID_CREDENTIALS") {
           setError(t.login.errorInvalidCredentials)
+        } else if (data.error === "USER_INACTIVE") {
+          setError(t.login.errorDeactivated)
         } else {
           setError(t.login.errorServer)
         }

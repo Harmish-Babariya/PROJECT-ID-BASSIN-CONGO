@@ -20,12 +20,16 @@ export async function POST(request: NextRequest) {
       return apiError("INVALID_CREDENTIALS", 401)
     }
 
-    // Fetch token_version for session invalidation support
+    // Fetch profile for token_version and statut checks
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
-      .select("token_version")
+      .select("token_version, statut")
       .eq("id", data.user.id)
       .single()
+
+    if (profile?.statut === "inactif") {
+      return apiError("USER_INACTIVE", 403)
+    }
 
     // Create a session row for per-session revocation
     const ua = request.headers.get("user-agent") || null

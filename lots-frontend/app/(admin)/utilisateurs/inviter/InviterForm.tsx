@@ -64,7 +64,7 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         setError(
-          t.errors[data?.error as keyof typeof t.errors] ||
+          (t.errors[data?.error as keyof typeof t.errors] as string) ||
             t.errors.SERVER_ERROR
         )
         return

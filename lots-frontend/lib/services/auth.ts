@@ -40,6 +40,11 @@ export async function getCurrentUser() {
     return null
   }
 
+  // Block deactivated users — treat them as unauthenticated
+  if (profile?.statut === "inactif") {
+    return null
+  }
+
   // Keep session row fresh. If the row is missing (e.g. table created after
   // this token was issued), recreate it — never block auth for a missing row.
   if (payload.sessionId) {

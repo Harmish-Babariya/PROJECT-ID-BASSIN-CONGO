@@ -3,6 +3,7 @@ import { getProducteursStats } from "@/lib/services/producteurs"
 import { getParcellesStats } from "@/lib/services/parcelles"
 import { getLotsStats, getRecentLots } from "@/lib/services/lots"
 import { getCollectesStats, getRecentCollectes } from "@/lib/services/collectes"
+import { getCurrentUser } from "@/lib/services/auth"
 
 async function getStats() {
   const [producteurs, parcelles, lots, collectes] = await Promise.all([
@@ -57,10 +58,11 @@ async function getStats() {
 }
 
 export default async function Dashboard() {
-  const [stats, recentCollectes, recentLots] = await Promise.all([
+  const [stats, recentCollectes, recentLots, currentUser] = await Promise.all([
     getStats(),
     getRecentCollectes(3),
     getRecentLots(3),
+    getCurrentUser(),
   ])
 
   return (
@@ -68,6 +70,7 @@ export default async function Dashboard() {
       stats={stats}
       recentCollectes={recentCollectes}
       recentLots={recentLots}
+      userName={currentUser?.nom_complet ?? currentUser?.email ?? ""}
     />
   )
 }

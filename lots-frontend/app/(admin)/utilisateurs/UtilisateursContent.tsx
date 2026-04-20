@@ -77,7 +77,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
       if (!res.ok) {
         setToast({
           kind: "err",
-          message: t.errors[data?.error as keyof typeof t.errors] || t.errors.actionError,
+          message: (t.errors[data?.error as keyof typeof t.errors] as string) || t.errors.actionError,
         })
         return
       }

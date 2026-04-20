@@ -58,10 +58,12 @@ export default function DashboardContent({
   stats,
   recentCollectes,
   recentLots,
+  userName,
 }: {
   stats: Stats
   recentCollectes: RecentCollecte[]
   recentLots: RecentLot[]
+  userName: string
 }) {
   const { t } = useLanguage()
   const d = t.dashboard
@@ -81,7 +83,7 @@ export default function DashboardContent({
         </div>
         <div className="flex items-center flex-wrap gap-3 sm:gap-5">
           <span className="text-[12px] sm:text-[13px] text-[#888]">
-            {d.hello} <strong className="text-[#1A1A1A] font-semibold">Julia Tankeu</strong>
+            {d.hello} <strong className="text-[#1A1A1A] font-semibold">{userName}</strong>
           </span>
           <PeriodFilter />
         </div>

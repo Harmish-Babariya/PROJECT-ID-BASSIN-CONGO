@@ -18,9 +18,11 @@ import {
 export default function Sidebar({
   counts,
   role,
+  userName,
 }: {
   counts?: Record<string, number>
   role?: string
+  userName?: string
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -190,7 +192,7 @@ export default function Sidebar({
               </div>
               <div className="min-w-0">
                 <p className="text-[12px] text-white font-medium truncate">
-                  {isAdmin ? "Admin" : "Point Focal"}
+                  {userName || (isAdmin ? "Admin" : "Point Focal")}
                 </p>
                 <p className="text-[10px] text-[#2AC1A3] uppercase tracking-wider truncate">
                   {isAdmin ? s.admin : "Point Focal"}

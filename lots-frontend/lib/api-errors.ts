@@ -40,6 +40,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   EMAIL_PASSWORD_REQUIRED: "E-mail et mot de passe sont requis.",
   INVALID_CREDENTIALS:
     "Identifiants incorrects. Vérifiez votre e-mail et votre mot de passe.",
+  USER_INACTIVE:
+    "Votre compte a été désactivé. Contactez un administrateur.",
 
   SERVER_ERROR: "Erreur serveur. Veuillez réessayer dans un instant.",
 }

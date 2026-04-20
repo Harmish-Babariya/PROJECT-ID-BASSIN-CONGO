@@ -136,7 +136,7 @@ export default function ModifierUtilisateurClient({
       if (!res.ok) {
         showFeedback(
           "err",
-          t.errors[data?.error as keyof typeof t.errors] || t.errors.SERVER_ERROR
+          (t.errors[data?.error as keyof typeof t.errors] as string) || t.errors.SERVER_ERROR
         )
         return
       }
@@ -174,7 +174,7 @@ export default function ModifierUtilisateurClient({
       if (!res.ok) {
         showFeedback(
           "err",
-          t.errors[data?.error as keyof typeof t.errors] || t.errors.SERVER_ERROR
+          (t.errors[data?.error as keyof typeof t.errors] as string) || t.errors.SERVER_ERROR
         )
         return
       }

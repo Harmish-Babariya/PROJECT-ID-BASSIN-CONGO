@@ -198,23 +198,23 @@ export default function ProfileClient({
     return `${actionLabel} ${tableLabel} — ${detail}`
   }
 
-  const permissions = isAdmin
-    ? [
-        { label: p.tableProducteur, perm: p.permRead },
-        { label: p.tableParcelle, perm: p.permRead },
-        { label: p.tableCollecte, perm: p.permRead },
-        { label: p.tableLot, perm: p.permRead },
-        { label: t.sidebar.export, perm: p.permRead },
-        { label: t.sidebar.users, perm: p.permRead },
-      ]
-    : [
-        { label: p.tableProducteur, perm: p.permMyCountry },
-        { label: p.tableParcelle, perm: p.permMyCountry },
-        { label: p.tableCollecte, perm: p.permMyCountry },
-        { label: p.tableLot, perm: p.permMyCountry },
-        { label: t.sidebar.export, perm: p.permAdminOnly },
-        { label: t.sidebar.users, perm: p.permAdminOnly },
-      ]
+  const adminPermissions = [
+    { label: p.tableProducteur, perm: p.permRead, scope: p.permCountryScope },
+    { label: p.tableParcelle, perm: p.permRead, scope: p.permCountryScope },
+    { label: p.tableCollecte, perm: p.permRead, scope: p.permCountryScope },
+    { label: p.tableLot, perm: p.permRead, scope: p.permCountryScope },
+    { label: t.sidebar.export, perm: p.permFullAccess, scope: p.permCountryScope },
+    { label: t.sidebar.users, perm: p.permFullAccess, scope: p.permCountryScope },
+  ]
+
+  const focalPermissions = [
+    { label: p.tableProducteur, perm: p.permRead, scope: p.permOwnCountryScope },
+    { label: p.tableParcelle, perm: p.permRead, scope: p.permOwnCountryScope },
+    { label: p.tableCollecte, perm: p.permRead, scope: p.permOwnCountryScope },
+    { label: p.tableLot, perm: p.permRead, scope: p.permOwnCountryScope },
+  ]
+
+  const permissions = isAdmin ? adminPermissions : focalPermissions
 
   const statCards = isAdmin
     ? [
@@ -373,12 +373,20 @@ export default function ProfileClient({
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 px-8 py-6">
-          <div className="flex items-center gap-2 mb-6">
-            <span className="w-2 h-2 rounded-full bg-[#2AC1A3]" />
-            <h3 className="text-[11px] font-semibold text-gray-900 tracking-[0.12em] uppercase">
-              {p.permissionsSection}
-            </h3>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#2AC1A3]" />
+              <h3 className="text-[11px] font-semibold text-gray-900 tracking-[0.12em] uppercase">
+                {p.permissionsSection}
+              </h3>
+            </div>
+            <span className={`px-2.5 py-1 rounded-full text-[9px] font-semibold tracking-widest uppercase ${isAdmin ? "bg-[#2AC1A3]/10 text-[#2AC1A3]" : "bg-amber-50 text-amber-600"}`}>
+              {isAdmin ? p.permFullAccess : p.permRestrictedLabel}
+            </span>
           </div>
+          <p className="text-[11px] text-gray-400 mb-5 ml-4">
+            {isAdmin ? p.permAdminRoleDesc : p.permFocalRoleDesc}
+          </p>
           <div className="grid grid-cols-2 gap-3">
             {permissions.map((item) => (
               <div
@@ -390,9 +398,13 @@ export default function ProfileClient({
                     <path d="M1 4L3.5 6.5L9 1" stroke="#2AC1A3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[13px] font-medium text-gray-900">{item.label}</p>
-                  <p className="text-[9px] text-gray-400 tracking-widest uppercase">{item.perm}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <p className="text-[9px] tracking-widest uppercase text-gray-400">{item.perm}</p>
+                    <span className="text-gray-300">·</span>
+                    <p className="text-[9px] tracking-widest uppercase font-medium text-[#2AC1A3]">{item.scope}</p>
+                  </div>
                 </div>
               </div>
             ))}

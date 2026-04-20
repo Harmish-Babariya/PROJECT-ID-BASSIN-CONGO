@@ -22,6 +22,7 @@ export default async function AdminGroupLayout({ children }: { children: React.R
   }
 
   const role = user?.role ?? "point_focal"
+  const userName = user?.nom_complet ?? user?.email ?? ""
 
-  return <AdminLayout counts={counts} role={role}>{children}</AdminLayout>
+  return <AdminLayout counts={counts} role={role} userName={userName}>{children}</AdminLayout>
 }
