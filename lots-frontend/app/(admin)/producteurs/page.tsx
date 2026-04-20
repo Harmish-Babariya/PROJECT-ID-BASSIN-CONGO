@@ -14,12 +14,10 @@ export default async function ProducteursPage({
   }>
 }) {
   const params = await searchParams
-  const producteursAvecParcelles = await getProducteurs(params)
+  const [producteurs, zones] = await Promise.all([
+    getProducteurs(params),
+    getZones(),
+  ])
 
-  return (
-    <ProducteursContent
-      producteurs={producteursAvecParcelles}
-      exportButton={null}
-    />
-  )
+  return <ProducteursContent producteurs={producteurs} zones={zones} />
 }

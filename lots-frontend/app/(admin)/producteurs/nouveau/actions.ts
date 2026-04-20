@@ -6,65 +6,95 @@ import { insertAuditLog } from "@/lib/services/audit"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
-export async function createProducteur(formData: any, returnTo?: string) {
+type ProducteurFormPayload = {
+  nom?: string
+  prenom?: string
+  sexe?: string
+  annee_naissance?: string | number | null
+  nationalite?: string
+  telephone?: string
+  pays_id?: string | number
+  zone_id?: string | number
+  village?: string
+  structure_embauche?: string
+  role_activite_cacao?: string
+  type_proprietaire?: string
+  communaute?: string
+  autres_activites?: string[]
+  autres_activites_details?: string[]
+  source_principale_revenus?: string
+  cultures_phares?: string[]
+  autres_cultures?: string[]
+  place_cacao?: string
+  main_oeuvre_supplementaire?: string
+  recolte_annee_derniere?: string
+  usage_cacao_recolte?: string[]
+  mode_vente?: string[]
+  kilos_vendus?: string | number | null
+  prix_kilo?: string | number | null
+  lieu_vente?: string
+  acheteur?: string[]
+  statut?: string
+  date_enregistrement?: string
+}
+
+export async function createProducteur(
+  formData: ProducteurFormPayload,
+  returnTo?: string
+) {
   const me = await getCurrentUser()
+
+  const toInt = (v: unknown) => {
+    if (v === null || v === undefined || v === "") return null
+    const n = typeof v === "number" ? v : parseInt(String(v))
+    return Number.isNaN(n) ? null : n
+  }
+  const emptyToNull = (v: string | undefined | null) =>
+    v === null || v === undefined || v === "" ? null : v
+  const arrOrNull = (v: string[] | undefined | null) =>
+    v && v.length > 0 ? v : null
 
   try {
     const dataToInsert = {
-      // Identification
-      nom: formData.nom,
-      prenom: formData.prenom || null,
-      sexe: formData.sexe,
-      annee_naissance: formData.annee_naissance ? parseInt(formData.annee_naissance) : null,
-      nationalite: formData.nationalite || null,
-      telephone: formData.telephone || null,
-
-      // Localisation
-      pays_id: parseInt(formData.pays_id),
-      zone_id: parseInt(formData.zone_id),
-      village: formData.village,
-
-      // Structure et role
-      structure_embauche: formData.structure_embauche || null,
-      role_activite_cacao: formData.role_activite_cacao || null,
-      type_proprietaire: formData.type_proprietaire || null,
-      communaute: formData.communaute || null,
-
-      // Activites
-      autres_activites: formData.autres_activites?.length > 0
-        ? formData.autres_activites
-        : null,
-      autres_activites_details: formData.autres_activites_details?.length > 0
-        ? formData.autres_activites_details
-        : null,
-      source_principale_revenus: formData.source_principale_revenus || null,
-      cultures_phares: formData.cultures_phares?.length > 0
-        ? formData.cultures_phares
-        : null,
-      autres_cultures: formData.autres_cultures?.length > 0
-        ? formData.autres_cultures
-        : null,
-      place_cacao: formData.place_cacao || null,
-
-      // Exploitation cacaoyere
-      main_oeuvre_supplementaire: formData.main_oeuvre_supplementaire || null,
-      recolte_annee_derniere: formData.recolte_annee_derniere || null,
-      usage_cacao_recolte: formData.usage_cacao_recolte?.length > 0
-        ? formData.usage_cacao_recolte
-        : null,
-      mode_vente: formData.mode_vente?.length > 0
-        ? formData.mode_vente
-        : null,
-      kilos_vendus: formData.kilos_vendus || null,
-      prix_kilo: formData.prix_kilo || null,
-      lieu_vente: formData.lieu_vente || null,
-      acheteur: formData.acheteur?.length > 0
-        ? formData.acheteur
-        : null,
-
-      // Systeme
-      statut: formData.statut || 'Actif',
-      date_enregistrement: formData.date_enregistrement || new Date().toISOString().split('T')[0]
+      nom: formData.nom ?? null,
+      prenom: emptyToNull(formData.prenom ?? null),
+      sexe: formData.sexe ?? null,
+      annee_naissance: toInt(formData.annee_naissance),
+      nationalite: emptyToNull(formData.nationalite ?? null),
+      telephone: emptyToNull(formData.telephone ?? null),
+      pays_id: toInt(formData.pays_id),
+      zone_id: toInt(formData.zone_id),
+      village: emptyToNull(formData.village ?? null),
+      structure_embauche: emptyToNull(formData.structure_embauche ?? null),
+      role_activite_cacao: emptyToNull(formData.role_activite_cacao ?? null),
+      type_proprietaire: emptyToNull(formData.type_proprietaire ?? null),
+      communaute: emptyToNull(formData.communaute ?? null),
+      autres_activites: arrOrNull(formData.autres_activites),
+      autres_activites_details: arrOrNull(formData.autres_activites_details),
+      source_principale_revenus: emptyToNull(
+        formData.source_principale_revenus ?? null
+      ),
+      cultures_phares: arrOrNull(formData.cultures_phares),
+      autres_cultures: arrOrNull(formData.autres_cultures),
+      place_cacao: emptyToNull(formData.place_cacao ?? null),
+      main_oeuvre_supplementaire: emptyToNull(
+        formData.main_oeuvre_supplementaire ?? null
+      ),
+      recolte_annee_derniere: emptyToNull(formData.recolte_annee_derniere ?? null),
+      usage_cacao_recolte: arrOrNull(formData.usage_cacao_recolte),
+      mode_vente: arrOrNull(formData.mode_vente),
+      kilos_vendus: emptyToNull(
+        formData.kilos_vendus ? String(formData.kilos_vendus) : null
+      ),
+      prix_kilo: emptyToNull(
+        formData.prix_kilo ? String(formData.prix_kilo) : null
+      ),
+      lieu_vente: emptyToNull(formData.lieu_vente ?? null),
+      acheteur: arrOrNull(formData.acheteur),
+      statut: formData.statut || "Actif",
+      date_enregistrement:
+        formData.date_enregistrement ||
+        new Date().toISOString().split("T")[0],
     }
 
     const { data, error } = await insertProducteur(dataToInsert)
@@ -73,22 +103,27 @@ export async function createProducteur(formData: any, returnTo?: string) {
       return { error: error.message }
     }
 
-    if (me) {
+    if (me && data) {
       await insertAuditLog(me.id, "create", "producteurs", String(data.id), {
-        nom: `${dataToInsert.nom}${dataToInsert.prenom ? " " + dataToInsert.prenom : ""}`,
+        nom: `${dataToInsert.nom ?? ""}${
+          dataToInsert.prenom ? " " + dataToInsert.prenom : ""
+        }`.trim(),
         village: dataToInsert.village,
         pays_id: dataToInsert.pays_id,
       })
     }
 
-    revalidatePath('/producteurs')
+    revalidatePath("/producteurs")
 
     if (returnTo) {
       redirect(returnTo)
     } else {
-      redirect(`/producteurs/${data.id}`)
+      redirect(`/producteurs/${data!.id}`)
     }
-  } catch (error: any) {
-    return { error: error.message || "Erreur lors de la creation" }
+  } catch (error: unknown) {
+    const err = error as { digest?: string; message?: string }
+    // Next.js redirect throws — rethrow so it propagates
+    if (err?.digest?.startsWith("NEXT_REDIRECT")) throw error
+    return { error: err?.message || "Erreur lors de la création" }
   }
 }

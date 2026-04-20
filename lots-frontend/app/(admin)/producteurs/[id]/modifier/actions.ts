@@ -1,0 +1,101 @@
+"use server"
+import { updateProducteurById } from "@/lib/services/producteurs"
+import { getCurrentUser } from "@/lib/services/auth"
+import { insertAuditLog } from "@/lib/services/audit"
+import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
+
+type ProducteurFormPayload = {
+  nom?: string
+  prenom?: string
+  sexe?: string
+  annee_naissance?: string | number | null
+  nationalite?: string
+  telephone?: string
+  pays_id?: string | number
+  zone_id?: string | number
+  village?: string
+  structure_embauche?: string
+  role_activite_cacao?: string
+  type_proprietaire?: string
+  communaute?: string
+  autres_activites?: string[]
+  autres_activites_details?: string[]
+  source_principale_revenus?: string
+  cultures_phares?: string[]
+  autres_cultures?: string[]
+  place_cacao?: string
+  main_oeuvre_supplementaire?: string
+  recolte_annee_derniere?: string
+  usage_cacao_recolte?: string[]
+  mode_vente?: string[]
+  kilos_vendus?: string | number | null
+  prix_kilo?: string | number | null
+  lieu_vente?: string
+  acheteur?: string[]
+  statut?: string
+}
+
+export async function updateProducteur(id: number, formData: ProducteurFormPayload) {
+  const me = await getCurrentUser()
+
+  const toInt = (v: unknown) => {
+    if (v === null || v === undefined || v === "") return null
+    const n = typeof v === "number" ? v : parseInt(String(v))
+    return Number.isNaN(n) ? null : n
+  }
+  const emptyToNull = (v: string | undefined | null) =>
+    v === null || v === undefined || v === "" ? null : v
+  const arrOrNull = (v: string[] | undefined | null) =>
+    v && v.length > 0 ? v : null
+
+  const dataToUpdate = {
+    nom: formData.nom ?? null,
+    prenom: emptyToNull(formData.prenom ?? null),
+    sexe: formData.sexe ?? null,
+    annee_naissance: toInt(formData.annee_naissance),
+    nationalite: emptyToNull(formData.nationalite ?? null),
+    telephone: emptyToNull(formData.telephone ?? null),
+    pays_id: toInt(formData.pays_id),
+    zone_id: toInt(formData.zone_id),
+    village: emptyToNull(formData.village ?? null),
+    structure_embauche: emptyToNull(formData.structure_embauche ?? null),
+    role_activite_cacao: emptyToNull(formData.role_activite_cacao ?? null),
+    type_proprietaire: emptyToNull(formData.type_proprietaire ?? null),
+    communaute: emptyToNull(formData.communaute ?? null),
+    autres_activites: arrOrNull(formData.autres_activites),
+    autres_activites_details: arrOrNull(formData.autres_activites_details),
+    source_principale_revenus: emptyToNull(formData.source_principale_revenus ?? null),
+    cultures_phares: arrOrNull(formData.cultures_phares),
+    autres_cultures: arrOrNull(formData.autres_cultures),
+    place_cacao: emptyToNull(formData.place_cacao ?? null),
+    main_oeuvre_supplementaire: emptyToNull(formData.main_oeuvre_supplementaire ?? null),
+    recolte_annee_derniere: emptyToNull(formData.recolte_annee_derniere ?? null),
+    usage_cacao_recolte: arrOrNull(formData.usage_cacao_recolte),
+    mode_vente: arrOrNull(formData.mode_vente),
+    kilos_vendus: emptyToNull(formData.kilos_vendus ? String(formData.kilos_vendus) : null),
+    prix_kilo: emptyToNull(formData.prix_kilo ? String(formData.prix_kilo) : null),
+    lieu_vente: emptyToNull(formData.lieu_vente ?? null),
+    acheteur: arrOrNull(formData.acheteur),
+    statut: formData.statut ?? "Actif",
+  }
+
+  const { error } = await updateProducteurById(id, dataToUpdate)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (me) {
+    const nom = dataToUpdate.nom ?? ""
+    const prenom = dataToUpdate.prenom ?? ""
+    const label = `${nom} ${prenom}`.trim() || undefined
+    await insertAuditLog(me.id, "update", "producteurs", String(id), {
+      nom: label,
+    })
+  }
+
+  revalidatePath(`/producteurs/${id}`)
+  revalidatePath("/producteurs")
+  redirect(`/producteurs/${id}`)
+}
