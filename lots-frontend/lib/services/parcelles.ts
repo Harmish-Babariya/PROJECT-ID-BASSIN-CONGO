@@ -58,11 +58,21 @@ export async function getParcellesByProducteur(producteurId: string) {
   return data || []
 }
 
-export async function getParcellesForSelect() {
-  const { data } = await supabaseAdmin
+export async function getParcellesForSelect(paysId?: number | null) {
+  let query = supabaseAdmin
     .from("parcelles")
     .select("id, code_parcelle, producteur_id")
-    .order("code_parcelle")
+
+  if (paysId) {
+    const { data: scopedProducteurs } = await supabaseAdmin
+      .from("producteurs")
+      .select("id")
+      .eq("pays_id", Number(paysId))
+    const ids = (scopedProducteurs ?? []).map((p: { id: number }) => p.id)
+    query = ids.length > 0 ? query.in("producteur_id", ids) : query.in("producteur_id", [-1])
+  }
+
+  const { data } = await query.order("code_parcelle")
   return data || []
 }
 

@@ -7,13 +7,16 @@ export async function insertAuditLog(
   recordId?: string | null,
   metadata?: Record<string, unknown> | null
 ): Promise<void> {
-  await supabaseAdmin.from("audit_logs").insert({
+  const { error } = await supabaseAdmin.from("audit_logs").insert({
     user_id: userId,
     action,
     table_name: tableName,
     record_id: recordId ?? null,
     metadata: metadata ?? null,
   })
+  if (error) {
+    console.error("[audit] insertAuditLog failed:", error.message, { userId, action, tableName, recordId })
+  }
 }
 
 export type AuditLogEntry = {
@@ -120,28 +123,45 @@ export async function getRecentActivity(
 ): Promise<AuditLogEntry[]> {
   let query = supabaseAdmin
     .from("audit_logs")
-    .select("id, user_id, action, table_name, record_id, metadata, created_at, user_profiles(nom_complet)")
+    .select("id, user_id, action, table_name, record_id, metadata, created_at")
     .order("created_at", { ascending: false })
     .limit(limit)
 
   if (role !== "admin") query = query.eq("user_id", userId)
 
   const { data, error } = await query
-  if (error) return []
+  if (error) {
+    console.error("[audit] getRecentActivity failed:", error.message)
+    return []
+  }
 
-  return (data ?? []).map((row: Record<string, unknown>) => {
-    const profile = row.user_profiles as { nom_complet?: string | null } | null
-    return {
-      id: row.id as string,
-      user_id: row.user_id as string,
-      action: row.action as string,
-      table_name: row.table_name as string,
-      record_id: row.record_id as string | null,
-      metadata: row.metadata as Record<string, unknown> | null,
-      created_at: row.created_at as string,
-      user_name: profile?.nom_complet ?? null,
+  const rows = data ?? []
+
+  // For admin: fetch user names for all distinct user_ids
+  let userNames: Record<string, string> = {}
+  if (role === "admin" && rows.length > 0) {
+    const userIds = [...new Set(rows.map((r) => r.user_id as string))]
+    const { data: profiles } = await supabaseAdmin
+      .from("user_profiles")
+      .select("id, nom_complet")
+      .in("id", userIds)
+    if (profiles) {
+      for (const p of profiles) {
+        userNames[p.id] = p.nom_complet ?? p.id
+      }
     }
-  })
+  }
+
+  return rows.map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    user_id: row.user_id as string,
+    action: row.action as string,
+    table_name: row.table_name as string,
+    record_id: row.record_id as string | null,
+    metadata: row.metadata as Record<string, unknown> | null,
+    created_at: row.created_at as string,
+    user_name: userNames[row.user_id as string] ?? null,
+  }))
 }
 
 // Used by the user edit page summary cards
