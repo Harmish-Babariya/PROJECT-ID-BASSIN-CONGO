@@ -380,13 +380,15 @@ export default function ProfileClient({
                 {p.permissionsSection}
               </h3>
             </div>
-            <span className={`px-2.5 py-1 rounded-full text-[9px] font-semibold tracking-widest uppercase ${isAdmin ? "bg-[#2AC1A3]/10 text-[#2AC1A3]" : "bg-amber-50 text-amber-600"}`}>
-              {isAdmin ? p.permFullAccess : p.permRestrictedLabel}
+            <span className="px-2.5 py-1 rounded-full text-[9px] font-semibold tracking-widest uppercase bg-[#2AC1A3]/10 text-[#2AC1A3]">
+              {isAdmin ? p.permFullAccess : p.permRead}
             </span>
           </div>
-          <p className="text-[11px] text-gray-400 mb-5 ml-4">
-            {isAdmin ? p.permAdminRoleDesc : p.permFocalRoleDesc}
-          </p>
+          {isAdmin && (
+            <p className="text-[11px] text-gray-400 mb-5 ml-4">
+              {p.permAdminRoleDesc}
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-3">
             {permissions.map((item) => (
               <div

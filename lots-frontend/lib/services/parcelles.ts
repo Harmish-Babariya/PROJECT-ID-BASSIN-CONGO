@@ -6,8 +6,19 @@ export async function getParcelles(filters?: {
   culture?: string
   status_eudr?: string
   producteur_id?: string
+  pays_id?: number | null
 }) {
   let query = supabaseAdmin.from("parcelles").select("*")
+
+  // Scope to country for point_focal via producteur relationship
+  if (filters?.pays_id) {
+    const { data: scopedProducteurs } = await supabaseAdmin
+      .from("producteurs")
+      .select("id")
+      .eq("pays_id", Number(filters.pays_id))
+    const ids = (scopedProducteurs ?? []).map((p: { id: number }) => p.id)
+    query = ids.length > 0 ? query.in("producteur_id", ids) : query.in("producteur_id", [-1])
+  }
 
   if (filters?.recherche) {
     query = query.ilike("code_parcelle", `%${filters.recherche}%`)
@@ -83,9 +94,13 @@ export async function updateParcelleById(id: number | string, dataToUpdate: Reco
 }
 
 // Stats for dashboard
-export async function getParcellesStats() {
-  const { data } = await supabaseAdmin
-    .from("parcelles")
-    .select("id, producteur_id, status_eudr, surface_ha")
+export async function getParcellesStats(paysId?: number | null) {
+  let query = supabaseAdmin.from("parcelles").select("id, producteur_id, status_eudr, surface_ha")
+  if (paysId) {
+    const { data: prods } = await supabaseAdmin.from("producteurs").select("id").eq("pays_id", paysId)
+    const ids = (prods ?? []).map((p: { id: number }) => p.id)
+    query = ids.length > 0 ? query.in("producteur_id", ids) : query.in("producteur_id", [-1])
+  }
+  const { data } = await query
   return data || []
 }

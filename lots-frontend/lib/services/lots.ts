@@ -1,10 +1,9 @@
 import { supabaseAdmin } from "@/lib/supabase-server"
 
-export async function getLots() {
-  const { data } = await supabaseAdmin
-    .from("lots")
-    .select("*, zones(nom), pays(nom)")
-    .order("date_creation", { ascending: false })
+export async function getLots(paysId?: number | null) {
+  let query = supabaseAdmin.from("lots").select("*, zones(nom), pays(nom)")
+  if (paysId) query = query.eq("pays_id", Number(paysId))
+  const { data } = await query.order("date_creation", { ascending: false })
   return data || []
 }
 
@@ -97,9 +96,9 @@ export async function getRecentLots(limit = 3) {
 }
 
 // Stats for dashboard
-export async function getLotsStats() {
-  const { data } = await supabaseAdmin
-    .from("lots")
-    .select("id, statut, poids_total_kg")
+export async function getLotsStats(paysId?: number | null) {
+  let query = supabaseAdmin.from("lots").select("id, statut, poids_total_kg")
+  if (paysId) query = query.eq("pays_id", paysId)
+  const { data } = await query
   return data || []
 }

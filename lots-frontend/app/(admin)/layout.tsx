@@ -6,12 +6,17 @@ import { getCollectesStats } from "@/lib/services/collectes"
 import { getCurrentUser } from "@/lib/services/auth"
 
 export default async function AdminGroupLayout({ children }: { children: React.ReactNode }) {
-  const [producteurs, parcelles, lots, collectes, user] = await Promise.all([
-    getProducteursStats(),
-    getParcellesStats(),
-    getLotsStats(),
-    getCollectesStats(),
-    getCurrentUser(),
+  const user = await getCurrentUser()
+
+  const isAdmin = user?.role === "admin"
+  // point_focal with no country assigned sees nothing (-1 matches nothing in DB)
+  const paysId = isAdmin ? null : (user?.country_id ?? -1)
+
+  const [producteurs, parcelles, lots, collectes] = await Promise.all([
+    getProducteursStats(paysId),
+    getParcellesStats(paysId),
+    getLotsStats(paysId),
+    getCollectesStats(paysId),
   ])
 
   const counts = {

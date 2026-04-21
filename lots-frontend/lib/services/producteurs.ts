@@ -8,10 +8,16 @@ export async function getProducteurs(filters?: {
   sexe?: string
   statut?: string
   avec_parcelles?: string
+  pays_id?: number | null
 }) {
   let query = supabaseAdmin
     .from("producteurs")
     .select("*, zones(nom)")
+
+  // Scope to assigned country for point_focal
+  if (filters?.pays_id) {
+    query = query.eq("pays_id", Number(filters.pays_id))
+  }
 
   if (filters?.recherche) {
     query = query.or(`code_producteur.ilike.%${filters.recherche}%,nom.ilike.%${filters.recherche}%`)
@@ -66,11 +72,12 @@ export async function getProducteurSimple(id: string) {
   return data
 }
 
-export async function getProducteursForSelect() {
-  const { data } = await supabaseAdmin
+export async function getProducteursForSelect(paysId?: number | null) {
+  let query = supabaseAdmin
     .from("producteurs")
     .select("id, code_producteur, nom, prenom")
-    .order("code_producteur")
+  if (paysId) query = query.eq("pays_id", Number(paysId))
+  const { data } = await query.order("code_producteur")
   return data || []
 }
 
@@ -182,9 +189,9 @@ export async function updateProducteurById(id: number, formData: Record<string, 
 }
 
 // Stats for dashboard
-export async function getProducteursStats() {
-  const { data } = await supabaseAdmin
-    .from("producteurs")
-    .select("id, sexe, annee_naissance")
+export async function getProducteursStats(paysId?: number | null) {
+  let query = supabaseAdmin.from("producteurs").select("id, sexe, annee_naissance")
+  if (paysId) query = query.eq("pays_id", Number(paysId))
+  const { data } = await query
   return data || []
 }

@@ -43,6 +43,15 @@ export async function createProducteur(
   returnTo?: string
 ) {
   const me = await getCurrentUser()
+  if (!me) return { error: "Vous devez être connecté pour effectuer cette action." }
+
+  // point_focal can only create producers in their assigned country
+  if (me.role !== "admin" && me.country_id) {
+    const submittedPaysId = formData.pays_id ? parseInt(String(formData.pays_id)) : null
+    if (submittedPaysId !== me.country_id) {
+      return { error: "Vous ne pouvez créer des producteurs que pour votre pays assigné." }
+    }
+  }
 
   const toInt = (v: unknown) => {
     if (v === null || v === undefined || v === "") return null

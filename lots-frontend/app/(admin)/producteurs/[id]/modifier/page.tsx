@@ -1,14 +1,20 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import ModifierProducteurClient from "./ModifierProducteurClient"
 import { getProducteurSimple } from "@/lib/services/producteurs"
 import { getPays, getZones } from "@/lib/services/common"
+import { getCurrentUser } from "@/lib/services/auth"
 
 export default async function ModifierProducteur({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
+  const user = await getCurrentUser()
+  if (!user) redirect("/login")
+
   const { id } = await params
+  const isAdmin = user.role === "admin"
+
   const [producteur, pays, zones] = await Promise.all([
     getProducteurSimple(id),
     getPays(),
@@ -16,5 +22,15 @@ export default async function ModifierProducteur({
   ])
   if (!producteur) notFound()
 
-  return <ModifierProducteurClient producteur={producteur} pays={pays} zones={zones} />
+  // point_focal can only edit producers from their assigned country
+  if (!isAdmin && user.country_id && producteur.pays_id !== user.country_id) {
+    redirect("/producteurs")
+  }
+
+  // For point_focal: only show their assigned country in the pays list
+  const filteredPays = isAdmin
+    ? pays
+    : pays.filter((p) => p.id === user.country_id)
+
+  return <ModifierProducteurClient producteur={producteur} pays={filteredPays} zones={zones} />
 }

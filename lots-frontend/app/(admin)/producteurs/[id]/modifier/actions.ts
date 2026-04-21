@@ -38,6 +38,15 @@ type ProducteurFormPayload = {
 
 export async function updateProducteur(id: number, formData: ProducteurFormPayload) {
   const me = await getCurrentUser()
+  if (!me) return { error: "Vous devez être connecté pour effectuer cette action." }
+
+  // point_focal can only update producers in their assigned country
+  if (me.role !== "admin" && me.country_id) {
+    const submittedPaysId = formData.pays_id ? parseInt(String(formData.pays_id)) : null
+    if (submittedPaysId !== me.country_id) {
+      return { error: "Vous ne pouvez modifier des producteurs que pour votre pays assigné." }
+    }
+  }
 
   const toInt = (v: unknown) => {
     if (v === null || v === undefined || v === "") return null

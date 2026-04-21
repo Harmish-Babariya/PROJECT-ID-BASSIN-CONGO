@@ -15,11 +15,13 @@ export default function NouveauProducteurClient({
   initialCode,
   pays,
   zones,
+  defaultPaysId,
 }: {
   returnTo?: string
   initialCode: string
   pays: PaysOption[]
   zones: ZoneOption[]
+  defaultPaysId?: string
 }) {
   const { t } = useLanguage()
   const p = t.producteurs
@@ -33,7 +35,7 @@ export default function NouveauProducteurClient({
     annee_naissance: "",
     nationalite: "",
     telephone: "",
-    pays_id: "",
+    pays_id: defaultPaysId ?? "",
     zone_id: "",
     village: "",
     structure_embauche: "",
