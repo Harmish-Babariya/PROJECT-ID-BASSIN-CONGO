@@ -23,9 +23,11 @@ type Zone = { id: number; nom: string }
 export default function ProducteursContent({
   producteurs,
   zones,
+  isAdmin = true,
 }: {
   producteurs: Producteur[]
   zones: Zone[]
+  isAdmin?: boolean
 }) {
   const { t } = useLanguage()
   const p = t.producteurs
