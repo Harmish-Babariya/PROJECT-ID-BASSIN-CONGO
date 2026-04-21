@@ -50,10 +50,6 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
     parcelles.filter((p) => p.producteur_id === collecte.producteur_id)
   )
 
-  const selectedParcelle = parcellesFiltrees.find(
-    (p) => String(p.id) === formData.parcelle_id
-  )
-
   useEffect(() => {
     if (formData.producteur_id) {
       const filtered = parcelles.filter(
@@ -93,20 +89,12 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200">
+        <div className="px-8 pt-8 pb-6">
+          <div className="grid grid-cols-2 gap-x-7 gap-y-5">
 
-        {/* ─── SECTION 1 · IDENTIFICATION ─── */}
-        <div className="px-8 pt-8 pb-7">
-          <div className="mb-6">
-            <div className="inline-block">
-              <h2 className="font-archivo text-[15px] font-bold text-gray-900 tracking-wide pb-2 border-b-2 border-[#2AC1A3]">
-                1. {c.section1.toUpperCase()}
-              </h2>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-x-7 gap-y-0">
-
+            {/* Producteur */}
             <div>
-              <label className={labelClass}>{c.labelProducteurField}</label>
+              <label className={labelClass}>{c.labelProducteurField} *</label>
               <select
                 value={formData.producteur_id}
                 onChange={(e) =>
@@ -124,52 +112,35 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
               </select>
             </div>
 
-            <div className="space-y-2">
-              <div>
-                <label className={labelClass}>{c.labelParcelleField}</label>
-                <select
-                  value={formData.parcelle_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, parcelle_id: e.target.value })
-                  }
-                  className={inputClass}
-                  required
-                  disabled={!formData.producteur_id}
-                >
-                  <option value="">
-                    {!formData.producteur_id ? c.selectProducteurFirst : c.selectParcelle}
+            {/* Parcelle */}
+            <div>
+              <label className={labelClass}>{c.labelParcelleField} *</label>
+              <select
+                value={formData.parcelle_id}
+                onChange={(e) => setFormData({ ...formData, parcelle_id: e.target.value })}
+                className={inputClass}
+                required
+                disabled={!formData.producteur_id}
+              >
+                <option value="">
+                  {!formData.producteur_id ? c.selectProducteurFirst : c.selectParcelle}
+                </option>
+                {parcellesFiltrees.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.code_parcelle}
                   </option>
-                  {parcellesFiltrees.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.code_parcelle}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {selectedParcelle && (
-                <div className="px-4 py-3 bg-white border border-gray-200 rounded-lg text-[13.5px] text-gray-800 font-mono">
-                  {selectedParcelle.code_parcelle}
-                </div>
+                ))}
+              </select>
+              {formData.producteur_id && !formData.parcelle_id && (
+                <p className="text-[9.5px] text-gray-400 tracking-wide mt-1.5">
+                  {c.parcelleDepends}
+                </p>
               )}
             </div>
-          </div>
-        </div>
 
-        <hr className="border-gray-100 mx-8" />
-
-        {/* ─── SECTION 2 · DÉTAILS DE LA COLLECTE ─── */}
-        <div className="px-8 pt-7 pb-7">
-          <div className="mb-6">
-            <div className="inline-block">
-              <h2 className="font-archivo text-[15px] font-bold text-gray-900 tracking-wide pb-2 border-b-2 border-[#2AC1A3]">
-                2. {c.section2.toUpperCase()}
-              </h2>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-x-7 gap-y-5">
-
+            {/* Date de collecte */}
             <div>
-              <label className={labelClass}>{c.labelDate}</label>
+              <label className={labelClass}>{c.labelDate} *</label>
               <input
                 type="date"
                 value={formData.date_collecte}
@@ -179,8 +150,9 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
               />
             </div>
 
+            {/* Produit */}
             <div>
-              <label className={labelClass}>{c.labelProduitField}</label>
+              <label className={labelClass}>{c.labelProduitField} *</label>
               <select
                 value={formData.produit}
                 onChange={(e) => setFormData({ ...formData, produit: e.target.value })}
@@ -193,8 +165,9 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
               </select>
             </div>
 
+            {/* Poids brut */}
             <div>
-              <label className={labelClass}>{c.labelPoidsBrut}</label>
+              <label className={labelClass}>{c.labelPoidsBrut} *</label>
               <input
                 type="number"
                 step="0.01"
@@ -207,8 +180,9 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
               />
             </div>
 
+            {/* Poids net */}
             <div>
-              <label className={labelClass}>{c.labelPoidsNetField}</label>
+              <label className={labelClass}>{c.labelPoidsNetField} *</label>
               <input
                 type="number"
                 step="0.01"
@@ -221,6 +195,7 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
               />
             </div>
 
+            {/* Nombre de sacs */}
             <div>
               <label className={labelClass}>{c.labelSacs}</label>
               <input
@@ -232,6 +207,7 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
               />
             </div>
 
+            {/* Taux d'humidité */}
             <div>
               <label className={labelClass}>{c.labelHumiditeField}</label>
               <input
@@ -244,21 +220,8 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
                 className={inputClass}
               />
             </div>
-          </div>
-        </div>
 
-        <hr className="border-gray-100 mx-8" />
-
-        {/* ─── SECTION 3 · QUALITÉ ET CONDITIONNEMENT ─── */}
-        <div className="px-8 pt-7 pb-8">
-          <div className="mb-6">
-            <div className="inline-block">
-              <h2 className="font-archivo text-[15px] font-bold text-gray-900 tracking-wide pb-2 border-b-2 border-[#2AC1A3]">
-                3. {c.section3.toUpperCase()}
-              </h2>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-x-7">
+            {/* Qualité — spans full width left column only */}
             <div>
               <label className={labelClass}>{c.labelQualiteField}</label>
               <select
@@ -273,26 +236,30 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
                 <option value="Grade 3">Grade 3</option>
               </select>
             </div>
+
           </div>
         </div>
 
-        <hr className="border-gray-100 mx-8" />
+        <hr className="border-gray-100" />
 
-        {/* ─── ACTIONS ─── */}
-        <div className="px-8 py-5 flex items-center gap-5">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-[#2AC1A3] text-white px-5 py-2.5 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-[#24a88c] transition disabled:opacity-50"
-          >
-            {loading ? c.btnSaving : c.btnSave}
-          </button>
-          <Link
-            href={`/collectes/${collecte.id}`}
-            className="text-[10px] font-bold tracking-widest uppercase text-gray-400 hover:text-gray-600 transition"
-          >
-            {c.btnCancel}
-          </Link>
+        {/* Footer actions */}
+        <div className="px-8 py-5 flex items-center justify-between">
+          <p className="text-[11px] text-gray-400">{c.editFooterNote}</p>
+          <div className="flex items-center gap-5">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-[#2AC1A3] text-white px-5 py-2.5 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-[#24a88c] transition disabled:opacity-50"
+            >
+              {loading ? c.btnSaving : c.btnSave}
+            </button>
+            <Link
+              href={`/collectes/${collecte.id}`}
+              className="text-[10px] font-bold tracking-widest uppercase text-gray-400 hover:text-gray-600 transition"
+            >
+              {c.btnCancel}
+            </Link>
+          </div>
         </div>
       </form>
     </>
