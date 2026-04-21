@@ -13,6 +13,10 @@ export default {
         primary: "#2ac1a3",
         text: "#1a1a2e",
       },
+      fontFamily: {
+        archivo: ["var(--font-archivo-narrow)", "sans-serif"],
+        courier: ["var(--font-courier-prime)", "monospace"],
+      },
     },
   },
   plugins: [],

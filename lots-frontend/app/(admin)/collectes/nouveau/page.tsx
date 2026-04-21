@@ -8,13 +8,5 @@ export default async function NouvelleCollecte() {
     getParcellesForSelect(),
   ])
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Nouvelle collecte</h1>
-      <CollecteForm
-        producteurs={producteurs}
-        parcelles={parcelles}
-      />
-    </div>
-  )
+  return <CollecteForm producteurs={producteurs} parcelles={parcelles} />
 }

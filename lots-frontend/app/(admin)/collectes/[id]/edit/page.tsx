@@ -15,14 +15,5 @@ export default async function EditCollecte({ params }: { params: Promise<{ id: s
 
   if (!collecte) notFound()
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Modifier la collecte</h1>
-      <CollecteForm
-        collecte={collecte}
-        producteurs={producteurs}
-        parcelles={parcelles}
-      />
-    </div>
-  )
+  return <CollecteForm collecte={collecte} producteurs={producteurs} parcelles={parcelles} />
 }

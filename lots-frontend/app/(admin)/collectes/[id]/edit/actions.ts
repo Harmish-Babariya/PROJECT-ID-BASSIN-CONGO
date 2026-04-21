@@ -8,37 +8,33 @@ import { redirect } from "next/navigation"
 export async function updateCollecte(id: number, formData: any) {
   const me = await getCurrentUser()
 
-  try {
-    const dataToUpdate = {
-      producteur_id: parseInt(formData.producteur_id),
-      parcelle_id: parseInt(formData.parcelle_id),
-      date_collecte: formData.date_collecte,
-      produit: formData.produit,
-      poids_brut_kg: formData.poids_brut_kg ? parseFloat(formData.poids_brut_kg) : null,
-      poids_net_kg: formData.poids_net_kg ? parseFloat(formData.poids_net_kg) : null,
-      nombre_sacs: formData.nombre_sacs ? parseInt(formData.nombre_sacs) : null,
-      taux_humidite: formData.taux_humidite ? parseFloat(formData.taux_humidite) : null,
-      qualite: formData.qualite || null
-    }
-
-    const { error } = await updateCollecteById(id, dataToUpdate)
-
-    if (error) {
-      return { error: error.message }
-    }
-
-    if (me) {
-      await insertAuditLog(me.id, "update", "collectes", String(id), {
-        produit: dataToUpdate.produit,
-        poids_net_kg: dataToUpdate.poids_net_kg,
-        date_collecte: dataToUpdate.date_collecte,
-      })
-    }
-
-    revalidatePath('/collectes')
-    revalidatePath(`/collectes/${id}`)
-    redirect(`/collectes/${id}`)
-  } catch (error: any) {
-    return { error: error.message || "Erreur lors de la mise a jour" }
+  const dataToUpdate = {
+    producteur_id: parseInt(formData.producteur_id),
+    parcelle_id: parseInt(formData.parcelle_id),
+    date_collecte: formData.date_collecte,
+    produit: formData.produit,
+    poids_brut_kg: formData.poids_brut_kg ? parseFloat(formData.poids_brut_kg) : null,
+    poids_net_kg: formData.poids_net_kg ? parseFloat(formData.poids_net_kg) : null,
+    nombre_sacs: formData.nombre_sacs ? parseInt(formData.nombre_sacs) : null,
+    humidite_pct: formData.taux_humidite ? parseFloat(formData.taux_humidite) : null,
+    qualite: formData.qualite || null
   }
+
+  const { error } = await updateCollecteById(id, dataToUpdate)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (me) {
+    await insertAuditLog(me.id, "update", "collectes", String(id), {
+      produit: dataToUpdate.produit,
+      poids_net_kg: dataToUpdate.poids_net_kg,
+      date_collecte: dataToUpdate.date_collecte,
+    })
+  }
+
+  revalidatePath('/collectes')
+  revalidatePath(`/collectes/${id}`)
+  redirect(`/collectes/${id}`)
 }

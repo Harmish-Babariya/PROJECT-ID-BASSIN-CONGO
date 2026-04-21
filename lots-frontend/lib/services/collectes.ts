@@ -31,9 +31,8 @@ export async function getCollecteById(id: string) {
     .select(`
       *,
       producteurs (id, code_producteur, nom, prenom),
-      parcelles (id, code_parcelle, superficie_ha),
-      zones (nom),
-      pays (nom)
+      parcelles (id, code_parcelle, surface_ha),
+      zones (nom)
     `)
     .eq("id", id)
     .single()

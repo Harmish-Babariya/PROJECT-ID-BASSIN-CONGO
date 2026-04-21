@@ -123,7 +123,7 @@ export default function Sidebar({
           </div>
 
           <div>
-            <p className="px-3 mb-2 text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
+            <p className="font-courier px-3 mb-2 text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
               {s.data}
             </p>
             {donneesLinks.map((link) => (
@@ -152,7 +152,7 @@ export default function Sidebar({
 
           {isAdmin && (
             <div>
-              <p className="px-3 mb-2 text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
+              <p className="font-courier px-3 mb-2 text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
                 {s.management}
               </p>
               {gestionLinks.map((link) => (
@@ -178,7 +178,7 @@ export default function Sidebar({
           <div className="border-t border-white/5 pt-3">
             <div className="flex items-center gap-2 px-1 mb-2">
               <Globe className="w-3 h-3 text-white/30" />
-              <span className="text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
+              <span className="font-courier text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
                 {s.language}
               </span>
             </div>

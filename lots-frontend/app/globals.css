@@ -1,16 +1,15 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-courier-prime);
+  --font-sans: var(--font-archivo-narrow);
   --font-mono: var(--font-courier-prime);
-  --font-numbers: var(--font-archivo-narrow);
 }
 
 body {
-  font-family: var(--font-courier-prime), "Courier Prime", monospace;
+  font-family: var(--font-archivo-narrow), "Archivo Narrow", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-.font-numbers {
-  font-family: var(--font-archivo-narrow), "Archivo Narrow", sans-serif;
+.font-courier {
+  font-family: var(--font-courier-prime), "Courier Prime", monospace;
 }
