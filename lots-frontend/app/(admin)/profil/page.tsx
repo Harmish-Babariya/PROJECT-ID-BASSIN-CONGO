@@ -5,16 +5,16 @@ import ProfileClient from "./ProfileClient"
 export default async function ProfilPage() {
   const user = await getCurrentUser()
 
+  const isAdmin = user?.role === "admin"
+
   const [rawStats, recentActivity] = await Promise.all([
     user
       ? getProfileStats(user.id, user.role, user.country_id)
       : Promise.resolve(null),
     user
-      ? getRecentActivity(user.id, user.role, 5)
+      ? getRecentActivity(user.id, user.role, isAdmin ? 10 : 5)
       : Promise.resolve([]),
   ])
-
-  const isAdmin = user?.role === "admin"
 
   // Admin: producteurs / lots / dds / actions
   // Point focal: producteurs / parcelles / collectes / actions (country-scoped)

@@ -592,13 +592,20 @@ export default function ProfileClient({
               recentActivity.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-center justify-between py-3.5 border-b border-gray-100 last:border-b-0"
+                  className="flex items-start justify-between py-3.5 border-b border-gray-100 last:border-b-0"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="w-2 h-2 rounded-full shrink-0 bg-[#2AC1A3]" />
-                    <span className="text-[13px] text-gray-900">{formatActivityLabel(entry)}</span>
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span className="w-2 h-2 rounded-full shrink-0 bg-[#2AC1A3] mt-1.5" />
+                    <div className="min-w-0">
+                      <span className="text-[13px] text-gray-900 block">{formatActivityLabel(entry)}</span>
+                      {isAdmin && entry.user_name && (
+                        <span className="text-[10px] text-gray-400 tracking-wide">
+                          {p.activityBy(entry.user_name)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-[11px] text-gray-400 font-mono whitespace-nowrap ml-4">
+                  <span className="text-[11px] text-gray-400 font-mono whitespace-nowrap ml-4 mt-0.5">
                     {formatActivityTime(entry.created_at)}
                   </span>
                 </div>

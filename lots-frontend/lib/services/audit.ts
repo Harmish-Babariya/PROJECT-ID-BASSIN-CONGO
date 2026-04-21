@@ -24,6 +24,7 @@ export type AuditLogEntry = {
   record_id: string | null
   metadata: Record<string, unknown> | null
   created_at: string
+  user_name?: string | null
 }
 
 export type UserAuditCounts = {
@@ -119,7 +120,7 @@ export async function getRecentActivity(
 ): Promise<AuditLogEntry[]> {
   let query = supabaseAdmin
     .from("audit_logs")
-    .select("id, user_id, action, table_name, record_id, metadata, created_at")
+    .select("id, user_id, action, table_name, record_id, metadata, created_at, user_profiles(nom_complet)")
     .order("created_at", { ascending: false })
     .limit(limit)
 
@@ -127,7 +128,20 @@ export async function getRecentActivity(
 
   const { data, error } = await query
   if (error) return []
-  return (data ?? []) as AuditLogEntry[]
+
+  return (data ?? []).map((row: Record<string, unknown>) => {
+    const profile = row.user_profiles as { nom_complet?: string | null } | null
+    return {
+      id: row.id as string,
+      user_id: row.user_id as string,
+      action: row.action as string,
+      table_name: row.table_name as string,
+      record_id: row.record_id as string | null,
+      metadata: row.metadata as Record<string, unknown> | null,
+      created_at: row.created_at as string,
+      user_name: profile?.nom_complet ?? null,
+    }
+  })
 }
 
 // Used by the user edit page summary cards
