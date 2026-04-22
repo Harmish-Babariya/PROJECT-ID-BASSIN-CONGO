@@ -1,6 +1,7 @@
 "use client"
 import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
+import ParcelleMap from "./ParcelleMap"
 
 function readField(obj: any, ...keys: string[]): any {
   for (const key of keys) {
@@ -158,29 +159,12 @@ export default function ParcelleDetailClient({ parcelle, producteur, collectes }
               ))}
             </div>
 
-            <div className="bg-gray-900 rounded-lg overflow-hidden" style={{ height: 240 }}>
-              <div className="w-full h-full flex items-end justify-start p-3 relative">
-                {latitude && longitude ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-3 h-3 bg-[#2ac1a3] rounded-full shadow-lg shadow-[#2ac1a3]/50" />
-                  </div>
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <p className="text-gray-500 text-sm">{tp.noGps}</p>
-                  </div>
-                )}
-                <div className="relative z-10 flex items-center gap-4 text-xs text-gray-400">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 bg-[#2ac1a3] rounded-full inline-block" />
-                    CONFORME ({collectes.filter((c: any) => c.status_eudr === "CONFORME").length})
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 bg-yellow-500 rounded-full inline-block" />
-                    NON CONFORME (0)
-                  </span>
-                </div>
-              </div>
-            </div>
+            <ParcelleMap
+              geojson={parcelle.geojson}
+              latitude={latitude}
+              longitude={longitude}
+              emptyLabel={tp.noGps}
+            />
           </div>
         </div>
       </div>
