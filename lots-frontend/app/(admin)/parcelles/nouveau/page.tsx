@@ -1,41 +1,43 @@
+import { redirect } from "next/navigation"
 import ParcelleForm from "./ParcelleForm"
-import { getProducteursAll, getProducteurById } from "@/lib/services/producteurs"
-import { getZones } from "@/lib/services/common"
+import { getProducteursAll } from "@/lib/services/producteurs"
+import { getZones, getPays } from "@/lib/services/common"
+import { getCurrentUser } from "@/lib/services/auth"
 
 export default async function NouvelleParcelle({
-  searchParams
+  searchParams,
 }: {
-  searchParams: Promise<{ producteur_id?: string }>
+  searchParams: Promise<{ producteur_id?: string; return_to?: string }>
 }) {
-  const params = await searchParams
+  const user = await getCurrentUser()
+  if (!user) redirect("/login")
 
-  const [producteurs, zones] = await Promise.all([
+  const params = await searchParams
+  const isAdmin = user.role === "admin"
+
+  const [producteurs, zones, allPays] = await Promise.all([
     getProducteursAll(),
     getZones(),
+    getPays(),
   ])
 
-  let producteurSelectionne = null
-  if (params.producteur_id) {
-    producteurSelectionne = await getProducteurById(params.producteur_id)
-  }
+  // point_focal only sees their assigned country
+  const pays = isAdmin ? allPays : allPays.filter(p => p.id === user.country_id)
+
+  // point_focal: zones and producteurs scoped to their country
+  const filteredZones = isAdmin ? zones : zones.filter(z => z.pays_id === user.country_id)
+  const filteredProducteurs = isAdmin
+    ? producteurs
+    : producteurs.filter(p => p.pays_id === user.country_id)
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Nouvelle parcelle</h1>
-
-      {producteurSelectionne && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
-          <p className="text-gray-900">
-            Parcelle pour <strong>{producteurSelectionne.code_producteur} - {producteurSelectionne.nom}</strong>
-          </p>
-        </div>
-      )}
-
-      <ParcelleForm
-        producteurs={producteurs}
-        zones={zones}
-        producteurPreselectionne={params.producteur_id}
-      />
-    </div>
+    <ParcelleForm
+      producteurs={filteredProducteurs}
+      zones={filteredZones}
+      pays={pays}
+      defaultPaysId={isAdmin ? undefined : String(user.country_id ?? "")}
+      producteurPreselectionne={params.producteur_id}
+      returnTo={params.return_to}
+    />
   )
 }

@@ -1,0 +1,234 @@
+import { NextRequest, NextResponse } from "next/server"
+import { parseStringPromise } from "xml2js"
+import { supabaseAdmin } from "@/lib/supabase-server"
+import { getCurrentUser } from "@/lib/services/auth"
+
+const EUDR_SCRIPT_VERSION = "1.0.0"
+const BUCKET = "parcelles-gpx"
+
+export async function POST(request: NextRequest) {
+  try {
+    // Auth check
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Non autorisé" }, { status: 401 })
+    }
+
+    const formData = await request.formData()
+    const file = formData.get("file") as File | null
+    const annee_plantation = formData.get("annee_plantation") as string | null
+
+    if (!file) {
+      return NextResponse.json({ success: false, error: "Aucun fichier fourni" }, { status: 400 })
+    }
+
+    if (!file.name.toLowerCase().endsWith(".gpx")) {
+      return NextResponse.json({ success: false, error: "Seuls les fichiers .gpx sont acceptés" }, { status: 400 })
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ success: false, error: "Le fichier dépasse 10 Mo" }, { status: 400 })
+    }
+
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    // Parse and validate GPX BEFORE uploading to storage
+    const gpxText = buffer.toString("utf-8")
+
+    let gpxData: any
+    try {
+      gpxData = await parseStringPromise(gpxText)
+    } catch {
+      return NextResponse.json({ success: false, error: "Le fichier GPX n'est pas un XML valide" }, { status: 400 })
+    }
+
+    if (!gpxData?.gpx) {
+      return NextResponse.json({ success: false, error: "Le fichier ne contient pas de données GPX valides" }, { status: 400 })
+    }
+
+    // Extract coordinates
+    let coords: { lat: number; lon: number }[] = []
+
+    if (gpxData.gpx?.trk) {
+      for (const trk of gpxData.gpx.trk) {
+        if (trk?.trkseg) {
+          for (const seg of trk.trkseg) {
+            if (seg?.trkpt) {
+              coords.push(...seg.trkpt.map((pt: any) => ({
+                lat: parseFloat(pt.$.lat),
+                lon: parseFloat(pt.$.lon),
+              })))
+            }
+          }
+        }
+      }
+    }
+
+    if (coords.length === 0 && gpxData.gpx?.wpt) {
+      coords = gpxData.gpx.wpt.map((pt: any) => ({
+        lat: parseFloat(pt.$.lat),
+        lon: parseFloat(pt.$.lon),
+      }))
+    }
+
+    if (coords.length === 0 && gpxData.gpx?.rte?.[0]?.rtept) {
+      coords = gpxData.gpx.rte[0].rtept.map((pt: any) => ({
+        lat: parseFloat(pt.$.lat),
+        lon: parseFloat(pt.$.lon),
+      }))
+    }
+
+    coords = coords.filter(c => !isNaN(c.lat) && !isNaN(c.lon))
+
+    if (coords.length === 0) {
+      return NextResponse.json({ success: false, error: "Aucune coordonnée trouvée dans le fichier GPX" }, { status: 400 })
+    }
+
+    if (coords.length < 3) {
+      return NextResponse.json({ success: false, error: "Le fichier GPX doit contenir au moins 3 points" }, { status: 400 })
+    }
+
+    // Auto-fix self-intersecting polygons using convex hull
+    if (hasSelfIntersection(coords)) {
+      coords = convexHull(coords)
+    }
+
+    const surface_ha = calculatePolygonArea(coords)
+
+    if (surface_ha < 0.0001) {
+      return NextResponse.json({ success: false, error: "Le polygone a une surface nulle ou quasi-nulle" }, { status: 400 })
+    }
+
+    // Upload to Supabase Storage only after validation passes
+    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`
+
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .upload(fileName, buffer, {
+        contentType: "application/gpx+xml",
+        upsert: false,
+      })
+
+    if (uploadError) {
+      return NextResponse.json(
+        { success: false, error: `Erreur upload : ${uploadError.message}` },
+        { status: 500 }
+      )
+    }
+
+    const { data: { publicUrl } } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(fileName)
+
+    const latitude = coords.reduce((s, c) => s + c.lat, 0) / coords.length
+    const longitude = coords.reduce((s, c) => s + c.lon, 0) / coords.length
+
+    const geojson = {
+      type: "Polygon",
+      coordinates: [coords.map(c => [c.lon, c.lat])],
+    }
+    const ring = geojson.coordinates[0]
+    if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
+      ring.push([...ring[0]])
+    }
+
+    // EUDR check
+    let eudr_status = "pending_review"
+    let justification = "Vérification automatique en attente"
+    const verification_timestamp = new Date().toISOString()
+
+    if (annee_plantation) {
+      const year = parseInt(annee_plantation)
+      const currentYear = new Date().getFullYear()
+      if (!isNaN(year)) {
+        if (year > currentYear) {
+          eudr_status = "pending_review"
+          justification = `Année de plantation ${year} invalide (future). Vérification manuelle requise.`
+        } else if (year <= 2020) {
+          eudr_status = "compliant"
+          justification = `Plantation créée en ${year}, antérieure au cutoff EUDR (31 déc 2020). Conforme.`
+        } else {
+          eudr_status = "alert"
+          justification = `Plantation créée en ${year}, postérieure au cutoff EUDR (31 déc 2020). Vérification satellite requise.`
+        }
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      gpx_file_url: publicUrl,
+      latitude: latitude.toFixed(6),
+      longitude: longitude.toFixed(6),
+      surface_ha: surface_ha.toFixed(4),
+      nb_points: coords.length,
+      eudr_status,
+      justification,
+      verification_timestamp,
+      script_version: EUDR_SCRIPT_VERSION,
+      geojson,
+    })
+  } catch (error: any) {
+    console.error("Erreur upload-gpx:", error)
+    return NextResponse.json({ success: false, error: error.message || "Erreur interne" }, { status: 500 })
+  }
+}
+
+function calculatePolygonArea(coords: { lat: number; lon: number }[]): number {
+  if (coords.length < 3) return 0
+  let area = 0
+  const n = coords.length
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n
+    area += coords[i].lon * coords[j].lat
+    area -= coords[j].lon * coords[i].lat
+  }
+  area = Math.abs(area) / 2
+  const avgLat = coords.reduce((s, c) => s + c.lat, 0) / coords.length
+  return area * 111320 * 111320 * Math.cos(avgLat * Math.PI / 180) / 10000
+}
+
+function hasSelfIntersection(coords: { lat: number; lon: number }[]): boolean {
+  const n = coords.length
+  if (n < 4) return false
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = i + 2; j < n - 1; j++) {
+      if (i === 0 && j === n - 2) continue
+      if (segmentsIntersect(coords[i], coords[i + 1], coords[j], coords[j + 1])) return true
+    }
+  }
+  return false
+}
+
+function segmentsIntersect(
+  a: { lat: number; lon: number }, b: { lat: number; lon: number },
+  c: { lat: number; lon: number }, d: { lat: number; lon: number }
+): boolean {
+  const ccw = (p1: typeof a, p2: typeof a, p3: typeof a) =>
+    (p3.lat - p1.lat) * (p2.lon - p1.lon) > (p2.lat - p1.lat) * (p3.lon - p1.lon)
+  return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d)
+}
+
+function convexHull(coords: { lat: number; lon: number }[]): { lat: number; lon: number }[] {
+  const pts = [...coords].sort((a, b) => a.lon !== b.lon ? a.lon - b.lon : a.lat - b.lat)
+  const cross = (o: typeof pts[0], a: typeof pts[0], b: typeof pts[0]) =>
+    (a.lon - o.lon) * (b.lat - o.lat) - (a.lat - o.lat) * (b.lon - o.lon)
+
+  const lower: typeof pts = []
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0)
+      lower.pop()
+    lower.push(p)
+  }
+
+  const upper: typeof pts = []
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const p = pts[i]
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0)
+      upper.pop()
+    upper.push(p)
+  }
+
+  // Remove last point of each half (duplicates of first point of other half)
+  lower.pop()
+  upper.pop()
+  return [...lower, ...upper]
+}

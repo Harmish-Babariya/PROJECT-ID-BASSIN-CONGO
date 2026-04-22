@@ -1,0 +1,212 @@
+"use client"
+import Link from "next/link"
+import { useLanguage } from "@/contexts/LanguageContext"
+
+function readField(obj: any, ...keys: string[]): any {
+  for (const key of keys) {
+    const parts = key.split(".")
+    let val: any = obj
+    for (const p of parts) val = val?.[p]
+    if (val !== undefined && val !== null && val !== "") return val
+  }
+  return null
+}
+
+function readArray(obj: any, ...keys: string[]): string[] {
+  for (const key of keys) {
+    const parts = key.split(".")
+    let val: any = obj
+    for (const p of parts) val = val?.[p]
+    if (Array.isArray(val) && val.length > 0) return val
+  }
+  return []
+}
+
+function EudrBadge({ status }: { status: string | null }) {
+  if (!status || status === "NON VÉRIFIÉ" || status === "NON VERIFIE") {
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500">NON VÉRIFIÉ</span>
+  }
+  if (status === "CONFORME") {
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-[#2ac1a3]/15 text-[#2ac1a3]">CONFORME</span>
+  }
+  if (status === "RISQUE NON NEGLIGEABLE" || status === "RISQUE NON NÉGLIGEABLE") {
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700">RISQUE NON NÉGLIGEABLE</span>
+  }
+  if (status === "NON CONFORME") {
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-red-100 text-red-600">NON CONFORME</span>
+  }
+  return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500">{status}</span>
+}
+
+export default function ParcelleDetailClient({ parcelle, producteur, collectes }: { parcelle: any; producteur: any; collectes: any[] }) {
+  const { t } = useLanguage()
+  const tp = t.parcelles
+
+  const latitude = parcelle.latitude ?? null
+  const longitude = parcelle.longitude ?? null
+  const annees = parcelle.annee_plantation
+    ? tp.cardYears(new Date().getFullYear() - Number(parcelle.annee_plantation))
+    : "—"
+
+  // Read all fields with JSONB fallbacks
+  const modeAcces = readField(parcelle, "mode_acces_terre", "acces_terre_data.mode_acces_terre")
+  const autorisationOccupation = readField(parcelle, "autorisation_occupation", "acces_terre_data.autorisation_occupation")
+  const typeAutorisation = readField(parcelle, "type_autorisation", "acces_terre_data.type_autorisation")
+  const autoritePar = readField(parcelle, "autorite_ayant_accorde", "acces_terre_data.autorite_ayant_accorde")
+  const etatSite = readField(parcelle, "etat_site_creation", "acces_terre_data.etat_site_creation", "acquisition_data.etat_site_creation")
+  const provenance = readField(parcelle, "provenance_semences", "semences_data.provenance_semences")
+  const lieuSemences = readField(parcelle, "lieu_semences", "semences_data.lieu_semences")
+  const fournisseur = readField(parcelle, "fournisseur_semences", "semences_data.fournisseur_semences")
+  const systemeAgricole = readField(parcelle, "systeme_agricole", "semences_data.systeme_agricole")
+  const arbres = readArray(parcelle, "arbres_accompagnons", "semences_data.arbres_accompagnons")
+  const nombreArbres = readField(parcelle, "nombre_arbres_accompagnons", "semences_data.nombre_arbres_accompagnons")
+  const signesMaladies = readField(parcelle, "signes_maladies", "sante_production_data.signes_maladies", "sante_data.signes_maladies")
+  const maladies = readArray(parcelle, "identification_maladies", "sante_production_data.identification_maladies", "sante_data.identification_maladies")
+  const plantationProduit = readField(parcelle, "plantation_produit", "sante_production_data.plantation_produit", "sante_data.plantation_produit")
+  const recolte = readField(parcelle, "recolte_annee_derniere", "sante_production_data.recolte_annee_derniere", "sante_data.recolte_annee_derniere")
+  const quantite = readField(parcelle, "quantite_recoltee", "sante_production_data.quantite_recoltee", "sante_data.quantite_recoltee")
+  const formations = readField(parcelle, "formations_recues", "formation_entretien_data.formations_recues", "formation_data.formations_recues")
+  const operations = readArray(parcelle, "operations_entretien", "formation_entretien_data.operations_entretien", "formation_data.operations_entretien")
+  const pesticides = readField(parcelle, "utilisation_pesticides", "formation_entretien_data.utilisation_pesticides", "formation_data.utilisation_pesticides")
+  const etatPlantation = readField(parcelle, "etat", "etat_plantation_enquete", "formation_entretien_data.etat_plantation_enquete", "formation_data.etat_plantation_enquete")
+
+  const fields = [
+    { label: tp.fieldCooperative, value: (producteur as any)?.cooperatives?.nom || "—" },
+    { label: tp.fieldProducteur, value: producteur ? `${producteur.nom}${(producteur as any).prenom ? " " + (producteur as any).prenom : ""}` : "—" },
+    { label: tp.fieldModeAcces, value: modeAcces || "—" },
+    { label: tp.fieldAutorisationOccupation, value: autorisationOccupation || "—" },
+    { label: tp.fieldTypeAutorisation, value: typeAutorisation || "—" },
+    { label: tp.fieldAutorisationPar, value: autoritePar || "—" },
+    { label: tp.fieldEtatSiteCreation, value: etatSite || "—" },
+    { label: tp.fieldProvenanceSemences, value: provenance || "—" },
+    { label: tp.fieldLieuSemences, value: lieuSemences || "—" },
+    { label: tp.fieldFournisseurSemences, value: fournisseur || "—" },
+    { label: tp.fieldSystemeAgricole, value: systemeAgricole || "—" },
+    { label: tp.fieldArbresCompagnons, value: arbres.length > 0 ? arbres.join(", ") : "—" },
+    { label: tp.fieldNombreArbres, value: nombreArbres !== null ? String(nombreArbres) : "—" },
+    { label: tp.fieldSignesMaladies, value: signesMaladies || "—" },
+    { label: tp.fieldMaladies, value: maladies.length > 0 ? maladies.join(", ") : "—" },
+    { label: tp.fieldPlantationProduit, value: plantationProduit || "—" },
+    { label: tp.fieldRecolteAnnee, value: recolte || "—" },
+    { label: tp.fieldQuantiteRecoltee, value: quantite !== null ? String(quantite) : "—" },
+    { label: tp.fieldFormationsRecues, value: formations || "—" },
+    { label: tp.fieldOperationsEntretien, value: operations.length > 0 ? operations.join(", ") : "—" },
+    { label: tp.fieldPesticides, value: pesticides || "—" },
+    { label: tp.fieldEtatPlantation, value: etatPlantation || "—" },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <Link href="/parcelles" className="text-xs text-gray-400 tracking-widest uppercase hover:text-[#2ac1a3] transition">
+        {tp.backToList}
+      </Link>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-8">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <div className="flex items-center gap-4 mb-1">
+              <h1 className="text-3xl font-bold text-gray-900">{parcelle.code_parcelle}</h1>
+              <EudrBadge status={parcelle.status_eudr} />
+            </div>
+            <p className="text-sm text-gray-500">
+              Producteur : {producteur?.code_producteur} – {producteur?.nom}{(producteur as any)?.prenom ? ` ${(producteur as any).prenom}` : ""}
+            </p>
+          </div>
+          <Link href={`/parcelles/${parcelle.id}/edit`} className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] transition">
+            {tp.btnEdit}
+          </Link>
+        </div>
+
+        {parcelle.justification_eudr && (
+          <div className="mb-6 p-4 bg-[#e6f9f5] border border-[#2ac1a3]/20 rounded-lg">
+            <p className="text-xs font-bold text-[#2ac1a3] uppercase tracking-widest mb-1">{tp.eudrJustificationLabel}</p>
+            <p className="text-sm text-gray-700">{parcelle.justification_eudr}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-8">
+          {/* Left: detail table */}
+          <div>
+            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">{tp.sectionOtherInfo}</h2>
+            <div className="space-y-0">
+              {fields.map(({ label, value }) => (
+                <div key={label} className="flex justify-between py-2.5 border-b border-gray-100 last:border-0">
+                  <span className="text-sm text-gray-500">{label}</span>
+                  <span className="text-sm text-gray-900 font-medium text-right max-w-[55%]">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: stat cards + map */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: tp.cardCulture, value: parcelle.culture || "—" },
+                { label: tp.cardLocalite, value: (producteur as any)?.villages?.nom || (producteur as any)?.village || "—" },
+                { label: tp.cardZone, value: (producteur as any)?.zones?.nom || "—" },
+                { label: tp.cardPays, value: (producteur as any)?.pays?.nom || "—" },
+                { label: tp.cardLatitude, value: latitude ?? "—" },
+                { label: tp.cardLongitude, value: longitude ?? "—" },
+                { label: tp.cardSurface, value: parcelle.surface_ha || "—" },
+                { label: tp.cardAnnee, value: annees },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+                  <p className="text-base font-semibold text-gray-900">{String(value)}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-gray-900 rounded-lg overflow-hidden" style={{ height: 240 }}>
+              <div className="w-full h-full flex items-end justify-start p-3 relative">
+                {latitude && longitude ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-3 h-3 bg-[#2ac1a3] rounded-full shadow-lg shadow-[#2ac1a3]/50" />
+                  </div>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <p className="text-gray-500 text-sm">{tp.noGps}</p>
+                  </div>
+                )}
+                <div className="relative z-10 flex items-center gap-4 text-xs text-gray-400">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-[#2ac1a3] rounded-full inline-block" />
+                    CONFORME ({collectes.filter((c: any) => c.status_eudr === "CONFORME").length})
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-yellow-500 rounded-full inline-block" />
+                    NON CONFORME (0)
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Collectes */}
+      <div className="bg-white rounded-xl border border-gray-200 p-8">
+        <h2 className="text-base font-bold text-gray-900 mb-5">{tp.sectionCollectes} ({collectes.length})</h2>
+        {collectes.length > 0 ? (
+          <div className="space-y-3">
+            {collectes.map((c: any) => (
+              <div key={c.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <div>
+                  <p className="text-sm font-semibold text-gray-700">{new Date(c.date_collecte).toLocaleDateString("fr-FR")}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{c.produit}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-[#2ac1a3]">{c.poids_net_kg} kg</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{c.nombre_sacs} sacs</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-400 text-sm">{tp.noCollectes}</p>
+        )}
+      </div>
+    </div>
+  )
+}

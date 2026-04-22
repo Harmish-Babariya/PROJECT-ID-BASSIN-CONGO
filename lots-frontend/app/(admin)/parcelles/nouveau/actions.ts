@@ -8,6 +8,7 @@ import { redirect } from "next/navigation"
 
 export async function createParcelle(formData: any, returnTo?: string) {
   const me = await getCurrentUser()
+  let redirectTo = "/parcelles"
 
   try {
     const dataToInsert = {
@@ -118,19 +119,17 @@ export async function createParcelle(formData: any, returnTo?: string) {
 
     revalidatePath('/parcelles')
     revalidatePath(`/producteurs/${formData.producteur_id}`)
-
-    if (returnTo) {
-      redirect(returnTo)
-    } else {
-      redirect(`/parcelles/${data.id}`)
-    }
+    redirectTo = returnTo || `/parcelles/${data.id}`
   } catch (error: any) {
     return { error: error.message || "Erreur lors de la creation" }
   }
+
+  redirect(redirectTo)
 }
 
 export async function updateParcelle(id: string, formData: any) {
   const me = await getCurrentUser()
+  let redirectTo = `/parcelles/${id}`
 
   try {
     const dataToUpdate = {
@@ -144,6 +143,11 @@ export async function updateParcelle(id: string, formData: any) {
       altitude: formData.altitude ? parseFloat(formData.altitude) : null,
       precision_gps: formData.precision_gps ? parseFloat(formData.precision_gps) : null,
       gpx_file_url: formData.gpx_file_url || null,
+      status_eudr: formData.status_eudr || null,
+      justification_eudr: formData.justification_eudr || null,
+      eudr_verification_timestamp: formData.eudr_verification_timestamp || null,
+      eudr_script_version: formData.eudr_script_version || null,
+      geojson: formData.geojson || null,
       culture: formData.culture,
       varietes: formData.varietes && formData.varietes.length > 0 ? formData.varietes : null,
       annee_plantation: formData.annee_plantation ? parseInt(formData.annee_plantation) : null,
@@ -233,8 +237,9 @@ export async function updateParcelle(id: string, formData: any) {
 
     revalidatePath('/parcelles')
     revalidatePath(`/parcelles/${id}`)
-    redirect(`/parcelles/${id}`)
   } catch (error: any) {
     return { error: error.message || "Erreur lors de la mise a jour" }
   }
+
+  redirect(redirectTo)
 }

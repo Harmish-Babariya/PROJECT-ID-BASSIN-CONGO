@@ -54,6 +54,12 @@ export default function Sidebar({
     { href: "/utilisateurs", label: s.users, icon: UserCog },
   ]
 
+  const referentielLinks = [
+    { href: "/referentiel/pays", label: s.pays },
+    { href: "/referentiel/zones", label: s.zones },
+    { href: "/referentiel/villages", label: s.villages },
+  ]
+
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" })
     router.push("/")
@@ -156,6 +162,29 @@ export default function Sidebar({
                 {s.management}
               </p>
               {gestionLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={closeDrawer}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition ${
+                    isActive(link.href)
+                      ? "bg-white/10 text-white font-medium"
+                      : "text-white/55 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#2AC1A3]" />
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {isAdmin && (
+            <div>
+              <p className="font-courier px-3 mb-2 text-[9px] font-semibold text-white/30 tracking-[0.15em] uppercase">
+                {s.referentiel}
+              </p>
+              {referentielLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
