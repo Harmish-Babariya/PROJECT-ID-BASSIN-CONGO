@@ -24,7 +24,7 @@ export async function getLotCollectes(lotId: string) {
       collectes (
         *,
         producteurs (code_producteur, nom, prenom),
-        parcelles (code_parcelle, surface_ha, status_eudr, latitude, longitude)
+        parcelles (code_parcelle, surface_ha, status_eudr, latitude, longitude, geojson)
       )
     `)
     .eq("lot_id", lotId)

@@ -20,7 +20,7 @@ export async function updateLot(
       destination_pays: formData.destination_pays || null,
       acheteur: formData.acheteur || null,
       date_expedition: formData.date_expedition || null,
-      statut: formData.statut
+      statut: formData.statut,
     })
 
     if (lotError) {
@@ -33,9 +33,9 @@ export async function updateLot(
     }
 
     if (collectesSelectionnees.length > 0) {
-      const associations = collectesSelectionnees.map(collecteId => ({
+      const associations = collectesSelectionnees.map((collecteId) => ({
         lot_id: lotId,
-        collecte_id: collecteId
+        collecte_id: collecteId,
       }))
       const { error: insertError } = await insertLotCollectes(associations)
       if (insertError) {
@@ -51,11 +51,12 @@ export async function updateLot(
       })
     }
 
-    revalidatePath('/lots')
+    revalidatePath("/lots")
     revalidatePath(`/lots/${lotId}`)
-    revalidatePath('/collectes')
-    redirect(`/lots/${lotId}`)
+    revalidatePath("/collectes")
   } catch (error: any) {
     return { error: error.message || "Erreur lors de la mise a jour" }
   }
+
+  redirect(`/lots/${lotId}`)
 }

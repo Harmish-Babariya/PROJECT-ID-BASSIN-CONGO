@@ -12,6 +12,8 @@ export async function createLot(
 ) {
   const me = await getCurrentUser()
 
+  let newLotId: number | null = null
+
   try {
     const { data: lot, error: lotError } = await insertLot({
       produit: formData.produit,
@@ -19,16 +21,16 @@ export async function createLot(
       destination_pays: formData.destination_pays || null,
       acheteur: formData.acheteur || null,
       date_expedition: formData.date_expedition || null,
-      statut: formData.statut
+      statut: formData.statut,
     })
 
     if (lotError) {
       return { error: lotError.message }
     }
 
-    const associations = collectesSelectionnees.map(collecteId => ({
+    const associations = collectesSelectionnees.map((collecteId) => ({
       lot_id: lot.id,
-      collecte_id: collecteId
+      collecte_id: collecteId,
     }))
 
     const { error: insertError } = await insertLotCollectes(associations)
@@ -45,10 +47,12 @@ export async function createLot(
       })
     }
 
-    revalidatePath('/lots')
-    revalidatePath('/collectes')
-    redirect(`/lots/${lot.id}`)
+    revalidatePath("/lots")
+    revalidatePath("/collectes")
+    newLotId = lot.id
   } catch (error: any) {
     return { error: error.message || "Erreur lors de la creation" }
   }
+
+  redirect(`/lots/${newLotId}`)
 }

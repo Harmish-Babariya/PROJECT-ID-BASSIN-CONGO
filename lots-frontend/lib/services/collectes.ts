@@ -65,6 +65,7 @@ export async function getCollectesForLot() {
       date_collecte,
       poids_net_kg,
       qualite,
+      nombre_sacs,
       producteurs (code_producteur, nom, prenom),
       parcelles (code_parcelle)
     `)
