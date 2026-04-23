@@ -109,27 +109,52 @@ export async function updateCollecteById(id: number, dataToUpdate: Record<string
   return { error }
 }
 
-export async function getRecentCollectes(limit = 3) {
-  const { data } = await supabaseAdmin
+export async function getRecentCollectes(
+  limit = 3,
+  paysId?: number | null,
+  range?: { from?: string | null; to?: string | null }
+) {
+  let query = supabaseAdmin
     .from("collectes")
     .select(`
       id, date_collecte, poids_net_kg, produit,
       producteurs (code_producteur, nom, prenom),
       zones (nom)
     `)
+
+  if (paysId) {
+    const { data: prods } = await supabaseAdmin
+      .from("producteurs")
+      .select("id")
+      .eq("pays_id", Number(paysId))
+    const ids = (prods ?? []).map((p: { id: number }) => p.id)
+    query = ids.length > 0
+      ? query.in("producteur_id", ids)
+      : query.in("producteur_id", [-1])
+  }
+
+  if (range?.from) query = query.gte("date_collecte", range.from)
+  if (range?.to) query = query.lte("date_collecte", range.to)
+
+  const { data } = await query
     .order("date_collecte", { ascending: false })
     .limit(limit)
   return data || []
 }
 
 // Stats for dashboard
-export async function getCollectesStats(paysId?: number | null) {
+export async function getCollectesStats(
+  paysId?: number | null,
+  range?: { from?: string | null; to?: string | null }
+) {
   let query = supabaseAdmin.from("collectes").select("id, poids_net_kg")
   if (paysId) {
     const { data: prods } = await supabaseAdmin.from("producteurs").select("id").eq("pays_id", paysId)
     const ids = (prods ?? []).map((p: { id: number }) => p.id)
     query = ids.length > 0 ? query.in("producteur_id", ids) : query.in("producteur_id", [-1])
   }
+  if (range?.from) query = query.gte("date_collecte", range.from)
+  if (range?.to) query = query.lte("date_collecte", range.to)
   const { data } = await query
   return data || []
 }

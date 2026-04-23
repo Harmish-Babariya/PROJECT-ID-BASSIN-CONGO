@@ -36,5 +36,7 @@ export async function updateCollecte(id: number, formData: any) {
 
   revalidatePath('/collectes')
   revalidatePath(`/collectes/${id}`)
+  revalidatePath('/profil')
+  revalidatePath('/dashboard')
   redirect(`/collectes/${id}`)
 }

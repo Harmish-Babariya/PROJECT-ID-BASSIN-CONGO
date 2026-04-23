@@ -36,5 +36,7 @@ export async function createCollecte(formData: any) {
   }
 
   revalidatePath('/collectes')
+  revalidatePath('/profil')
+  revalidatePath('/dashboard')
   redirect(`/collectes/${data.id}`)
 }

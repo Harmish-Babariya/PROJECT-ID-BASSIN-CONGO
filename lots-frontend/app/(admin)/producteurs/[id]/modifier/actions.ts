@@ -106,5 +106,7 @@ export async function updateProducteur(id: number, formData: ProducteurFormPaylo
 
   revalidatePath(`/producteurs/${id}`)
   revalidatePath("/producteurs")
+  revalidatePath("/profil")
+  revalidatePath("/dashboard")
   redirect(`/producteurs/${id}`)
 }

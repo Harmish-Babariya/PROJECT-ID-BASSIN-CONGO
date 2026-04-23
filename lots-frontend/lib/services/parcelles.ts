@@ -103,6 +103,25 @@ export async function updateParcelleById(id: number | string, dataToUpdate: Reco
   return { data, error }
 }
 
+// Lightweight fetch for maps (only location + identity fields), country-scoped
+export async function getParcellesForMap(paysId?: number | null) {
+  let query = supabaseAdmin
+    .from("parcelles")
+    .select("id, code_parcelle, surface_ha, status_eudr, latitude, longitude, geojson, producteur_id")
+
+  if (paysId) {
+    const { data: prods } = await supabaseAdmin
+      .from("producteurs")
+      .select("id")
+      .eq("pays_id", paysId)
+    const ids = (prods ?? []).map((p: { id: number }) => p.id)
+    query = ids.length > 0 ? query.in("producteur_id", ids) : query.in("producteur_id", [-1])
+  }
+
+  const { data } = await query
+  return data || []
+}
+
 // Stats for dashboard
 export async function getParcellesStats(paysId?: number | null) {
   let query = supabaseAdmin.from("parcelles").select("id, producteur_id, status_eudr, surface_ha")

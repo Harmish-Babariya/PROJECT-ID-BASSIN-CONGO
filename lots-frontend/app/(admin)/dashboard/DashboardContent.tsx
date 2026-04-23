@@ -54,20 +54,33 @@ type RecentLot = {
   zones: { nom: string }[] | { nom: string } | null
 }
 
+export type MapParcelle = {
+  id: number
+  code_parcelle: string | null
+  surface_ha: string | number | null
+  status_eudr: string | null
+  latitude: number | string | null
+  longitude: number | string | null
+  geojson: unknown
+}
+
 export default function DashboardContent({
   stats,
   recentCollectes,
   recentLots,
   userName,
+  mapParcelles,
 }: {
   stats: Stats
   recentCollectes: RecentCollecte[]
   recentLots: RecentLot[]
   userName: string
+  mapParcelles: MapParcelle[]
 }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const d = t.dashboard
   const eudrPercent = stats.parcelles.pourcentageConformite
+  const localeCode = locale === "fr" ? "fr-FR" : "en-GB"
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -171,7 +184,7 @@ export default function DashboardContent({
             <p className="text-[10px] font-semibold text-[#AAAAAA] tracking-[0.15em] uppercase whitespace-nowrap">{d.mapSection}</p>
             <div className="flex-1 h-0 border-t border-solid border-[#DDDDD8]" />
           </div>
-          <DashboardMap />
+          <DashboardMap parcelles={mapParcelles} />
         </div>
       </div>
 
@@ -283,9 +296,9 @@ export default function DashboardContent({
                       <span className="font-mono text-[12px] sm:text-[13px] font-bold text-[#8B7355]">{prod?.code_producteur}</span>
                       <span className="text-[12px] sm:text-[13px] text-[#555]">{prod?.nom} {prod?.prenom}</span>
                       <span className="text-[12px] sm:text-[13px] text-[#AAAAAA]">{zone?.nom}</span>
-                      <span className="text-[12px] sm:text-[13px] text-[#AAAAAA]">{c.produit || "Cacao"}</span>
+                      <span className="text-[12px] sm:text-[13px] text-[#AAAAAA]">{c.produit || d.defaultProduit}</span>
                       <span className="text-[12px] sm:text-[13px] text-[#1A1A1A] font-semibold">{c.poids_net_kg ? Math.round(Number(c.poids_net_kg)) + " kg" : "-"}</span>
-                      <span className="text-[12px] sm:text-[13px] text-[#BBBBBB] ml-auto">{c.date_collecte ? new Date(c.date_collecte).toLocaleDateString("fr-FR") : "-"}</span>
+                      <span className="text-[12px] sm:text-[13px] text-[#BBBBBB] ml-auto">{c.date_collecte ? new Date(c.date_collecte).toLocaleDateString(localeCode) : "-"}</span>
                     </div>
                   )
                 })}
@@ -308,7 +321,7 @@ export default function DashboardContent({
                     >
                       <span className="font-mono text-[12px] sm:text-[13px] font-bold text-[#2AC1A3]">{l.code_lot}</span>
                       <span className="text-[12px] sm:text-[13px] text-[#AAAAAA] flex-1 min-w-0">
-                        {zone?.nom} · {l.poids_total_kg ? Math.round(Number(l.poids_total_kg)).toLocaleString() + " kg" : "-"} · {l.date_creation ? new Date(l.date_creation).toLocaleDateString("fr-FR") : "-"}
+                        {zone?.nom} · {l.poids_total_kg ? Math.round(Number(l.poids_total_kg)).toLocaleString() + " kg" : "-"} · {l.date_creation ? new Date(l.date_creation).toLocaleDateString(localeCode) : "-"}
                       </span>
                       {isExporte ? (
                         <span className="text-[11px] sm:text-[12px] font-bold text-[#2AC1A3] tracking-[0.08em] whitespace-nowrap">{d.exported}</span>

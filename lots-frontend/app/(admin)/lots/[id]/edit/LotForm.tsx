@@ -27,7 +27,14 @@ export default function LotForm({
   const l = t.lots
   const [loading, setLoading] = useState(false)
   const { toast, showError, hideToast } = useToast()
-  const [collectesSelectionnees, setCollectes] = useState<number[]>(collectesInitiales)
+
+  // Deduplicate by id and coerce to number so .includes() comparisons are reliable
+  const uniqueCollectes = Array.from(
+    new Map(collectesDisponibles.map((c) => [Number(c.id), c])).values()
+  )
+  const initialIds = Array.from(new Set(collectesInitiales.map((n) => Number(n))))
+
+  const [collectesSelectionnees, setCollectes] = useState<number[]>(initialIds)
 
   const [formData, setFormData] = useState({
     produit: lot.produit || "Cacao",
@@ -37,14 +44,16 @@ export default function LotForm({
     statut: lot.statut || "En préparation",
   })
 
-  const toggleCollecte = (id: number) => {
+  const toggleCollecte = (rawId: number | string) => {
+    const id = Number(rawId)
     setCollectes((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
     )
   }
 
-  const poidsTotal = collectesDisponibles
-    .filter((c) => collectesSelectionnees.includes(c.id))
+  const selectedSet = new Set(collectesSelectionnees)
+  const poidsTotal = uniqueCollectes
+    .filter((c) => selectedSet.has(Number(c.id)))
     .reduce((sum, c) => sum + (parseFloat(c.poids_net_kg) || 0), 0)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -156,14 +165,15 @@ export default function LotForm({
           </h2>
           <p className="text-xs text-gray-400 mb-4">{l.editHint}</p>
           <div className="space-y-2 max-h-112 overflow-y-auto pr-1">
-            {collectesDisponibles.map((c: any) => {
-              const selected = collectesSelectionnees.includes(c.id)
-              const wasInitial = collectesInitiales.includes(c.id)
+            {uniqueCollectes.map((c: any) => {
+              const id = Number(c.id)
+              const selected = selectedSet.has(id)
+              const wasInitial = initialIds.includes(id)
               return (
                 <button
                   type="button"
-                  key={c.id}
-                  onClick={() => toggleCollecte(c.id)}
+                  key={id}
+                  onClick={() => toggleCollecte(id)}
                   className={`w-full text-left rounded-lg px-5 py-4 border-2 transition ${
                     selected
                       ? "bg-[#2ac1a3]/10 border-[#2ac1a3]"

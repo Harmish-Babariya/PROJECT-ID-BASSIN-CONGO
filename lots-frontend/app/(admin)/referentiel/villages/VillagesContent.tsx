@@ -2,6 +2,8 @@
 import { useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { actionCreateVillage, actionUpdateVillage, actionDeleteVillage } from "./actions"
+import Pagination from "@/components/Pagination"
+import { usePagination } from "@/components/usePagination"
 
 const inputClass = "w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
 const selectClass = "w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
@@ -31,6 +33,7 @@ export default function VillagesContent({ villages, zones }: { villages: Village
     const matchZone = !filterZone || String(v.zone_id) === filterZone
     return matchSearch && matchZone
   })
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(filtered, 10)
 
   function openNew() {
     setEditing(null)
@@ -211,7 +214,7 @@ export default function VillagesContent({ villages, zones }: { villages: Village
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filtered.map(v => (
+            {paged.map(v => (
               <tr key={v.id} className="hover:bg-gray-50 transition">
                 <td className="px-6 py-4 text-sm text-gray-900 font-medium">{v.nom}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{(v.zones as any)?.nom || "—"}</td>
@@ -236,6 +239,13 @@ export default function VillagesContent({ villages, zones }: { villages: Village
           </tbody>
         </table>
       </div>
+      <Pagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
       <p className="text-gray-400 text-sm">{tr.villagesCount(filtered.length).toUpperCase()}</p>
     </div>
   )

@@ -86,19 +86,34 @@ export async function insertLotCollectes(associations: { lot_id: number; collect
   return { error }
 }
 
-export async function getRecentLots(limit = 3) {
-  const { data } = await supabaseAdmin
+export async function getRecentLots(
+  limit = 3,
+  paysId?: number | null,
+  range?: { from?: string | null; to?: string | null }
+) {
+  let query = supabaseAdmin
     .from("lots")
     .select("id, code_lot, statut, poids_total_kg, date_creation, zones(nom)")
+
+  if (paysId) query = query.eq("pays_id", Number(paysId))
+  if (range?.from) query = query.gte("date_creation", range.from)
+  if (range?.to) query = query.lte("date_creation", range.to)
+
+  const { data } = await query
     .order("date_creation", { ascending: false })
     .limit(limit)
   return data || []
 }
 
 // Stats for dashboard
-export async function getLotsStats(paysId?: number | null) {
+export async function getLotsStats(
+  paysId?: number | null,
+  range?: { from?: string | null; to?: string | null }
+) {
   let query = supabaseAdmin.from("lots").select("id, statut, poids_total_kg")
   if (paysId) query = query.eq("pays_id", paysId)
+  if (range?.from) query = query.gte("date_creation", range.from)
+  if (range?.to) query = query.lte("date_creation", range.to)
   const { data } = await query
   return data || []
 }

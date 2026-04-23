@@ -119,6 +119,8 @@ export async function createParcelle(formData: any, returnTo?: string) {
 
     revalidatePath('/parcelles')
     revalidatePath(`/producteurs/${formData.producteur_id}`)
+    revalidatePath('/profil')
+    revalidatePath('/dashboard')
     redirectTo = returnTo || `/parcelles/${data.id}`
   } catch (error: any) {
     return { error: error.message || "Erreur lors de la creation" }
@@ -237,6 +239,8 @@ export async function updateParcelle(id: string, formData: any) {
 
     revalidatePath('/parcelles')
     revalidatePath(`/parcelles/${id}`)
+    revalidatePath('/profil')
+    revalidatePath('/dashboard')
   } catch (error: any) {
     return { error: error.message || "Erreur lors de la mise a jour" }
   }

@@ -1,16 +1,38 @@
 import DashboardContent from "./DashboardContent"
 import { getProducteursStats } from "@/lib/services/producteurs"
-import { getParcellesStats } from "@/lib/services/parcelles"
+import { getParcellesStats, getParcellesForMap } from "@/lib/services/parcelles"
 import { getLotsStats, getRecentLots } from "@/lib/services/lots"
 import { getCollectesStats, getRecentCollectes } from "@/lib/services/collectes"
 import { getCurrentUser } from "@/lib/services/auth"
 
-async function getStats() {
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+type PeriodKey = "month" | "campaign" | "all"
+
+function resolvePeriodRange(period: PeriodKey): { from: string | null; to: string | null } {
+  const now = new Date()
+  if (period === "all") return { from: null, to: null }
+  if (period === "month") {
+    const from = new Date(now.getFullYear(), now.getMonth(), 1)
+    const to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    return { from: from.toISOString(), to: to.toISOString() }
+  }
+  // "campaign" = current calendar year
+  const from = new Date(now.getFullYear(), 0, 1)
+  const to = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+  return { from: from.toISOString(), to: to.toISOString() }
+}
+
+type Range = { from: string | null; to: string | null }
+
+async function getStats(paysId: number | null, range: Range) {
+  // Producteurs/parcelles stats aren't time-scoped — keep them global (by country only)
   const [producteurs, parcelles, lots, collectes] = await Promise.all([
-    getProducteursStats(),
-    getParcellesStats(),
-    getLotsStats(),
-    getCollectesStats(),
+    getProducteursStats(paysId),
+    getParcellesStats(paysId),
+    getLotsStats(paysId, range),
+    getCollectesStats(paysId, range),
   ])
 
   const totalProducteurs = producteurs.length
@@ -57,12 +79,26 @@ async function getStats() {
   }
 }
 
-export default async function Dashboard() {
-  const [stats, recentCollectes, recentLots, currentUser] = await Promise.all([
-    getStats(),
-    getRecentCollectes(3),
-    getRecentLots(3),
-    getCurrentUser(),
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>
+}) {
+  const { period: periodParam } = await searchParams
+  const period: PeriodKey =
+    periodParam === "month" || periodParam === "all" ? periodParam : "campaign"
+  const range = resolvePeriodRange(period)
+
+  const currentUser = await getCurrentUser()
+  const isAdmin = currentUser?.role === "admin"
+  // point_focal without a country sees nothing (-1 matches nothing); admins see everything
+  const paysId = isAdmin ? null : (currentUser?.country_id ?? -1)
+
+  const [stats, recentCollectes, recentLots, mapParcelles] = await Promise.all([
+    getStats(paysId, range),
+    getRecentCollectes(3, paysId, range),
+    getRecentLots(3, paysId, range),
+    getParcellesForMap(paysId),
   ])
 
   return (
@@ -71,6 +107,7 @@ export default async function Dashboard() {
       recentCollectes={recentCollectes}
       recentLots={recentLots}
       userName={currentUser?.nom_complet ?? currentUser?.email ?? ""}
+      mapParcelles={mapParcelles}
     />
   )
 }

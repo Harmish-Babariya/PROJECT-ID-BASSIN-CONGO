@@ -1,6 +1,8 @@
 "use client"
 import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
+import Pagination from "@/components/Pagination"
+import { usePagination } from "@/components/usePagination"
 
 type Collecte = {
   id: number
@@ -23,6 +25,7 @@ export default function CollectesContent({
 }) {
   const { t, locale } = useLanguage()
   const c = t.collectes
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(collectes, 10)
 
   return (
     <div className="space-y-5">
@@ -72,7 +75,7 @@ export default function CollectesContent({
                 </td>
               </tr>
             ) : (
-              collectes.map((col) => {
+              paged.map((col) => {
                 const dateCollecte = new Date(col.date_collecte)
                 if (isNaN(dateCollecte.getTime())) return null
                 const lotAssigne = collecteLotsMap.get(col.id)
@@ -164,6 +167,14 @@ export default function CollectesContent({
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   )
 }

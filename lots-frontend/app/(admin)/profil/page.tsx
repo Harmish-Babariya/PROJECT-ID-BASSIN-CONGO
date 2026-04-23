@@ -2,6 +2,9 @@ import { getCurrentUser } from "@/lib/services/auth"
 import { getProfileStats, getRecentActivity } from "@/lib/services/audit"
 import ProfileClient from "./ProfileClient"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export default async function ProfilPage() {
   const user = await getCurrentUser()
 

@@ -2,6 +2,8 @@
 import { useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { actionCreateZone, actionUpdateZone, actionDeleteZone } from "./actions"
+import Pagination from "@/components/Pagination"
+import { usePagination } from "@/components/usePagination"
 
 const inputClass = "w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
 const selectClass = "w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
@@ -27,6 +29,7 @@ export default function ZonesContent({ zones, pays }: { zones: Zone[]; pays: Pay
     z.code.toLowerCase().includes(search.toLowerCase()) ||
     (z.pays as any)?.nom?.toLowerCase().includes(search.toLowerCase())
   )
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(filtered, 10)
 
   function openNew() {
     setEditing(null)
@@ -207,7 +210,7 @@ export default function ZonesContent({ zones, pays }: { zones: Zone[]; pays: Pay
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filtered.map(z => (
+            {paged.map(z => (
               <tr key={z.id} className="hover:bg-gray-50 transition">
                 <td className="px-6 py-4 font-mono text-sm font-bold text-[#2ac1a3]">{z.code}</td>
                 <td className="px-6 py-4 text-sm text-gray-900 font-medium">{z.nom}</td>
@@ -232,6 +235,13 @@ export default function ZonesContent({ zones, pays }: { zones: Zone[]; pays: Pay
           </tbody>
         </table>
       </div>
+      <Pagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
       <p className="text-gray-400 text-sm">{tr.zonesCount(filtered.length).toUpperCase()}</p>
     </div>
   )

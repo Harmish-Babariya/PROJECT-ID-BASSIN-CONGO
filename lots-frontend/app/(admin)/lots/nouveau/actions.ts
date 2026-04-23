@@ -22,6 +22,7 @@ export async function createLot(
       acheteur: formData.acheteur || null,
       date_expedition: formData.date_expedition || null,
       statut: formData.statut,
+      pays_id: me?.country_id ?? null,
     })
 
     if (lotError) {
@@ -49,6 +50,8 @@ export async function createLot(
 
     revalidatePath("/lots")
     revalidatePath("/collectes")
+    revalidatePath("/profil")
+    revalidatePath("/dashboard")
     newLotId = lot.id
   } catch (error: any) {
     return { error: error.message || "Erreur lors de la creation" }

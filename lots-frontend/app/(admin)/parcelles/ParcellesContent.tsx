@@ -3,6 +3,8 @@ import Link from "next/link"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/contexts/LanguageContext"
+import Pagination from "@/components/Pagination"
+import { usePagination } from "@/components/usePagination"
 
 type Parcelle = {
   id: number
@@ -47,6 +49,7 @@ export default function ParcellesContent({
   const [search, setSearch] = useState(searchParams.get("recherche") || "")
   const [showFilter, setShowFilter] = useState(false)
   const [filterStatus, setFilterStatus] = useState(searchParams.get("status_eudr") || "")
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(parcelles, 10)
 
   function handleSearchChange(val: string) {
     setSearch(val)
@@ -129,7 +132,7 @@ export default function ParcellesContent({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {parcelles.map(parc => {
+            {paged.map(parc => {
               const producteur = producteursMap.get(parc.producteur_id)
               return (
                 <tr key={parc.id} className="hover:bg-gray-50 transition">
@@ -169,6 +172,14 @@ export default function ParcellesContent({
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       <p className="text-gray-400 text-sm">{tp.count(parcelles.length).toUpperCase()}</p>
     </div>

@@ -5,6 +5,8 @@ import { useState } from "react"
 import { User } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import ConfirmModal from "@/components/ConfirmModal"
+import Pagination from "@/components/Pagination"
+import { usePagination } from "@/components/usePagination"
 
 type Profile = {
   id: string
@@ -56,6 +58,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
   const [pendingAction, setPendingAction] = useState<string | null>(null)
   const [toast, setToast] = useState<{ kind: "ok" | "err"; message: string } | null>(null)
   const [confirmState, setConfirmState] = useState<{ userId: string; kind: ActionKind } | null>(null)
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(profiles, 10)
 
   const CONFIRM_CONFIG: Record<ActionKind, { title: string; message: string } | null> = {
     resend: null,
@@ -288,7 +291,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
               </tr>
             </thead>
             <tbody>
-              {profiles.map((user) => {
+              {paged.map((user) => {
                 const status = user.statut || "actif"
                 const isPending = status === "en_attente"
                 const isInactive = status === "inactif"
@@ -439,7 +442,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
 
       {/* Users list - mobile cards */}
       <div className="md:hidden space-y-3">
-        {profiles.map((user) => {
+        {paged.map((user) => {
           const status = user.statut || "actif"
           const isPending = status === "en_attente"
           const isInactive = status === "inactif"
@@ -578,6 +581,14 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
           </div>
         )}
       </div>
+
+      <Pagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       <ConfirmModal
         open={confirmState !== null}

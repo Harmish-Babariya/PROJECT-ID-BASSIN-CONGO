@@ -4,6 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect, useMemo } from "react"
 import { Filter, Search } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import Pagination from "@/components/Pagination"
+import { usePagination } from "@/components/usePagination"
 
 type Producteur = {
   id: number
@@ -63,6 +65,8 @@ export default function ProducteursContent({
     setStatut("")
     setAvecParcelles("")
   }
+
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(producteurs, 10)
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -200,7 +204,7 @@ export default function ProducteursContent({
               </tr>
             </thead>
             <tbody>
-              {producteurs.map((prod) => (
+              {paged.map((prod) => (
                 <tr key={prod.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/60 transition">
                   <td className="px-5 py-4">
                     <Link
@@ -261,7 +265,7 @@ export default function ProducteursContent({
         {producteurs.length === 0 && (
           <p className="text-center text-[13px] text-gray-400 py-10">{p.empty}</p>
         )}
-        {producteurs.map((prod) => (
+        {paged.map((prod) => (
           <div key={prod.id} className="bg-white rounded-xl border border-gray-200 px-4 py-4 space-y-3">
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -302,6 +306,14 @@ export default function ProducteursContent({
           </div>
         ))}
       </div>
+
+      <Pagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       <p className="text-[11px] text-[#AAAAAA] tracking-[0.18em] uppercase font-medium">
         {p.count(producteurs.length)}

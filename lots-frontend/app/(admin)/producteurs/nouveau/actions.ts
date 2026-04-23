@@ -123,6 +123,8 @@ export async function createProducteur(
     }
 
     revalidatePath("/producteurs")
+    revalidatePath("/profil")
+    revalidatePath("/dashboard")
 
     if (returnTo) {
       redirect(returnTo)

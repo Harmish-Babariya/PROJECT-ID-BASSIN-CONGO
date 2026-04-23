@@ -1,6 +1,8 @@
 "use client"
 import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
+import Pagination from "@/components/Pagination"
+import { usePagination } from "@/components/usePagination"
 
 type Lot = {
   id: number
@@ -36,6 +38,7 @@ export default function LotsContent({
 }) {
   const { t } = useLanguage()
   const l = t.lots
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(lots, 10)
 
   return (
     <div className="space-y-6">
@@ -70,7 +73,7 @@ export default function LotsContent({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {lots.map((lot) => (
+            {paged.map((lot) => (
               <tr key={lot.id} className="hover:bg-gray-50 transition">
                 <td className="px-6 py-4">
                   <Link href={`/lots/${lot.id}`} className="font-mono text-sm font-bold text-[#2ac1a3] hover:underline">
@@ -111,6 +114,14 @@ export default function LotsContent({
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   )
 }

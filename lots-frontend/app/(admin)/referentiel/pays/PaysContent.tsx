@@ -2,6 +2,8 @@
 import { useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { actionCreatePays, actionUpdatePays, actionDeletePays } from "./actions"
+import Pagination from "@/components/Pagination"
+import { usePagination } from "@/components/usePagination"
 
 const inputClass = "w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
 const labelClass = "block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5"
@@ -18,6 +20,7 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(list, 10)
 
   function openNew() {
     setEditing(null)
@@ -169,7 +172,7 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {list.map(p => (
+            {paged.map(p => (
               <tr key={p.id} className="hover:bg-gray-50 transition">
                 <td className="px-6 py-4 font-mono text-sm font-bold text-[#2ac1a3]">{p.code}</td>
                 <td className="px-6 py-4 text-sm text-gray-900 font-medium">{p.nom}</td>
@@ -199,6 +202,13 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
           </tbody>
         </table>
       </div>
+      <Pagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
       <p className="text-gray-400 text-sm">{tr.paysCount(list.length).toUpperCase()}</p>
     </div>
   )
