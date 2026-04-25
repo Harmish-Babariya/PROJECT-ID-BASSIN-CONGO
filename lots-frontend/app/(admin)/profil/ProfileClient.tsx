@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { Shield, TriangleAlert, Monitor, Trash2 } from "lucide-react"
 import type { AuditLogEntry } from "@/lib/services/audit"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { usePagination } from "@/components/usePagination"
 
 interface ProfileUser {
   email: string
@@ -91,6 +92,15 @@ export default function ProfileClient({
   const isAdmin = user?.role === "admin"
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR"
 
+  const {
+    page: activityPage,
+    pageSize: activityPageSize,
+    total: activityTotal,
+    setPage: setActivityPage,
+    paged: pagedActivity,
+  } = usePagination(recentActivity, 5)
+  const activityTotalPages = Math.max(1, Math.ceil(activityTotal / activityPageSize))
+
   const displayName = user?.nom_complet || user?.email || "—"
   const displayEmail = user?.email || "—"
   const displayRole = isAdmin ? p.roleAdmin : p.roleFocal
@@ -133,9 +143,12 @@ export default function ProfileClient({
   function formatActivityTime(iso: string): string {
     const date = new Date(iso)
     const now = new Date()
-    const diffH = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
+    const diffMs = now.getTime() - date.getTime()
+    const diffMin = Math.floor(diffMs / (1000 * 60))
+    const diffH = Math.floor(diffMin / 60)
     const diffD = Math.floor(diffH / 24)
-    if (diffH < 1) return p.timeLessThan1h
+    if (diffMin < 1) return p.timeJustNow
+    if (diffMin < 60) return p.timeMinutes(diffMin)
     if (diffH < 24) return p.timeAgo(diffH)
     if (diffD === 1)
       return p.timeYesterday(
@@ -150,6 +163,8 @@ export default function ProfileClient({
     const table = entry.table_name
     const action = entry.action.toLowerCase()
     const meta = entry.metadata as Record<string, unknown> | null
+    // Numeric ids for non-UUID tables are stored in metadata.record_id
+    const effectiveId = entry.record_id || (meta?.record_id ? String(meta.record_id) : null)
 
     const tableLabel =
       table === "producteurs" ? p.tableProducteur :
@@ -158,6 +173,9 @@ export default function ProfileClient({
       table === "lots" ? p.tableLot :
       table === "dds" ? p.tableDds :
       table === "user_profiles" ? p.tableUser :
+      table === "pays" ? p.tablePays :
+      table === "zones" ? p.tableZone :
+      table === "villages" ? p.tableVillage :
       table
 
     const actionLabel =
@@ -171,27 +189,34 @@ export default function ProfileClient({
       action
 
     // Build a rich detail string from metadata depending on the entity type
+    const shortId = effectiveId ? (effectiveId.length > 8 ? effectiveId.slice(0, 8).toUpperCase() : effectiveId) : null
     let detail = ""
     if (table === "producteurs" && meta) {
-      detail = String(meta.nom || meta.code || entry.record_id?.slice(0, 8).toUpperCase() || "—")
+      detail = String(meta.nom || meta.code || shortId || "—")
     } else if (table === "parcelles" && meta) {
       const culture = meta.culture ? String(meta.culture) : null
       const surface = meta.surface_ha ? `${meta.surface_ha} ha` : null
-      detail = [culture, surface].filter(Boolean).join(", ") || entry.record_id?.slice(0, 8).toUpperCase() || "—"
+      detail = [culture, surface].filter(Boolean).join(", ") || shortId || "—"
     } else if (table === "collectes" && meta) {
       const produit = meta.produit ? String(meta.produit) : null
       const poids = meta.poids_net_kg ? `${meta.poids_net_kg} kg` : null
-      detail = [produit, poids].filter(Boolean).join(" · ") || entry.record_id?.slice(0, 8).toUpperCase() || "—"
+      detail = [produit, poids].filter(Boolean).join(" · ") || shortId || "—"
     } else if (table === "lots" && meta) {
       const produit = meta.produit ? String(meta.produit) : null
       const poids = meta.poids_total_kg ? `${meta.poids_total_kg} kg` : null
-      detail = [produit, poids].filter(Boolean).join(" · ") || entry.record_id?.slice(0, 8).toUpperCase() || "—"
+      detail = [produit, poids].filter(Boolean).join(" · ") || shortId || "—"
     } else if (table === "user_profiles" && meta) {
-      detail = String(meta.email || meta.user_code || entry.record_id?.slice(0, 8).toUpperCase() || "—")
+      detail = String(meta.email || meta.user_code || shortId || "—")
+    } else if ((table === "pays" || table === "zones") && meta) {
+      const code = meta.code ? String(meta.code) : null
+      const nom = meta.nom ? String(meta.nom) : null
+      detail = [code, nom].filter(Boolean).join(" · ") || shortId || "—"
+    } else if (table === "villages" && meta) {
+      detail = String(meta.nom || shortId || "—")
     } else {
       detail = String(
         meta?.code || meta?.nom || meta?.email ||
-        entry.record_id?.slice(0, 8).toUpperCase() || "—"
+        shortId || "—"
       )
     }
 
@@ -584,12 +609,12 @@ export default function ProfileClient({
             </h3>
           </div>
           <div className="space-y-0">
-            {recentActivity.length === 0 ? (
+            {activityTotal === 0 ? (
               <div className="py-6 text-center">
                 <p className="text-[13px] text-gray-400">{p.activityEmpty}</p>
               </div>
             ) : (
-              recentActivity.map((entry) => (
+              pagedActivity.map((entry) => (
                 <div
                   key={entry.id}
                   className="flex items-start justify-between py-3.5 border-b border-gray-100 last:border-b-0"
@@ -612,6 +637,29 @@ export default function ProfileClient({
               ))
             )}
           </div>
+          {activityTotal > 0 && activityTotalPages > 1 && (
+            <div className="mt-4 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setActivityPage(activityPage - 1)}
+                disabled={activityPage <= 1}
+                className="px-3 py-1.5 border border-gray-200 bg-white text-gray-600 text-[11px] font-semibold tracking-[0.08em] rounded-lg uppercase hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {p.prev}
+              </button>
+              <span className="text-[12px] text-gray-500 font-mono tabular-nums">
+                {activityPage}/{activityTotalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setActivityPage(activityPage + 1)}
+                disabled={activityPage >= activityTotalPages}
+                className="px-3 py-1.5 border border-gray-200 bg-white text-gray-600 text-[11px] font-semibold tracking-[0.08em] rounded-lg uppercase hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {p.next}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

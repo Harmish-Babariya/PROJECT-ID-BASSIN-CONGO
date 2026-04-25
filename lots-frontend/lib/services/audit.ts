@@ -1,5 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase-server"
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function insertAuditLog(
   userId: string,
   action: string,
@@ -7,12 +9,18 @@ export async function insertAuditLog(
   recordId?: string | null,
   metadata?: Record<string, unknown> | null
 ): Promise<void> {
+  // audit_logs.record_id is a uuid column; non-UUID ids (numeric bigints from
+  // producteurs/parcelles/collectes/lots/pays/zones/villages) go into metadata.record_id.
+  const isUuid = recordId && UUID_RE.test(recordId)
+  const meta: Record<string, unknown> = { ...(metadata ?? {}) }
+  if (recordId && !isUuid) meta.record_id = recordId
+
   const { error } = await supabaseAdmin.from("audit_logs").insert({
     user_id: userId,
     action,
     table_name: tableName,
-    record_id: recordId ?? null,
-    metadata: metadata ?? null,
+    record_id: isUuid ? recordId : null,
+    metadata: Object.keys(meta).length > 0 ? meta : null,
   })
   if (error) {
     console.error("[audit] insertAuditLog failed:", error.message, { userId, action, tableName, recordId })

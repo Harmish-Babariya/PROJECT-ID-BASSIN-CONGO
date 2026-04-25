@@ -15,7 +15,7 @@ export default async function ProfilPage() {
       ? getProfileStats(user.id, user.role, user.country_id)
       : Promise.resolve(null),
     user
-      ? getRecentActivity(user.id, user.role, isAdmin ? 10 : 5)
+      ? getRecentActivity(user.id, user.role, 500)
       : Promise.resolve([]),
   ])
 
