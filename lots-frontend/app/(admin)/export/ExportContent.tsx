@@ -22,10 +22,19 @@ export default function ExportContent({
   lots: Lot[]
   collectesParLot: Record<number, number>
 }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const e = t.export
   const tr = t.referentiel
+  const tl = t.lots
   const [search, setSearch] = useState("")
+
+  function translateStatut(statut: string | null): string {
+    if (!statut) return ""
+    if (statut === "En préparation") return tl.statutEnPreparation
+    if (statut === "Prêt") return tl.statutPret
+    if (statut === "Exporté") return tl.statutExporte
+    return statut
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -33,7 +42,8 @@ export default function ExportContent({
     return lots.filter((lot) =>
       lot.code_lot.toLowerCase().includes(q) ||
       (lot.produit ?? "").toLowerCase().includes(q) ||
-      (lot.statut ?? "").toLowerCase().includes(q)
+      (lot.statut ?? "").toLowerCase().includes(q) ||
+      translateStatut(lot.statut).toLowerCase().includes(q)
     )
   }, [lots, search])
 
@@ -95,17 +105,17 @@ export default function ExportContent({
                 </td>
                 <td className="px-6 py-4">
                   <span className={`px-2.5 py-1 rounded text-xs font-semibold ${
-                    lot.statut === "Exporte" ? "bg-green-100 text-green-700" :
-                    lot.statut === "Pret" ? "bg-yellow-100 text-yellow-700" :
+                    lot.statut === "Exporté" ? "bg-green-100 text-green-700" :
+                    lot.statut === "Prêt" ? "bg-yellow-100 text-yellow-700" :
                     "bg-gray-100 text-gray-500"
                   }`}>
-                    {lot.statut}
+                    {translateStatut(lot.statut)}
                   </span>
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex gap-3 items-center">
                     <a
-                      href={`/api/generate-dss/${lot.id}`}
+                      href={`/api/generate-dss/${lot.id}?lang=${locale}`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition"
                       download
                     >

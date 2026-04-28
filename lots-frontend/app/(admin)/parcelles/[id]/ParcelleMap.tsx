@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
+import { Maximize2, X } from "lucide-react"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 const MAP_STYLES: Record<string, string> = {
   satellite: "mapbox://styles/mapbox/satellite-streets-v12",
@@ -63,10 +65,12 @@ export default function ParcelleMap({
   height?: number
   emptyLabel?: string
 }) {
+  const { t } = useLanguage()
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markerRef = useRef<mapboxgl.Marker | null>(null)
   const [activeStyle, setActiveStyle] = useState("satellite")
+  const [expanded, setExpanded] = useState(false)
 
   const polygon = parseGeojson(geojson)
   const lat = latitude !== null && latitude !== "" ? Number(latitude) : NaN
@@ -116,13 +120,30 @@ export default function ParcelleMap({
       }
     })
 
+    const ro = new ResizeObserver(() => map.resize())
+    if (mapContainer.current) ro.observe(mapContainer.current)
+
     return () => {
+      ro.disconnect()
       map.remove()
       mapRef.current = null
       markerRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (!expanded) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpanded(false)
+    }
+    document.addEventListener("keydown", onKey)
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      document.body.style.overflow = ""
+    }
+  }, [expanded])
 
   function changeStyle(key: string) {
     const map = mapRef.current
@@ -156,27 +177,43 @@ export default function ParcelleMap({
   }
 
   return (
-    <div
-      className="bg-[#1E2A35] rounded-lg overflow-hidden relative border border-gray-200"
-      style={{ height }}
-    >
-      <div ref={mapContainer} className="w-full h-full" />
+    <>
+      {expanded && <div className="fixed inset-0 z-90 bg-black/70 backdrop-blur-sm" onClick={() => setExpanded(false)} />}
+      <div
+        className={
+          expanded
+            ? "fixed inset-4 z-100 bg-[#1E2A35] rounded-xl overflow-hidden shadow-2xl border border-gray-200"
+            : "bg-[#1E2A35] rounded-lg overflow-hidden relative border border-gray-200"
+        }
+        style={expanded ? undefined : { height }}
+      >
+        <div ref={mapContainer} className="w-full h-full" />
 
-      <div className="absolute top-3 left-3 z-10 flex gap-1.5 bg-black/40 backdrop-blur-sm rounded-md p-1">
-        {STYLE_OPTIONS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => changeStyle(key)}
-            className={`px-2.5 py-1 rounded text-[9px] font-bold tracking-[0.1em] transition ${
-              activeStyle === key
-                ? "bg-[#2AC1A3] text-white"
-                : "text-white/70 hover:text-white"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        <div className="absolute top-3 left-3 z-10 flex gap-1.5 bg-black/40 backdrop-blur-sm rounded-md p-1">
+          {STYLE_OPTIONS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => changeStyle(key)}
+              className={`px-2.5 py-1 rounded text-[9px] font-bold tracking-[0.1em] transition ${
+                activeStyle === key
+                  ? "bg-[#2AC1A3] text-white"
+                  : "text-white/70 hover:text-white"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          aria-label={expanded ? t.common.reduce : t.common.expand}
+          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-md bg-black/50 hover:bg-black/70 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center transition"
+        >
+          {expanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+        </button>
       </div>
-    </div>
+    </>
   )
 }

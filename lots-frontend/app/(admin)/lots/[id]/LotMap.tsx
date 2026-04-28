@@ -1,8 +1,10 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
+import { Maximize2, X } from "lucide-react"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 type ParcelPoint = {
   code: string
@@ -56,8 +58,11 @@ export default function LotMap({
   legendConformeLabel: (count: number) => string
   legendNonConformeLabel: (count: number) => string
 }) {
+  const { t } = useLanguage()
   const mapContainer = useRef<HTMLDivElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
+  const [expanded, setExpanded] = useState(false)
 
   const resolved = points
     .map((p) => {
@@ -114,12 +119,29 @@ export default function LotMap({
       }
     })
 
+    const ro = new ResizeObserver(() => map.resize())
+    if (mapContainer.current) ro.observe(mapContainer.current)
+
     return () => {
+      ro.disconnect()
       map.remove()
       mapRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (!expanded) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpanded(false)
+    }
+    document.addEventListener("keydown", onKey)
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      document.body.style.overflow = ""
+    }
+  }, [expanded])
 
   const conformeCount = resolved.filter((p) => p.conforme).length
   const nonConformeCount = resolved.length - conformeCount
@@ -136,22 +158,39 @@ export default function LotMap({
   }
 
   return (
-    <div
-      className="bg-[#141b23] rounded-lg overflow-hidden relative"
-      style={{ height }}
-    >
-      <div ref={mapContainer} className="w-full h-full" />
+    <>
+      {expanded && <div className="fixed inset-0 z-90 bg-black/70 backdrop-blur-sm" onClick={() => setExpanded(false)} />}
+      <div
+        ref={wrapperRef}
+        className={
+          expanded
+            ? "fixed inset-4 z-100 bg-[#141b23] rounded-xl overflow-hidden shadow-2xl"
+            : "bg-[#141b23] rounded-lg overflow-hidden relative"
+        }
+        style={expanded ? undefined : { height }}
+      >
+        <div ref={mapContainer} className="w-full h-full" />
 
-      <div className="absolute bottom-3 left-3 flex items-center gap-4 text-[10px] font-mono tracking-widest text-white/80">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#2AC1A3]" />
-          {legendConformeLabel(conformeCount)}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
-          {legendNonConformeLabel(nonConformeCount)}
-        </span>
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          aria-label={expanded ? t.common.reduce : t.common.expand}
+          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-md bg-black/50 hover:bg-black/70 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center transition"
+        >
+          {expanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+        </button>
+
+        <div className="absolute bottom-3 left-3 flex items-center gap-4 text-[10px] font-mono tracking-widest text-white/80">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2AC1A3]" />
+            {legendConformeLabel(conformeCount)}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
+            {legendNonConformeLabel(nonConformeCount)}
+          </span>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

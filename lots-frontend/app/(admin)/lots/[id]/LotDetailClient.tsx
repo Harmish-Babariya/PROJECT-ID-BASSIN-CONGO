@@ -36,6 +36,7 @@ type LotData = {
 }
 
 function StatutBadge({ statut }: { statut: string | null }) {
+  const { t } = useLanguage()
   const s = (statut || "").toLowerCase()
   let cls = "bg-gray-100 text-gray-500"
   if (s.includes("exporté") || s.includes("exporte")) {
@@ -45,9 +46,13 @@ function StatutBadge({ statut }: { statut: string | null }) {
   } else if (s.includes("constitution") || s.includes("préparation") || s.includes("preparation")) {
     cls = "bg-[#faecc2] text-[#6b3a12]"
   }
+  let label: string = statut || "—"
+  if (statut === "En préparation") label = t.lots.statutEnPreparation
+  else if (statut === "Prêt") label = t.lots.statutPret
+  else if (statut === "Exporté") label = t.lots.statutExporte
   return (
     <span className={`inline-block px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] ${cls}`}>
-      {statut || "—"}
+      {label}
     </span>
   )
 }

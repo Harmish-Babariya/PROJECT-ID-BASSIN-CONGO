@@ -17,7 +17,7 @@ type Parcelle = {
   status_eudr: string | null
 }
 
-type Producteur = { id: number; code_producteur: string; nom: string }
+type Producteur = { id: number; code_producteur: string; nom: string; prenom?: string | null }
 
 function EudrBadge({
   status,
@@ -175,7 +175,7 @@ export default function ParcellesContent({
                     </Link>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">
-                    {producteur ? `${producteur.code_producteur} – ${producteur.nom}` : "—"}
+                    {producteur ? `${producteur.code_producteur} – ${producteur.nom}${producteur.prenom ? ` ${producteur.prenom}` : ""}` : "—"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 font-medium">{parc.surface_ha || "—"}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">
