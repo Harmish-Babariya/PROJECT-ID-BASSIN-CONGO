@@ -1,13 +1,30 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import Link from "next/link"
 import { createCollecte } from "./actions"
 import { Toast, useToast } from "@/components/Toast"
 import { useLanguage } from "@/contexts/LanguageContext"
 
+type Producteur = {
+  id: number
+  code_producteur: string
+  nom: string
+  prenom: string
+  pays_id: number | null
+  zone_id: number | null
+  village: string | null
+}
+
+type PaysRef = { id: number; nom: string }
+type ZoneRef = { id: number; nom: string; pays_id: number }
+type VillageRef = { id: number; nom: string; zone_id: number }
+
 interface CollecteFormProps {
-  producteurs: { id: number; code_producteur: string; nom: string; prenom: string }[]
+  producteurs: Producteur[]
   parcelles: { id: number; code_parcelle: string; producteur_id: number }[]
+  pays: PaysRef[]
+  zones: ZoneRef[]
+  villages: VillageRef[]
 }
 
 const field =
@@ -32,7 +49,7 @@ function Section({ number, title }: { number: number; title: string }) {
   )
 }
 
-export default function CollecteForm({ producteurs, parcelles }: CollecteFormProps) {
+export default function CollecteForm({ producteurs, parcelles, pays, zones, villages }: CollecteFormProps) {
   const { t } = useLanguage()
   const c = t.collectes
   const [loading, setLoading] = useState(false)
@@ -50,6 +67,52 @@ export default function CollecteForm({ producteurs, parcelles }: CollecteFormPro
     taux_humidite: "",
     qualite: "",
   })
+
+  const [filterPays, setFilterPays] = useState("")
+  const [filterZone, setFilterZone] = useState("")
+  const [filterVillage, setFilterVillage] = useState("")
+  const [search, setSearch] = useState("")
+  const [open, setOpen] = useState(false)
+  const comboboxRef = useRef<HTMLDivElement>(null)
+
+  const filteredZones = useMemo(
+    () => (filterPays ? zones.filter((z) => String(z.pays_id) === filterPays) : zones),
+    [filterPays, zones]
+  )
+  const filteredVillages = useMemo(
+    () => (filterZone ? villages.filter((v) => String(v.zone_id) === filterZone) : []),
+    [filterZone, villages]
+  )
+
+  const selectedProducteur = producteurs.find((p) => String(p.id) === form.producteur_id)
+
+  const matchingProducteurs = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return producteurs.filter((p) => {
+      if (filterPays && String(p.pays_id) !== filterPays) return false
+      if (filterZone && String(p.zone_id) !== filterZone) return false
+      if (filterVillage && (p.village ?? "") !== filterVillage) return false
+      if (!q) return true
+      const haystack = [
+        p.code_producteur,
+        p.nom,
+        p.prenom,
+        p.village ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [producteurs, filterPays, filterZone, filterVillage, search])
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (!comboboxRef.current) return
+      if (!comboboxRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", onClick)
+    return () => document.removeEventListener("mousedown", onClick)
+  }, [])
 
   const selectedParcelle = parcellesFiltrees.find((p) => String(p.id) === form.parcelle_id)
 
@@ -104,14 +167,93 @@ export default function CollecteForm({ producteurs, parcelles }: CollecteFormPro
 
             <div>
               <label className={lbl}>{c.labelProducteurField}</label>
-              <select value={form.producteur_id} onChange={set("producteur_id")} className={field} required>
-                <option value="">{c.selectProducteur}</option>
-                {producteurs.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.code_producteur} – {p.nom} {p.prenom}
-                  </option>
-                ))}
-              </select>
+              <div className="grid grid-cols-3 gap-2 mb-2">
+                <select
+                  value={filterPays}
+                  onChange={(e) => {
+                    setFilterPays(e.target.value)
+                    setFilterZone("")
+                    setFilterVillage("")
+                  }}
+                  className={field}
+                >
+                  <option value="">{c.filterAllPays}</option>
+                  {pays.map((p) => (
+                    <option key={p.id} value={String(p.id)}>{p.nom}</option>
+                  ))}
+                </select>
+                <select
+                  value={filterZone}
+                  onChange={(e) => {
+                    setFilterZone(e.target.value)
+                    setFilterVillage("")
+                  }}
+                  className={field}
+                  disabled={!filterPays}
+                >
+                  <option value="">{c.filterAllZones}</option>
+                  {filteredZones.map((z) => (
+                    <option key={z.id} value={String(z.id)}>{z.nom}</option>
+                  ))}
+                </select>
+                <select
+                  value={filterVillage}
+                  onChange={(e) => setFilterVillage(e.target.value)}
+                  className={field}
+                  disabled={!filterZone}
+                >
+                  <option value="">{c.filterAllVillages}</option>
+                  {filteredVillages.map((v) => (
+                    <option key={v.id} value={v.nom}>{v.nom}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="relative" ref={comboboxRef}>
+                <input
+                  type="text"
+                  value={open ? search : selectedProducteur ? `${selectedProducteur.code_producteur} – ${selectedProducteur.nom} ${selectedProducteur.prenom}` : search}
+                  onChange={(e) => {
+                    setSearch(e.target.value)
+                    if (!open) setOpen(true)
+                    if (form.producteur_id) setForm((prev) => ({ ...prev, producteur_id: "" }))
+                  }}
+                  onFocus={() => setOpen(true)}
+                  placeholder={c.searchProducteur}
+                  className={field}
+                  required={!form.producteur_id}
+                />
+                {open && (
+                  <div className="absolute z-30 mt-1 w-full max-h-72 overflow-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+                    {matchingProducteurs.length === 0 && (
+                      <div className="px-4 py-3 text-[12.5px] text-gray-400">{c.noProducteurMatch}</div>
+                    )}
+                    {matchingProducteurs.slice(0, 100).map((p) => (
+                      <button
+                        type="button"
+                        key={p.id}
+                        onClick={() => {
+                          setForm((prev) => ({ ...prev, producteur_id: String(p.id), parcelle_id: "" }))
+                          setSearch("")
+                          setOpen(false)
+                        }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-[#2AC1A3]/10 transition border-b border-gray-50 last:border-b-0"
+                      >
+                        <div className="text-[13px] font-medium text-gray-900">
+                          {p.code_producteur} – {p.nom} {p.prenom}
+                        </div>
+                        {p.village && (
+                          <div className="text-[11px] text-gray-400 mt-0.5">{p.village}</div>
+                        )}
+                      </button>
+                    ))}
+                    {matchingProducteurs.length > 100 && (
+                      <div className="px-4 py-2 text-[11px] text-gray-400 bg-gray-50 sticky bottom-0">
+                        {c.moreResultsHint(matchingProducteurs.length - 100)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">

@@ -43,13 +43,13 @@ export async function createProducteur(
   returnTo?: string
 ) {
   const me = await getCurrentUser()
-  if (!me) return { error: "Vous devez être connecté pour effectuer cette action." }
+  if (!me) return { error: "UNAUTHORIZED" }
 
   // point_focal can only create producers in their assigned country
   if (me.role !== "admin" && me.country_id) {
     const submittedPaysId = formData.pays_id ? parseInt(String(formData.pays_id)) : null
     if (submittedPaysId !== me.country_id) {
-      return { error: "Vous ne pouvez créer des producteurs que pour votre pays assigné." }
+      return { error: "RESTRICTED_TO_COUNTRY" }
     }
   }
 
@@ -135,6 +135,6 @@ export async function createProducteur(
     const err = error as { digest?: string; message?: string }
     // Next.js redirect throws — rethrow so it propagates
     if (err?.digest?.startsWith("NEXT_REDIRECT")) throw error
-    return { error: err?.message || "Erreur lors de la création" }
+    return { error: err?.message || "CREATE_FAILED" }
   }
 }

@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import { useLanguage } from "@/contexts/LanguageContext"
 
 interface Parcelle {
   id: number
@@ -27,6 +28,7 @@ function getStatusColor(status: string | null): string {
 }
 
 export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
+  const { t } = useLanguage()
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
 
@@ -92,7 +94,7 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
             map.current!.on('click', `${sourceId}-fill`, (e) => {
               new mapboxgl.Popup()
                 .setLngLat(e.lngLat)
-                .setHTML(buildPopupHtml(parcelle, color))
+                .setHTML(buildPopupHtml(parcelle, color, t.common.notVerified))
                 .addTo(map.current!)
             })
 
@@ -134,7 +136,7 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
       el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)'
 
       const popup = new mapboxgl.Popup({ offset: 25 })
-        .setHTML(buildPopupHtml(parcelle, color))
+        .setHTML(buildPopupHtml(parcelle, color, t.common.notVerified))
 
       new mapboxgl.Marker(el)
         .setLngLat([parcelle.longitude, parcelle.latitude])
@@ -153,7 +155,7 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
   if (parcelles.length === 0) {
     return (
       <div className="bg-white border border-gray-200 rounded-lg shadow overflow-hidden flex items-center justify-center" style={{ height: '600px' }}>
-        <p className="text-gray-400">Aucune parcelle geolocalisee</p>
+        <p className="text-gray-400">{t.common.noParcelsGeolocated}</p>
       </div>
     )
   }
@@ -167,7 +169,7 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
   )
 }
 
-function buildPopupHtml(parcelle: Parcelle, color: string): string {
+function buildPopupHtml(parcelle: Parcelle, color: string, notVerifiedLabel: string): string {
   return `
     <div style="padding: 8px; min-width: 200px;">
       <p style="font-weight: bold; margin-bottom: 4px;">${parcelle.code_parcelle}</p>
@@ -184,7 +186,7 @@ function buildPopupHtml(parcelle: Parcelle, color: string): string {
         display: inline-block;
         margin-top: 8px;
       ">
-        ${parcelle.status_eudr || 'Non verifie'}
+        ${parcelle.status_eudr || notVerifiedLabel}
       </span>
     </div>
   `

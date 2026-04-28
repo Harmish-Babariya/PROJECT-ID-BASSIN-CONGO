@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 type PaginationProps = {
   total: number
@@ -19,6 +20,7 @@ export default function Pagination({
   onPageSizeChange,
   pageSizeOptions = [10, 25, 50, 100],
 }: PaginationProps) {
+  const { t } = useLanguage()
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const current = Math.min(Math.max(1, page), totalPages)
   const from = total === 0 ? 0 : (current - 1) * pageSize + 1
@@ -40,7 +42,7 @@ export default function Pagination({
           onClick={() => onPageChange(current - 1)}
           disabled={current <= 1}
           className="px-2.5 py-1.5 text-xs font-semibold text-gray-600 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
-          aria-label="Page précédente"
+          aria-label={t.common.pagePrev}
         >
           ‹
         </button>
@@ -69,7 +71,7 @@ export default function Pagination({
           onClick={() => onPageChange(current + 1)}
           disabled={current >= totalPages}
           className="px-2.5 py-1.5 text-xs font-semibold text-gray-600 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
-          aria-label="Page suivante"
+          aria-label={t.common.pageNext}
         >
           ›
         </button>
@@ -77,7 +79,7 @@ export default function Pagination({
 
       {onPageSizeChange && (
         <div className="flex items-center gap-2 text-[11px] text-gray-500">
-          <span className="uppercase tracking-wide font-medium">Par page</span>
+          <span className="uppercase tracking-wide font-medium">{t.common.perPage}</span>
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}

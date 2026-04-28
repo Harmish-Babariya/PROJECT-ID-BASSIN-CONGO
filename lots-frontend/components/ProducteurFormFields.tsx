@@ -34,6 +34,8 @@ export type ProducteurFormState = {
 
 export type PaysOption = { id: number; nom: string }
 export type ZoneOption = { id: number; nom: string; pays_id: number }
+export type VillageOption = { id: number; nom: string; zone_id: number }
+export type NationaliteOption = { id: number; code: string; nom: string }
 
 export const CULTURES_PHARES = ["Cacaoyer", "Manioc", "Safoutier", "Avocatier", "Banane plantain", "Palmier à huile"]
 export const AUTRES_ACTIVITES = ["Artisanat", "Pêche", "Élevage", "Autre", "Aucune"]
@@ -136,14 +138,19 @@ export default function ProducteurFormFields({
   setForm,
   pays,
   zones,
+  villages,
+  nationalites,
 }: {
   form: ProducteurFormState
   setForm: React.Dispatch<React.SetStateAction<ProducteurFormState>>
   pays: PaysOption[]
   zones: ZoneOption[]
+  villages: VillageOption[]
+  nationalites: NationaliteOption[]
 }) {
   const { t } = useLanguage()
   const p = t.producteurs
+  const co = t.common
 
   const update = <K extends keyof ProducteurFormState>(key: K, value: ProducteurFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -151,6 +158,15 @@ export default function ProducteurFormFields({
   const filteredZones = form.pays_id
     ? zones.filter((z) => String(z.pays_id) === form.pays_id)
     : zones
+
+  const filteredVillages = form.zone_id
+    ? villages.filter((v) => String(v.zone_id) === form.zone_id)
+    : []
+
+  // Preserve any pre-existing village name not present in the current referentiel
+  // (typos, removed entries, or data from before the village table existed).
+  const hasMatchingVillage = filteredVillages.some((v) => v.nom === form.village)
+  const showLegacyOption = !!form.village && !hasMatchingVillage
 
   return (
     <div>
@@ -178,8 +194,8 @@ export default function ProducteurFormFields({
             <Label required>{p.labelSexe}</Label>
             <Select value={form.sexe} onChange={(e) => update("sexe", e.target.value)}>
               <option value="">— {p.placeholderSelect} —</option>
-              <option value="Homme">Homme</option>
-              <option value="Femme">Femme</option>
+              <option value="Homme">{co.male}</option>
+              <option value="Femme">{co.female}</option>
             </Select>
           </div>
           <div>
@@ -195,11 +211,18 @@ export default function ProducteurFormFields({
           </div>
           <div>
             <Label>{p.labelNationalite}</Label>
-            <Input
+            <Select
               value={form.nationalite}
               onChange={(e) => update("nationalite", e.target.value)}
-              placeholder="ex. Congolais, Camerounais…"
-            />
+            >
+              <option value="">— {p.placeholderSelect} —</option>
+              {form.nationalite && !nationalites.some((n) => n.nom === form.nationalite) && (
+                <option value={form.nationalite}>{form.nationalite}</option>
+              )}
+              {nationalites.map((n) => (
+                <option key={n.id} value={n.nom}>{n.nom}</option>
+              ))}
+            </Select>
           </div>
           <div>
             <Label>{p.labelCommunaute}</Label>
@@ -220,10 +243,10 @@ export default function ProducteurFormFields({
             />
           </div>
           <div>
-            <Label>Statut</Label>
+            <Label>{co.statutLabel}</Label>
             <Select value={form.statut} onChange={(e) => update("statut", e.target.value)}>
-              <option value="Actif">Actif</option>
-              <option value="Inactif">Inactif</option>
+              <option value="Actif">{co.active}</option>
+              <option value="Inactif">{co.inactive}</option>
             </Select>
           </div>
         </div>
@@ -242,6 +265,7 @@ export default function ProducteurFormFields({
               onChange={(e) => {
                 update("pays_id", e.target.value)
                 update("zone_id", "")
+                update("village", "")
               }}
             >
               <option value="">— {p.placeholderSelect} —</option>
@@ -252,7 +276,13 @@ export default function ProducteurFormFields({
           </div>
           <div>
             <Label required>{p.labelZone}</Label>
-            <Select value={form.zone_id} onChange={(e) => update("zone_id", e.target.value)}>
+            <Select
+              value={form.zone_id}
+              onChange={(e) => {
+                update("zone_id", e.target.value)
+                update("village", "")
+              }}
+            >
               <option value="">— {p.placeholderSelect} —</option>
               {filteredZones.map((z) => (
                 <option key={z.id} value={String(z.id)}>{z.nom}</option>
@@ -261,11 +291,22 @@ export default function ProducteurFormFields({
           </div>
           <div className="sm:col-span-2">
             <Label required>{p.labelVillage}</Label>
-            <Input
+            <Select
               value={form.village}
               onChange={(e) => update("village", e.target.value)}
-              placeholder="ex. Ouesso, Pokola, Souanké…"
-            />
+            >
+              <option value="">
+                {form.zone_id
+                  ? `— ${p.placeholderSelect} —`
+                  : co.selectZoneFirst}
+              </option>
+              {showLegacyOption && (
+                <option value={form.village}>{form.village}</option>
+              )}
+              {filteredVillages.map((v) => (
+                <option key={v.id} value={v.nom}>{v.nom}</option>
+              ))}
+            </Select>
           </div>
         </div>
       </section>
@@ -342,16 +383,16 @@ export default function ProducteurFormFields({
             <Label>{p.labelMainOeuvre}</Label>
             <Select value={form.main_oeuvre_supplementaire} onChange={(e) => update("main_oeuvre_supplementaire", e.target.value)}>
               <option value="">— {p.placeholderSelect} —</option>
-              <option value="Oui">Oui</option>
-              <option value="Non">Non</option>
+              <option value="Oui">{co.yes}</option>
+              <option value="Non">{co.no}</option>
             </Select>
           </div>
           <div>
             <Label>{p.labelRecolte}</Label>
             <Select value={form.recolte_annee_derniere} onChange={(e) => update("recolte_annee_derniere", e.target.value)}>
               <option value="">— {p.placeholderSelect} —</option>
-              <option value="Oui">Oui</option>
-              <option value="Non">Non</option>
+              <option value="Oui">{co.yes}</option>
+              <option value="Non">{co.no}</option>
             </Select>
           </div>
           <div>

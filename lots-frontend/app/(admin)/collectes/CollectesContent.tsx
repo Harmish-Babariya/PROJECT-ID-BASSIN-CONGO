@@ -1,8 +1,12 @@
 "use client"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useMemo, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
+import SortableHeader from "@/components/SortableHeader"
+import { useTableSort } from "@/components/useTableSort"
 
 type Collecte = {
   id: number
@@ -25,7 +29,33 @@ export default function CollectesContent({
 }) {
   const { t, locale } = useLanguage()
   const c = t.collectes
-  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(collectes, 10)
+  const tr = t.referentiel
+  const router = useRouter()
+  const [search, setSearch] = useState("")
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return collectes
+    return collectes.filter((col) => {
+      const fullName = col.producteurs ? `${col.producteurs.nom} ${col.producteurs.prenom}` : ""
+      const parcelle = col.parcelles?.code_parcelle ?? ""
+      return (
+        fullName.toLowerCase().includes(q) ||
+        parcelle.toLowerCase().includes(q) ||
+        (col.qualite ?? "").toLowerCase().includes(q) ||
+        (col.produit ?? "").toLowerCase().includes(q)
+      )
+    })
+  }, [collectes, search])
+
+  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Collecte>(filtered, {
+    date: (r) => (r.date_collecte ? new Date(r.date_collecte) : null),
+    producteur: (r) => (r.producteurs ? `${r.producteurs.nom} ${r.producteurs.prenom}` : ""),
+    parcelle: (r) => r.parcelles?.code_parcelle ?? "",
+    poids: (r) => (r.poids_net_kg ? parseFloat(r.poids_net_kg) : null),
+    qualite: (r) => r.qualite ?? "",
+  })
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
   return (
     <div className="space-y-5">
@@ -45,12 +75,23 @@ export default function CollectesContent({
             </Link>
           </div>
         </div>
-        <Link
-          href="/dashboard"
-          className="font-courier text-[10px] text-gray-400 tracking-[0.15em] uppercase hover:text-[#2AC1A3] transition mt-1"
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-[11px] text-[#AAAAAA] tracking-[0.18em] uppercase font-medium hover:text-[#2AC1A3] mt-3"
         >
-          ← Retour
-        </Link>
+          ← {c.back}
+        </button>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <input
+          type="text"
+          placeholder={tr.searchPlaceholder}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2AC1A3] focus:ring-1 focus:ring-[#2AC1A3]"
+        />
       </div>
 
       {/* Table */}
@@ -58,17 +99,17 @@ export default function CollectesContent({
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="px-6 py-3 text-left text-[9.5px] font-courier font-semibold text-gray-400 tracking-[0.18em] uppercase">{c.colDate}</th>
-              <th className="px-6 py-3 text-left text-[9.5px] font-courier font-semibold text-gray-400 tracking-[0.18em] uppercase">{c.colProducer}</th>
-              <th className="px-6 py-3 text-left text-[9.5px] font-courier font-semibold text-gray-400 tracking-[0.18em] uppercase">{c.colParcel}</th>
-              <th className="px-6 py-3 text-left text-[9.5px] font-courier font-semibold text-gray-400 tracking-[0.18em] uppercase">{c.colWeight} (KG)</th>
-              <th className="px-6 py-3 text-left text-[9.5px] font-courier font-semibold text-gray-400 tracking-[0.18em] uppercase">{c.colQuality}</th>
+              <SortableHeader label={c.colDate} sortKey="date" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={c.colProducer} sortKey="producteur" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={c.colParcel} sortKey="parcelle" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={`${c.colWeight} (KG)`} sortKey="poids" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={c.colQuality} sortKey="qualite" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <th className="px-6 py-3 text-left text-[9.5px] font-courier font-semibold text-gray-400 tracking-[0.18em] uppercase">{c.colStatus}</th>
               <th className="px-6 py-3 text-left text-[9.5px] font-courier font-semibold text-gray-400 tracking-[0.18em] uppercase">{c.colActions}</th>
             </tr>
           </thead>
           <tbody>
-            {collectes.length === 0 ? (
+            {filtered.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-6 py-10 text-center text-[13px] text-gray-400">
                   {c.empty}

@@ -54,7 +54,7 @@ export async function createLot(
     revalidatePath("/dashboard")
     newLotId = lot.id
   } catch (error: any) {
-    return { error: error.message || "Erreur lors de la creation" }
+    return { error: error.message || "CREATE_FAILED" }
   }
 
   redirect(`/lots/${newLotId}`)

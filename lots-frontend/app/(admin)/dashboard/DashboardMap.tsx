@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { Maximize2 } from "lucide-react"
@@ -30,13 +30,6 @@ interface ParcelFeature {
     area: number
     [key: string]: unknown
   }
-}
-
-interface Stats {
-  total: number
-  totalSurface: number
-  avgSurface: number
-  maxSurface: number
 }
 
 const MAP_STYLES: Record<string, string> = {
@@ -82,35 +75,6 @@ function parseGeometry(geom: unknown): ParcelGeometry | null {
   return null
 }
 
-function addLayersToMap(map: mapboxgl.Map) {
-  map.addLayer({
-    id: "parcelles-fill",
-    type: "fill",
-    source: "parcelles",
-    filter: ["==", ["geometry-type"], "Polygon"],
-    paint: { "fill-color": "#2AC1A3", "fill-opacity": 0.25 },
-  })
-  map.addLayer({
-    id: "parcelles-outline",
-    type: "line",
-    source: "parcelles",
-    filter: ["==", ["geometry-type"], "Polygon"],
-    paint: { "line-color": "#2AC1A3", "line-width": 2 },
-  })
-  map.addLayer({
-    id: "parcelles-points",
-    type: "circle",
-    source: "parcelles",
-    filter: ["==", ["geometry-type"], "Point"],
-    paint: {
-      "circle-radius": 6,
-      "circle-color": "#2AC1A3",
-      "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 2,
-    },
-  })
-}
-
 function buildFeatures(parcelles: MapParcelle[]): ParcelFeature[] {
   return parcelles
     .map((row, index): ParcelFeature | null => {
@@ -140,18 +104,68 @@ function buildFeatures(parcelles: MapParcelle[]): ParcelFeature[] {
     .filter((f): f is ParcelFeature => f !== null)
 }
 
+const STATUS_COLOR_EXPR: mapboxgl.ExpressionSpecification = [
+  "case",
+  ["==", ["get", "status_eudr"], "CONFORME"],
+  "#2AC1A3",
+  "#C4943A",
+]
+
+function addLayersToMap(map: mapboxgl.Map) {
+  map.addLayer({
+    id: "parcelles-fill",
+    type: "fill",
+    source: "parcelles",
+    filter: ["==", ["geometry-type"], "Polygon"],
+    paint: { "fill-color": STATUS_COLOR_EXPR, "fill-opacity": 0.25 },
+  })
+  map.addLayer({
+    id: "parcelles-outline",
+    type: "line",
+    source: "parcelles",
+    filter: ["==", ["geometry-type"], "Polygon"],
+    paint: { "line-color": STATUS_COLOR_EXPR, "line-width": 2 },
+  })
+  map.addLayer({
+    id: "parcelles-points",
+    type: "circle",
+    source: "parcelles",
+    filter: ["==", ["geometry-type"], "Point"],
+    paint: {
+      "circle-radius": 6,
+      "circle-color": STATUS_COLOR_EXPR,
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 2,
+    },
+  })
+}
+
 export default function DashboardMap({ parcelles }: { parcelles: MapParcelle[] }) {
   const { t } = useLanguage()
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const geojsonRef = useRef<{ type: string; features: ParcelFeature[] } | null>(null)
+  const fittedRef = useRef(false)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [stats, setStats] = useState<Stats | null>(null)
   const [activeStyle, setActiveStyle] = useState("satellite")
   const [expanded, setExpanded] = useState(false)
 
+  const features = useMemo(() => buildFeatures(parcelles), [parcelles])
+
+  const { conformeCount, nonConformeCount } = useMemo(() => {
+    let c = 0
+    let nc = 0
+    for (const p of parcelles) {
+      if ((p.status_eudr ?? "").toUpperCase() === "CONFORME") c++
+      else nc++
+    }
+    return { conformeCount: c, nonConformeCount: nc }
+  }, [parcelles])
+
+  // Mount the map exactly once. Subsequent updates patch the source data
+  // without remounting, so changing the period filter doesn't make the map jump.
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
 
@@ -170,45 +184,14 @@ export default function DashboardMap({ parcelles }: { parcelles: MapParcelle[] }
     mapRef.current = map
 
     map.on("load", () => {
-      const features = buildFeatures(parcelles)
-
-      if (features.length === 0) {
-        setError(t.errors.noParcelsFound)
-        setLoading(false)
-        return
-      }
-
-      const geojson = { type: "FeatureCollection", features }
-      geojsonRef.current = geojson
-
-      const polygonSurfaces = features
-        .filter((f) => f.geometry.type === "Polygon")
-        .map((f) => f.properties.area / 10000)
-      const totalSurface = polygonSurfaces.reduce((a, b) => a + b, 0)
-      setStats({
-        total: features.length,
-        totalSurface,
-        avgSurface: polygonSurfaces.length > 0 ? totalSurface / polygonSurfaces.length : 0,
-        maxSurface: polygonSurfaces.length > 0 ? Math.max(...polygonSurfaces) : 0,
-      })
+      const initialFeatures = geojsonRef.current?.features ?? []
+      const geojson = { type: "FeatureCollection", features: initialFeatures }
 
       map.addSource("parcelles", {
         type: "geojson",
         data: geojson as unknown as GeoJSON.FeatureCollection,
       })
       addLayersToMap(map)
-
-      const bounds = new mapboxgl.LngLatBounds()
-      features.forEach((f) => {
-        if (f.geometry.type === "Polygon") {
-          f.geometry.coordinates[0].forEach((c) => bounds.extend(c as [number, number]))
-        } else {
-          bounds.extend(f.geometry.coordinates)
-        }
-      })
-      if (!bounds.isEmpty()) {
-        map.fitBounds(bounds, { padding: 30, duration: 1500, maxZoom: 14 })
-      }
 
       const interactiveLayers = ["parcelles-fill", "parcelles-points"]
       interactiveLayers.forEach((layerId) => {
@@ -248,14 +231,56 @@ export default function DashboardMap({ parcelles }: { parcelles: MapParcelle[] }
     return () => {
       map.remove()
       mapRef.current = null
+      fittedRef.current = false
     }
-  }, [
-    parcelles,
-    t.errors.noParcelsFound,
-    t.dashboard.parcelles,
-    t.dashboard.mapPopupIdLabel,
-    t.dashboard.mapPopupSurfaceLabel,
-  ])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Sync source data + stats whenever features change. This runs on initial
+  // load AND on subsequent prop changes — but it only updates the existing
+  // source, so the map view does NOT jump or refit.
+  useEffect(() => {
+    const map = mapRef.current
+
+    const geojson = { type: "FeatureCollection", features }
+    geojsonRef.current = geojson
+
+    if (features.length === 0) {
+      setError(t.errors.noParcelsFound)
+    } else {
+      setError(null)
+    }
+
+    if (!map) return
+
+    const apply = () => {
+      const src = map.getSource("parcelles") as mapboxgl.GeoJSONSource | undefined
+      if (src) {
+        src.setData(geojson as unknown as GeoJSON.FeatureCollection)
+      }
+      // Fit bounds only once, on the first non-empty payload
+      if (!fittedRef.current && features.length > 0) {
+        const bounds = new mapboxgl.LngLatBounds()
+        features.forEach((f) => {
+          if (f.geometry.type === "Polygon") {
+            f.geometry.coordinates[0].forEach((c) => bounds.extend(c as [number, number]))
+          } else {
+            bounds.extend(f.geometry.coordinates)
+          }
+        })
+        if (!bounds.isEmpty()) {
+          map.fitBounds(bounds, { padding: 30, duration: 1500, maxZoom: 14 })
+          fittedRef.current = true
+        }
+      }
+    }
+
+    if (map.isStyleLoaded() && map.getSource("parcelles")) {
+      apply()
+    } else {
+      map.once("load", apply)
+    }
+  }, [features, t.errors.noParcelsFound])
 
   const changeStyle = useCallback((styleKey: string) => {
     const map = mapRef.current
@@ -332,17 +357,15 @@ export default function DashboardMap({ parcelles }: { parcelles: MapParcelle[] }
         })}
       </div>
 
-      <div className="flex items-center gap-5 px-5 py-3 bg-[#1E2A35] border-t border-white/5">
-        <span className="text-[10px] text-white/50 tracking-[0.1em] font-medium">
-          {stats?.total ?? 0} {t.dashboard.mapFooterParcelles}
+      <div className="flex items-center gap-6 px-5 py-3 bg-[#1E2A35] border-t border-white/5">
+        <span className="flex items-center gap-2 text-[10px] text-white/50 tracking-[0.1em] font-medium">
+          <span className="w-2 h-2 rounded-full bg-[#2AC1A3]" />
+          {t.dashboard.mapLegendConforme(conformeCount)}
         </span>
-        <span className="text-[10px] text-white/50 tracking-[0.1em] font-medium">
-          {stats ? stats.totalSurface.toFixed(2) : "0"} {t.dashboard.mapFooterHa}
+        <span className="flex items-center gap-2 text-[10px] text-white/50 tracking-[0.1em] font-medium">
+          <span className="w-2 h-2 rounded-full bg-[#C4943A]" />
+          {t.dashboard.mapLegendNonConforme(nonConformeCount)}
         </span>
-        <span className="text-[10px] text-white/50 tracking-[0.1em] font-medium">
-          {t.dashboard.mapFooterAvg} {stats ? stats.avgSurface.toFixed(2) : "0"} {t.dashboard.mapFooterHa}
-        </span>
-        <span className="ml-auto text-[9px] text-white/30 tracking-[0.15em] uppercase">{t.dashboard.mapPoweredBy}</span>
       </div>
     </div>
     {expanded && <ExpandedMapModal parcelles={parcelles} onClose={() => setExpanded(false)} />}

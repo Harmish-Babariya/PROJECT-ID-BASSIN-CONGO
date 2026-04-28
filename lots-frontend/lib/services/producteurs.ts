@@ -75,7 +75,7 @@ export async function getProducteurSimple(id: string) {
 export async function getProducteursForSelect(paysId?: number | null) {
   let query = supabaseAdmin
     .from("producteurs")
-    .select("id, code_producteur, nom, prenom")
+    .select("id, code_producteur, nom, prenom, pays_id, zone_id, village")
   if (paysId) query = query.eq("pays_id", Number(paysId))
   const { data } = await query.order("code_producteur")
   return data || []

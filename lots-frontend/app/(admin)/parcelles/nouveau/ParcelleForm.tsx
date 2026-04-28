@@ -39,7 +39,7 @@ export default function ParcelleForm({
   defaultPaysId,
   mode = "create",
 }: ParcelleFormProps) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const tp = t.parcelles
   const [loading, setLoading] = useState(false)
   const { toast, showSuccess, showError, hideToast } = useToast()
@@ -212,7 +212,7 @@ export default function ParcelleForm({
       fd.append("file", file)
       if (formData.annee_plantation) fd.append("annee_plantation", formData.annee_plantation)
 
-      const response = await fetch("/api/upload-gpx", { method: "POST", body: fd })
+      const response = await fetch(`/api/upload-gpx?locale=${locale}`, { method: "POST", body: fd })
       const result = await response.json()
 
       if (result.success) {
@@ -359,7 +359,14 @@ export default function ParcelleForm({
             </div>
             <div>
               <label className={labelClass}>{tp.labelEtatSite}</label>
-              <input type="text" value={formData.etat_site_creation} onChange={e => setFormData({ ...formData, etat_site_creation: e.target.value })} placeholder="Ex: Forêt secondaire" className={inputClass} />
+              <select value={formData.etat_site_creation} onChange={e => setFormData({ ...formData, etat_site_creation: e.target.value })} className={selectClass}>
+                <option value="">{tp.selectEtat}</option>
+                <option value="Excellent">Excellent</option>
+                <option value="Bon">Bon</option>
+                <option value="Moyen">Moyen</option>
+                <option value="Dégradé">Dégradé</option>
+                <option value="Très dégradé">Très dégradé</option>
+              </select>
             </div>
             <div>
               <label className={labelClass}>{tp.labelAnneeplantation}</label>
@@ -555,10 +562,6 @@ export default function ParcelleForm({
           <button type="submit" disabled={loading} className="bg-[#2ac1a3] text-white px-8 py-3 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] disabled:opacity-50 transition">
             {loading ? tp.btnSaving : isEdit ? tp.btnSave : tp.btnCreate}
           </button>
-          <Link href={returnTo || (producteurPreselectionne ? `/producteurs/${producteurPreselectionne}` : "/parcelles")}
-            className="px-8 py-3 rounded-lg text-sm font-semibold text-gray-600 hover:text-gray-900 transition">
-            {tp.btnCancel}
-          </Link>
         </div>
       </form>
     </>

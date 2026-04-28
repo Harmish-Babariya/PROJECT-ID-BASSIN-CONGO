@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import ModifierProducteurClient from "./ModifierProducteurClient"
 import { getProducteurSimple } from "@/lib/services/producteurs"
-import { getPays, getZones } from "@/lib/services/common"
+import { getPays, getZones, getVillages, getNationalites } from "@/lib/services/common"
 import { getCurrentUser } from "@/lib/services/auth"
 
 export default async function ModifierProducteur({
@@ -15,10 +15,12 @@ export default async function ModifierProducteur({
   const { id } = await params
   const isAdmin = user.role === "admin"
 
-  const [producteur, pays, zones] = await Promise.all([
+  const [producteur, pays, zones, villages, nationalites] = await Promise.all([
     getProducteurSimple(id),
     getPays(),
     getZones(),
+    getVillages(),
+    getNationalites(),
   ])
   if (!producteur) notFound()
 
@@ -32,5 +34,5 @@ export default async function ModifierProducteur({
     ? pays
     : pays.filter((p) => p.id === user.country_id)
 
-  return <ModifierProducteurClient producteur={producteur} pays={filteredPays} zones={zones} />
+  return <ModifierProducteurClient producteur={producteur} pays={filteredPays} zones={zones} villages={villages} nationalites={nationalites} />
 }

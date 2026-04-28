@@ -1,8 +1,11 @@
 "use client"
 import Link from "next/link"
+import { useMemo, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
+import SortableHeader from "@/components/SortableHeader"
+import { useTableSort } from "@/components/useTableSort"
 
 type Lot = {
   id: number
@@ -21,7 +24,27 @@ export default function ExportContent({
 }) {
   const { t } = useLanguage()
   const e = t.export
-  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(lots, 10)
+  const tr = t.referentiel
+  const [search, setSearch] = useState("")
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return lots
+    return lots.filter((lot) =>
+      lot.code_lot.toLowerCase().includes(q) ||
+      (lot.produit ?? "").toLowerCase().includes(q) ||
+      (lot.statut ?? "").toLowerCase().includes(q)
+    )
+  }, [lots, search])
+
+  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Lot>(filtered, {
+    code: (r) => r.code_lot,
+    produit: (r) => r.produit ?? "",
+    collectes: (r) => collectesParLot[r.id] ?? 0,
+    poids: (r) => parseFloat(r.poids_total_kg) || 0,
+    statut: (r) => r.statut ?? "",
+  })
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
   return (
     <div className="space-y-6">
@@ -31,15 +54,25 @@ export default function ExportContent({
         <p className="text-gray-500 text-sm mt-1">{e.subtitle}</p>
       </div>
 
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <input
+          type="text"
+          placeholder={tr.searchPlaceholder}
+          value={search}
+          onChange={(ev) => setSearch(ev.target.value)}
+          className="w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
+        />
+      </div>
+
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-500 tracking-widest uppercase">{e.colCode}</th>
-              <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-500 tracking-widest uppercase">{e.colProduct}</th>
-              <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-500 tracking-widest uppercase">{e.colCollectes}</th>
-              <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-500 tracking-widest uppercase">{e.colWeight}</th>
-              <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-500 tracking-widest uppercase">{e.colStatus}</th>
+              <SortableHeader label={e.colCode} sortKey="code" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={e.colProduct} sortKey="produit" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={e.colCollectes} sortKey="collectes" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={e.colWeight} sortKey="poids" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={e.colStatus} sortKey="statut" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-500 tracking-widest uppercase">{e.colActions}</th>
             </tr>
           </thead>
@@ -92,7 +125,7 @@ export default function ExportContent({
         </table>
       </div>
 
-      {lots.length === 0 && (
+      {filtered.length === 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <p className="text-gray-500 mb-4">{e.empty}</p>
           <Link href="/lots/nouveau" className="text-[#2ac1a3] hover:underline text-sm font-semibold">

@@ -23,25 +23,87 @@ function readArray(obj: any, ...keys: string[]): string[] {
   return []
 }
 
-function EudrBadge({ status }: { status: string | null }) {
+// Re-renders stored EUDR justifications (saved in either FR or EN) using the
+// active locale's translations. Falls back to the raw stored text when the
+// sentence doesn't match a known shape.
+function translateJustification(
+  raw: string,
+  tp: {
+    eudrJustifPending: string
+    eudrJustifFutureYear: (y: number) => string
+    eudrJustifCompliant: (y: number) => string
+    eudrJustifAlert: (y: number) => string
+  }
+): string {
+  if (!raw) return raw
+  const trimmed = raw.trim()
+
+  // Pending review (no year)
+  if (
+    /^V[ée]rification automatique en attente\.?$/i.test(trimmed) ||
+    /^Automatic verification pending\.?$/i.test(trimmed)
+  ) {
+    return tp.eudrJustifPending
+  }
+
+  // Future year (invalid)
+  let m =
+    trimmed.match(/Ann[ée]e de plantation (\d{4}) invalide \(future\)/i) ||
+    trimmed.match(/Plantation year (\d{4}) is invalid \(future\)/i)
+  if (m) return tp.eudrJustifFutureYear(parseInt(m[1], 10))
+
+  // Compliant (pre-cutoff)
+  m =
+    trimmed.match(/Plantation cr[ée]{2}e en (\d{4}), ant[ée]rieure au cutoff EUDR/i) ||
+    trimmed.match(/Plantation established in (\d{4}), prior to the EUDR cutoff/i)
+  if (m) return tp.eudrJustifCompliant(parseInt(m[1], 10))
+
+  // Alert (post-cutoff) — also matches the legacy form without "(31 déc 2020)"
+  m =
+    trimmed.match(/Plantation cr[ée]{2}e en (\d{4}), post[ée]rieure au cutoff EUDR/i) ||
+    trimmed.match(/Plantation established in (\d{4}), after the EUDR cutoff/i)
+  if (m) return tp.eudrJustifAlert(parseInt(m[1], 10))
+
+  return raw
+}
+
+function EudrBadge({
+  status,
+  notVerifiedLabel,
+  conformeLabel,
+  risqueLabel,
+  nonConformeLabel,
+}: {
+  status: string | null
+  notVerifiedLabel: string
+  conformeLabel: string
+  risqueLabel: string
+  nonConformeLabel: string
+}) {
   if (!status || status === "NON VÉRIFIÉ" || status === "NON VERIFIE") {
-    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500">NON VÉRIFIÉ</span>
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500">{notVerifiedLabel}</span>
   }
   if (status === "CONFORME") {
-    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-[#2ac1a3]/15 text-[#2ac1a3]">CONFORME</span>
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-[#2ac1a3]/15 text-[#2ac1a3]">{conformeLabel}</span>
   }
   if (status === "RISQUE NON NEGLIGEABLE" || status === "RISQUE NON NÉGLIGEABLE") {
-    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700">RISQUE NON NÉGLIGEABLE</span>
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700">{risqueLabel}</span>
   }
   if (status === "NON CONFORME") {
-    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-red-100 text-red-600">NON CONFORME</span>
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-red-100 text-red-600">{nonConformeLabel}</span>
   }
   return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500">{status}</span>
 }
 
 export default function ParcelleDetailClient({ parcelle, producteur, collectes }: { parcelle: any; producteur: any; collectes: any[] }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const tp = t.parcelles
+  const tl = t.lots
+  const dateLocale = locale === "fr" ? "fr-FR" : "en-GB"
+  const tx = (val: string | null | undefined) =>
+    val ? (tp.optionLabels[val] ?? val) : "—"
+  const txArr = (arr: string[]) =>
+    arr.length > 0 ? arr.map(tx).join(", ") : "—"
 
   const latitude = parcelle.latitude ?? null
   const longitude = parcelle.longitude ?? null
@@ -74,26 +136,26 @@ export default function ParcelleDetailClient({ parcelle, producteur, collectes }
   const fields = [
     { label: tp.fieldCooperative, value: (producteur as any)?.cooperatives?.nom || "—" },
     { label: tp.fieldProducteur, value: producteur ? `${producteur.nom}${(producteur as any).prenom ? " " + (producteur as any).prenom : ""}` : "—" },
-    { label: tp.fieldModeAcces, value: modeAcces || "—" },
-    { label: tp.fieldAutorisationOccupation, value: autorisationOccupation || "—" },
-    { label: tp.fieldTypeAutorisation, value: typeAutorisation || "—" },
+    { label: tp.fieldModeAcces, value: tx(modeAcces) },
+    { label: tp.fieldAutorisationOccupation, value: tx(autorisationOccupation) },
+    { label: tp.fieldTypeAutorisation, value: tx(typeAutorisation) },
     { label: tp.fieldAutorisationPar, value: autoritePar || "—" },
-    { label: tp.fieldEtatSiteCreation, value: etatSite || "—" },
-    { label: tp.fieldProvenanceSemences, value: provenance || "—" },
-    { label: tp.fieldLieuSemences, value: lieuSemences || "—" },
+    { label: tp.fieldEtatSiteCreation, value: tx(etatSite) },
+    { label: tp.fieldProvenanceSemences, value: tx(provenance) },
+    { label: tp.fieldLieuSemences, value: tx(lieuSemences) },
     { label: tp.fieldFournisseurSemences, value: fournisseur || "—" },
-    { label: tp.fieldSystemeAgricole, value: systemeAgricole || "—" },
-    { label: tp.fieldArbresCompagnons, value: arbres.length > 0 ? arbres.join(", ") : "—" },
+    { label: tp.fieldSystemeAgricole, value: tx(systemeAgricole) },
+    { label: tp.fieldArbresCompagnons, value: txArr(arbres) },
     { label: tp.fieldNombreArbres, value: nombreArbres !== null ? String(nombreArbres) : "—" },
-    { label: tp.fieldSignesMaladies, value: signesMaladies || "—" },
-    { label: tp.fieldMaladies, value: maladies.length > 0 ? maladies.join(", ") : "—" },
-    { label: tp.fieldPlantationProduit, value: plantationProduit || "—" },
-    { label: tp.fieldRecolteAnnee, value: recolte || "—" },
+    { label: tp.fieldSignesMaladies, value: tx(signesMaladies) },
+    { label: tp.fieldMaladies, value: txArr(maladies) },
+    { label: tp.fieldPlantationProduit, value: tx(plantationProduit) },
+    { label: tp.fieldRecolteAnnee, value: tx(recolte) },
     { label: tp.fieldQuantiteRecoltee, value: quantite !== null ? String(quantite) : "—" },
-    { label: tp.fieldFormationsRecues, value: formations || "—" },
-    { label: tp.fieldOperationsEntretien, value: operations.length > 0 ? operations.join(", ") : "—" },
-    { label: tp.fieldPesticides, value: pesticides || "—" },
-    { label: tp.fieldEtatPlantation, value: etatPlantation || "—" },
+    { label: tp.fieldFormationsRecues, value: tx(formations) },
+    { label: tp.fieldOperationsEntretien, value: txArr(operations) },
+    { label: tp.fieldPesticides, value: tx(pesticides) },
+    { label: tp.fieldEtatPlantation, value: tx(etatPlantation) },
   ]
 
   return (
@@ -107,10 +169,16 @@ export default function ParcelleDetailClient({ parcelle, producteur, collectes }
           <div>
             <div className="flex items-center gap-4 mb-1">
               <h1 className="text-3xl font-bold text-gray-900">{parcelle.code_parcelle}</h1>
-              <EudrBadge status={parcelle.status_eudr} />
+              <EudrBadge
+                status={parcelle.status_eudr}
+                notVerifiedLabel={tp.notVerified}
+                conformeLabel={tp.eudrConforme}
+                risqueLabel={tp.eudrRisque}
+                nonConformeLabel={tp.eudrNonConforme}
+              />
             </div>
             <p className="text-sm text-gray-500">
-              Producteur : {producteur?.code_producteur} – {producteur?.nom}{(producteur as any)?.prenom ? ` ${(producteur as any).prenom}` : ""}
+              {tp.fieldProducteur} : {producteur?.code_producteur} – {producteur?.nom}{(producteur as any)?.prenom ? ` ${(producteur as any).prenom}` : ""}
             </p>
           </div>
           <Link href={`/parcelles/${parcelle.id}/edit`} className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] transition">
@@ -121,7 +189,7 @@ export default function ParcelleDetailClient({ parcelle, producteur, collectes }
         {parcelle.justification_eudr && (
           <div className="mb-6 p-4 bg-[#e6f9f5] border border-[#2ac1a3]/20 rounded-lg">
             <p className="text-xs font-bold text-[#2ac1a3] uppercase tracking-widest mb-1">{tp.eudrJustificationLabel}</p>
-            <p className="text-sm text-gray-700">{parcelle.justification_eudr}</p>
+            <p className="text-sm text-gray-700">{translateJustification(parcelle.justification_eudr, tp)}</p>
           </div>
         )}
 
@@ -177,12 +245,12 @@ export default function ParcelleDetailClient({ parcelle, producteur, collectes }
             {collectes.map((c: any) => (
               <div key={c.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border border-gray-100">
                 <div>
-                  <p className="text-sm font-semibold text-gray-700">{new Date(c.date_collecte).toLocaleDateString("fr-FR")}</p>
+                  <p className="text-sm font-semibold text-gray-700">{new Date(c.date_collecte).toLocaleDateString(dateLocale)}</p>
                   <p className="text-sm text-gray-500 mt-0.5">{c.produit}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-[#2ac1a3]">{c.poids_net_kg} kg</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{c.nombre_sacs} sacs</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{c.nombre_sacs} {tl.sacs}</p>
                 </div>
               </div>
             ))}

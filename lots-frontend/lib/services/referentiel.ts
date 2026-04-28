@@ -118,3 +118,38 @@ export async function deleteVillage(id: number) {
   const { error } = await supabaseAdmin.from("villages").delete().eq("id", id)
   if (error) throw new Error(error.message)
 }
+
+// ─── NATIONALITES ────────────────────────────────────────────────────────────
+
+export async function getNationalitesAll() {
+  const { data } = await supabaseAdmin.from("nationalites").select("*").order("nom")
+  return data || []
+}
+
+export async function getNationaliteByIdRef(id: number) {
+  const { data } = await supabaseAdmin.from("nationalites").select("*").eq("id", id).single()
+  return data
+}
+
+export async function createNationalite(code: string, nom: string) {
+  const { data, error } = await supabaseAdmin
+    .from("nationalites")
+    .insert({ code: code.toUpperCase().trim(), nom: nom.trim() })
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function updateNationalite(id: number, code: string, nom: string) {
+  const { error } = await supabaseAdmin
+    .from("nationalites")
+    .update({ code: code.toUpperCase().trim(), nom: nom.trim() })
+    .eq("id", id)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteNationalite(id: number) {
+  const { error } = await supabaseAdmin.from("nationalites").delete().eq("id", id)
+  if (error) throw new Error(error.message)
+}

@@ -1,12 +1,14 @@
 "use client"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { User } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import ConfirmModal from "@/components/ConfirmModal"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
+import SortableHeader from "@/components/SortableHeader"
+import { useTableSort } from "@/components/useTableSort"
 
 type Profile = {
   id: string
@@ -53,12 +55,33 @@ const ACTION_PATH: Record<ActionKind, string> = {
 export default function UtilisateursContent({ profiles }: { profiles: Profile[] }) {
   const { t } = useLanguage()
   const u = t.utilisateurs
+  const tr = t.referentiel
   const c = u.confirm
   const router = useRouter()
   const [pendingAction, setPendingAction] = useState<string | null>(null)
   const [toast, setToast] = useState<{ kind: "ok" | "err"; message: string } | null>(null)
   const [confirmState, setConfirmState] = useState<{ userId: string; kind: ActionKind } | null>(null)
-  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(profiles, 10)
+  const [search, setSearch] = useState("")
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return profiles
+    return profiles.filter((p) =>
+      (p.nom_complet ?? "").toLowerCase().includes(q) ||
+      (p.email ?? "").toLowerCase().includes(q) ||
+      (p.role ?? "").toLowerCase().includes(q) ||
+      (p.pays?.nom ?? "").toLowerCase().includes(q)
+    )
+  }, [profiles, search])
+
+  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Profile>(filtered, {
+    user: (r) => r.nom_complet ?? r.email ?? "",
+    role: (r) => r.role ?? "",
+    country: (r) => r.pays?.nom ?? "",
+    statut: (r) => r.statut ?? "",
+    last: (r) => (r.last_sign_in_at ? new Date(r.last_sign_in_at) : null),
+  })
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
   const CONFIRM_CONFIG: Record<ActionKind, { title: string; message: string } | null> = {
     resend: null,
@@ -264,27 +287,28 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
         </div>
       </div>
 
+      {/* Search */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <input
+          type="text"
+          placeholder={tr.searchPlaceholder}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2AC1A3] focus:ring-1 focus:ring-[#2AC1A3]"
+        />
+      </div>
+
       {/* Users table - desktop/tablet */}
       <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead>
               <tr className="bg-[#F7F8FA] border-b border-gray-200">
-                <th className="px-4 lg:px-6 py-3.5 text-left text-[10px] font-semibold text-gray-400 tracking-[0.2em] uppercase font-mono whitespace-nowrap">
-                  {u.colUser}
-                </th>
-                <th className="px-4 lg:px-6 py-3.5 text-left text-[10px] font-semibold text-gray-400 tracking-[0.2em] uppercase font-mono whitespace-nowrap">
-                  {u.colRole}
-                </th>
-                <th className="px-4 lg:px-6 py-3.5 text-left text-[10px] font-semibold text-gray-400 tracking-[0.2em] uppercase font-mono whitespace-nowrap">
-                  {u.colCountry}
-                </th>
-                <th className="px-4 lg:px-6 py-3.5 text-left text-[10px] font-semibold text-gray-400 tracking-[0.2em] uppercase font-mono whitespace-nowrap">
-                  {u.colStatus}
-                </th>
-                <th className="px-4 lg:px-6 py-3.5 text-left text-[10px] font-semibold text-gray-400 tracking-[0.2em] uppercase font-mono whitespace-nowrap hidden lg:table-cell">
-                  {u.colLastConnection}
-                </th>
+                <SortableHeader label={u.colUser} sortKey="user" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
+                <SortableHeader label={u.colRole} sortKey="role" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
+                <SortableHeader label={u.colCountry} sortKey="country" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
+                <SortableHeader label={u.colStatus} sortKey="statut" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
+                <SortableHeader label={u.colLastConnection} sortKey="last" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap hidden lg:table-cell" />
                 <th className="px-4 lg:px-6 py-3.5 text-left text-[10px] font-semibold text-gray-400 tracking-[0.2em] uppercase font-mono whitespace-nowrap">
                   {u.colActions}
                 </th>
@@ -433,7 +457,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
           </table>
         </div>
 
-        {profiles.length === 0 && (
+        {filtered.length === 0 && (
           <div className="p-8 lg:p-12 text-center">
             <p className="text-gray-500 text-sm">{u.empty}</p>
           </div>
@@ -575,7 +599,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
           )
         })}
 
-        {profiles.length === 0 && (
+        {filtered.length === 0 && (
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
             <p className="text-gray-500 text-sm">{u.empty}</p>
           </div>

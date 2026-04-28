@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/contexts/LanguageContext"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
+import SortableHeader from "@/components/SortableHeader"
+import { useTableSort } from "@/components/useTableSort"
 
 type Parcelle = {
   id: number
@@ -17,18 +19,30 @@ type Parcelle = {
 
 type Producteur = { id: number; code_producteur: string; nom: string }
 
-function EudrBadge({ status, notVerifiedLabel }: { status: string | null; notVerifiedLabel: string }) {
+function EudrBadge({
+  status,
+  notVerifiedLabel,
+  conformeLabel,
+  risqueLabel,
+  nonConformeLabel,
+}: {
+  status: string | null
+  notVerifiedLabel: string
+  conformeLabel: string
+  risqueLabel: string
+  nonConformeLabel: string
+}) {
   if (!status || status === "NON VÉRIFIÉ" || status === "NON VERIFIE") {
     return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500 border border-gray-200">{notVerifiedLabel}</span>
   }
   if (status === "CONFORME") {
-    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-[#2ac1a3]/10 text-[#2ac1a3] border border-[#2ac1a3]/20">CONFORME</span>
+    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-[#2ac1a3]/10 text-[#2ac1a3] border border-[#2ac1a3]/20">{conformeLabel}</span>
   }
   if (status === "RISQUE NON NEGLIGEABLE" || status === "RISQUE NON NÉGLIGEABLE") {
-    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700 border border-yellow-200">RISQUE NON NÉGLIGEABLE</span>
+    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700 border border-yellow-200">{risqueLabel}</span>
   }
   if (status === "NON CONFORME") {
-    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-red-100 text-red-600 border border-red-200">NON CONFORME</span>
+    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-red-100 text-red-600 border border-red-200">{nonConformeLabel}</span>
   }
   return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500 border border-gray-200">{status}</span>
 }
@@ -49,7 +63,14 @@ export default function ParcellesContent({
   const [search, setSearch] = useState(searchParams.get("recherche") || "")
   const [showFilter, setShowFilter] = useState(false)
   const [filterStatus, setFilterStatus] = useState(searchParams.get("status_eudr") || "")
-  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(parcelles, 10)
+  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Parcelle>(parcelles, {
+    code: (r) => r.code_parcelle,
+    producteur: (r) => producteursMap.get(r.producteur_id)?.code_producteur ?? "",
+    surface: (r) => (r.surface_ha ? Number(r.surface_ha) : null),
+    date: (r) => (r.date_creation ? new Date(r.date_creation) : null),
+    eudr: (r) => r.status_eudr ?? "",
+  })
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
   function handleSearchChange(val: string) {
     setSearch(val)
@@ -68,19 +89,31 @@ export default function ParcellesContent({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+
+      {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-xs text-gray-400 tracking-widest uppercase mb-1">{tp.breadcrumb}</p>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-wide">{tp.title.toUpperCase()}</h1>
+          <h1 className="font-archivo text-[28px] font-bold text-gray-900 tracking-tight uppercase">
+            {tp.title}
+          </h1>
+          <div className="mt-3 flex gap-3">
+            <Link
+              href="/parcelles/nouveau"
+              className="font-courier inline-block bg-[#2AC1A3] text-white px-5 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-[#24a88c] transition"
+            >
+              {tp.newBtn}
+            </Link>
+            {exportButton}
+          </div>
         </div>
-      </div>
-
-      <div className="flex gap-3">
-        <Link href="/parcelles/nouveau" className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] transition flex items-center gap-2">
-          {tp.newBtn}
-        </Link>
-        {exportButton}
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-[11px] text-[#AAAAAA] tracking-[0.18em] uppercase font-medium hover:text-[#2AC1A3] mt-3"
+        >
+          ← {tp.back}
+        </button>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-5">
@@ -123,11 +156,11 @@ export default function ParcellesContent({
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tp.colCode}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tp.colProducer}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tp.colSurface}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tp.colDate}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tp.colEudr}</th>
+              <SortableHeader label={tp.colCode} sortKey="code" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={tp.colProducer} sortKey="producteur" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={tp.colSurface} sortKey="surface" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={tp.colDate} sortKey="date" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={tp.colEudr} sortKey="eudr" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase"></th>
             </tr>
           </thead>
@@ -149,7 +182,13 @@ export default function ParcellesContent({
                     {parc.date_creation ? new Date(parc.date_creation).toLocaleDateString("fr-FR") : "—"}
                   </td>
                   <td className="px-6 py-4">
-                    <EudrBadge status={parc.status_eudr} notVerifiedLabel={tp.notVerified} />
+                    <EudrBadge
+                      status={parc.status_eudr}
+                      notVerifiedLabel={tp.notVerified}
+                      conformeLabel={tp.eudrConforme}
+                      risqueLabel={tp.eudrRisque}
+                      nonConformeLabel={tp.eudrNonConforme}
+                    />
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">

@@ -1,8 +1,12 @@
 "use client"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useMemo, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
+import SortableHeader from "@/components/SortableHeader"
+import { useTableSort } from "@/components/useTableSort"
 
 type Lot = {
   id: number
@@ -38,37 +42,75 @@ export default function LotsContent({
 }) {
   const { t } = useLanguage()
   const l = t.lots
-  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(lots, 10)
+  const tr = t.referentiel
+  const router = useRouter()
+  const [search, setSearch] = useState("")
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return lots
+    return lots.filter((lot) =>
+      lot.code_lot.toLowerCase().includes(q) ||
+      (lot.produit ?? "").toLowerCase().includes(q) ||
+      (lot.statut ?? "").toLowerCase().includes(q)
+    )
+  }, [lots, search])
+
+  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Lot>(filtered, {
+    code: (r) => r.code_lot,
+    produit: (r) => r.produit ?? "",
+    collectes: (r) => collectesParLot[r.id] ?? 0,
+    poids: (r) => parseFloat(r.poids_total_kg) || 0,
+    statut: (r) => r.statut ?? "",
+  })
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+
+      {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-wide">{l.title.toUpperCase()}</h1>
+          <h1 className="font-archivo text-[28px] font-bold text-gray-900 tracking-tight uppercase">
+            {l.title}
+          </h1>
+          <div className="mt-3">
+            <Link
+              href="/lots/nouveau"
+              className="font-courier inline-block bg-[#2AC1A3] text-white px-5 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-[#24a88c] transition"
+            >
+              {l.newBtn}
+            </Link>
+          </div>
         </div>
-        <Link href="/dashboard" className="text-xs font-semibold text-gray-400 hover:text-gray-600 tracking-widest uppercase">
-          {l.back}
-        </Link>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-[11px] text-[#AAAAAA] tracking-[0.18em] uppercase font-medium hover:text-[#2AC1A3] mt-3"
+        >
+          ← {l.back}
+        </button>
       </div>
 
-      <div>
-        <Link
-          href="/lots/nouveau"
-          className="inline-block bg-[#2ac1a3] text-white px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-[0.12em] hover:bg-[#24a88e] transition"
-        >
-          {l.newBtn}
-        </Link>
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <input
+          type="text"
+          placeholder={tr.searchPlaceholder}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
+        />
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-[0.15em] uppercase">{l.colCode}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-[0.15em] uppercase">{l.colProduct}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-[0.15em] uppercase">{l.colCollectes}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-[0.15em] uppercase">{l.colWeight}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-[0.15em] uppercase">{l.colStatus}</th>
+              <SortableHeader label={l.colCode} sortKey="code" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={l.colProduct} sortKey="produit" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={l.colCollectes} sortKey="collectes" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={l.colWeight} sortKey="poids" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={l.colStatus} sortKey="statut" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-[0.15em] uppercase">{l.colActions}</th>
             </tr>
           </thead>
@@ -104,7 +146,7 @@ export default function LotsContent({
                 </td>
               </tr>
             ))}
-            {lots.length === 0 && (
+            {filtered.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-gray-400 text-sm">
                   —

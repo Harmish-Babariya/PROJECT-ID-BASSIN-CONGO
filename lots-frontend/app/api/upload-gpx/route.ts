@@ -6,12 +6,64 @@ import { getCurrentUser } from "@/lib/services/auth"
 const EUDR_SCRIPT_VERSION = "1.0.0"
 const BUCKET = "parcelles-gpx"
 
+type Locale = "fr" | "en"
+
+const messages = {
+  fr: {
+    unauthorized: "Non autorisé",
+    noFile: "Aucun fichier fourni",
+    gpxOnly: "Seuls les fichiers .gpx sont acceptés",
+    fileTooLarge: "Le fichier dépasse 10 Mo",
+    invalidXml: "Le fichier GPX n'est pas un XML valide",
+    invalidGpxData: "Le fichier ne contient pas de données GPX valides",
+    noCoords: "Aucune coordonnée trouvée dans le fichier GPX",
+    notEnoughPoints: "Le fichier GPX doit contenir au moins 3 points",
+    zeroArea: "Le polygone a une surface nulle ou quasi-nulle",
+    uploadError: (msg: string) => `Erreur upload : ${msg}`,
+    internalError: "Erreur interne",
+    pendingReview: "Vérification automatique en attente",
+    pendingFutureYear: (year: number) =>
+      `Année de plantation ${year} invalide (future). Vérification manuelle requise.`,
+    compliant: (year: number) =>
+      `Plantation créée en ${year}, antérieure au cutoff EUDR (31 déc 2020). Conforme.`,
+    alert: (year: number) =>
+      `Plantation créée en ${year}, postérieure au cutoff EUDR (31 déc 2020). Vérification satellite requise.`,
+  },
+  en: {
+    unauthorized: "Unauthorized",
+    noFile: "No file provided",
+    gpxOnly: "Only .gpx files are accepted",
+    fileTooLarge: "File exceeds 10 MB",
+    invalidXml: "The GPX file is not valid XML",
+    invalidGpxData: "The file does not contain valid GPX data",
+    noCoords: "No coordinates found in the GPX file",
+    notEnoughPoints: "The GPX file must contain at least 3 points",
+    zeroArea: "The polygon has zero or near-zero area",
+    uploadError: (msg: string) => `Upload error: ${msg}`,
+    internalError: "Internal error",
+    pendingReview: "Automatic verification pending",
+    pendingFutureYear: (year: number) =>
+      `Plantation year ${year} is invalid (future). Manual verification required.`,
+    compliant: (year: number) =>
+      `Plantation established in ${year}, prior to the EUDR cutoff (31 Dec 2020). Compliant.`,
+    alert: (year: number) =>
+      `Plantation established in ${year}, after the EUDR cutoff (31 Dec 2020). Satellite verification required.`,
+  },
+} as const
+
+function pickLocale(request: NextRequest): Locale {
+  const q = request.nextUrl.searchParams.get("locale")
+  return q === "en" ? "en" : "fr"
+}
+
 export async function POST(request: NextRequest) {
+  const locale = pickLocale(request)
+  const m = messages[locale]
   try {
     // Auth check
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ success: false, error: "Non autorisé" }, { status: 401 })
+      return NextResponse.json({ success: false, error: m.unauthorized }, { status: 401 })
     }
 
     const formData = await request.formData()
@@ -19,15 +71,15 @@ export async function POST(request: NextRequest) {
     const annee_plantation = formData.get("annee_plantation") as string | null
 
     if (!file) {
-      return NextResponse.json({ success: false, error: "Aucun fichier fourni" }, { status: 400 })
+      return NextResponse.json({ success: false, error: m.noFile }, { status: 400 })
     }
 
     if (!file.name.toLowerCase().endsWith(".gpx")) {
-      return NextResponse.json({ success: false, error: "Seuls les fichiers .gpx sont acceptés" }, { status: 400 })
+      return NextResponse.json({ success: false, error: m.gpxOnly }, { status: 400 })
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ success: false, error: "Le fichier dépasse 10 Mo" }, { status: 400 })
+      return NextResponse.json({ success: false, error: m.fileTooLarge }, { status: 400 })
     }
 
     const arrayBuffer = await file.arrayBuffer()
@@ -40,11 +92,11 @@ export async function POST(request: NextRequest) {
     try {
       gpxData = await parseStringPromise(gpxText)
     } catch {
-      return NextResponse.json({ success: false, error: "Le fichier GPX n'est pas un XML valide" }, { status: 400 })
+      return NextResponse.json({ success: false, error: m.invalidXml }, { status: 400 })
     }
 
     if (!gpxData?.gpx) {
-      return NextResponse.json({ success: false, error: "Le fichier ne contient pas de données GPX valides" }, { status: 400 })
+      return NextResponse.json({ success: false, error: m.invalidGpxData }, { status: 400 })
     }
 
     // Extract coordinates
@@ -82,11 +134,11 @@ export async function POST(request: NextRequest) {
     coords = coords.filter(c => !isNaN(c.lat) && !isNaN(c.lon))
 
     if (coords.length === 0) {
-      return NextResponse.json({ success: false, error: "Aucune coordonnée trouvée dans le fichier GPX" }, { status: 400 })
+      return NextResponse.json({ success: false, error: m.noCoords }, { status: 400 })
     }
 
     if (coords.length < 3) {
-      return NextResponse.json({ success: false, error: "Le fichier GPX doit contenir au moins 3 points" }, { status: 400 })
+      return NextResponse.json({ success: false, error: m.notEnoughPoints }, { status: 400 })
     }
 
     // Auto-fix self-intersecting polygons using convex hull
@@ -97,7 +149,7 @@ export async function POST(request: NextRequest) {
     const surface_ha = calculatePolygonArea(coords)
 
     if (surface_ha < 0.0001) {
-      return NextResponse.json({ success: false, error: "Le polygone a une surface nulle ou quasi-nulle" }, { status: 400 })
+      return NextResponse.json({ success: false, error: m.zeroArea }, { status: 400 })
     }
 
     // Upload to Supabase Storage only after validation passes
@@ -112,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       return NextResponse.json(
-        { success: false, error: `Erreur upload : ${uploadError.message}` },
+        { success: false, error: m.uploadError(uploadError.message) },
         { status: 500 }
       )
     }
@@ -133,7 +185,7 @@ export async function POST(request: NextRequest) {
 
     // EUDR check
     let eudr_status = "pending_review"
-    let justification = "Vérification automatique en attente"
+    let justification: string = m.pendingReview
     const verification_timestamp = new Date().toISOString()
 
     if (annee_plantation) {
@@ -142,13 +194,13 @@ export async function POST(request: NextRequest) {
       if (!isNaN(year)) {
         if (year > currentYear) {
           eudr_status = "pending_review"
-          justification = `Année de plantation ${year} invalide (future). Vérification manuelle requise.`
+          justification = m.pendingFutureYear(year)
         } else if (year <= 2020) {
           eudr_status = "compliant"
-          justification = `Plantation créée en ${year}, antérieure au cutoff EUDR (31 déc 2020). Conforme.`
+          justification = m.compliant(year)
         } else {
           eudr_status = "alert"
-          justification = `Plantation créée en ${year}, postérieure au cutoff EUDR (31 déc 2020). Vérification satellite requise.`
+          justification = m.alert(year)
         }
       }
     }
@@ -168,7 +220,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error("Erreur upload-gpx:", error)
-    return NextResponse.json({ success: false, error: error.message || "Erreur interne" }, { status: 500 })
+    return NextResponse.json({ success: false, error: error.message || m.internalError }, { status: 500 })
   }
 }
 

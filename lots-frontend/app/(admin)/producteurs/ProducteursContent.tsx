@@ -6,6 +6,8 @@ import { Filter, Search } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
+import SortableHeader from "@/components/SortableHeader"
+import { useTableSort } from "@/components/useTableSort"
 
 type Producteur = {
   id: number
@@ -33,6 +35,7 @@ export default function ProducteursContent({
 }) {
   const { t } = useLanguage()
   const p = t.producteurs
+  const co = t.common
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -66,34 +69,45 @@ export default function ProducteursContent({
     setAvecParcelles("")
   }
 
-  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(producteurs, 10)
+  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Producteur>(producteurs, {
+    code: (r) => r.code_producteur,
+    nom: (r) => `${r.nom ?? ""} ${r.prenom ?? ""}`.trim(),
+    zone: (r) => r.zones?.nom ?? "",
+    village: (r) => r.village ?? "",
+    parcelles: (r) => r.nombre_parcelles,
+  })
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
   return (
-    <div className="space-y-4 sm:space-y-5">
-      {/* Header */}
-      <div className="flex flex-wrap justify-between items-center gap-3">
-        <h1 className="text-[20px] sm:text-[26px] font-bold text-[#1A1A1A]">{p.title}</h1>
-        <Link
-          href="/producteurs"
-          className="text-[11px] text-[#AAAAAA] tracking-[0.18em] uppercase font-medium hover:text-[#2AC1A3]"
-        >
-          ← {p.back}
-        </Link>
-      </div>
+    <div className="space-y-5">
 
-      {/* Action buttons */}
-      <div className="flex flex-wrap gap-2 sm:gap-3">
-        <Link
-          href="/producteurs/nouveau"
-          className="bg-[#2AC1A3] text-white px-4 sm:px-5 py-2.5 rounded-md text-[12px] font-semibold tracking-[0.08em] uppercase hover:bg-[#24a88e] transition"
-        >
-          {p.newBtn}
-        </Link>
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="font-archivo text-[28px] font-bold text-gray-900 tracking-tight uppercase">
+            {p.title}
+          </h1>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <Link
+              href="/producteurs/nouveau"
+              className="font-courier inline-block bg-[#2AC1A3] text-white px-5 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-[#24a88c] transition"
+            >
+              {p.newBtn}
+            </Link>
+            <button
+              type="button"
+              className="font-courier inline-block bg-white border border-gray-200 text-[#1A1A1A] px-5 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-gray-50 transition"
+            >
+              {p.export}
+            </button>
+          </div>
+        </div>
         <button
           type="button"
-          className="bg-white border border-gray-200 text-[#1A1A1A] px-4 sm:px-5 py-2.5 rounded-md text-[12px] font-semibold tracking-[0.08em] uppercase hover:bg-gray-50 transition"
+          onClick={() => router.back()}
+          className="text-[11px] text-[#AAAAAA] tracking-[0.18em] uppercase font-medium hover:text-[#2AC1A3] mt-3"
         >
-          {p.export}
+          ← {p.back}
         </button>
       </div>
 
@@ -144,8 +158,8 @@ export default function ProducteursContent({
             className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-[13px] text-[#1A1A1A]"
           >
             <option value="">{p.filterAllSexes}</option>
-            <option value="Homme">Homme</option>
-            <option value="Femme">Femme</option>
+            <option value="Homme">{co.male}</option>
+            <option value="Femme">{co.female}</option>
           </select>
           <select
             value={statut}
@@ -153,8 +167,8 @@ export default function ProducteursContent({
             className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-[13px] text-[#1A1A1A]"
           >
             <option value="">{p.filterAllStatuts}</option>
-            <option value="Actif">Actif</option>
-            <option value="Inactif">Inactif</option>
+            <option value="Actif">{co.active}</option>
+            <option value="Inactif">{co.inactive}</option>
           </select>
           <select
             value={avecParcelles}
@@ -183,21 +197,11 @@ export default function ProducteursContent({
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-[#AAAAAA] tracking-[0.18em] uppercase whitespace-nowrap">
-                  {p.colCode}
-                </th>
-                <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-[#AAAAAA] tracking-[0.18em] uppercase whitespace-nowrap">
-                  {p.colName}
-                </th>
-                <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-[#AAAAAA] tracking-[0.18em] uppercase whitespace-nowrap">
-                  {p.colZone}
-                </th>
-                <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-[#AAAAAA] tracking-[0.18em] uppercase whitespace-nowrap">
-                  {p.colVillage}
-                </th>
-                <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-[#AAAAAA] tracking-[0.18em] uppercase whitespace-nowrap">
-                  {p.colParcelles}
-                </th>
+                <SortableHeader label={p.colCode} sortKey="code" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
+                <SortableHeader label={p.colName} sortKey="nom" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
+                <SortableHeader label={p.colZone} sortKey="zone" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
+                <SortableHeader label={p.colVillage} sortKey="village" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
+                <SortableHeader label={p.colParcelles} sortKey="parcelles" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
                 <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-[#AAAAAA] tracking-[0.18em] uppercase whitespace-nowrap">
                   {p.colActions}
                 </th>

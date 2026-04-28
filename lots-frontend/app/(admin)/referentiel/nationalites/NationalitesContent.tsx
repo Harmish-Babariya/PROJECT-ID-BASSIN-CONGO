@@ -1,7 +1,7 @@
 "use client"
 import { useMemo, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { actionCreatePays, actionUpdatePays, actionDeletePays } from "./actions"
+import { actionCreateNationalite, actionUpdateNationalite, actionDeleteNationalite } from "./actions"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
 import ConfirmModal from "@/components/ConfirmModal"
@@ -11,32 +11,32 @@ import { useTableSort } from "@/components/useTableSort"
 const inputClass = "w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
 const labelClass = "block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5"
 
-type Pays = { id: number; code: string; nom: string }
+type Nationalite = { id: number; code: string; nom: string }
 
-export default function PaysContent({ pays }: { pays: Pays[] }) {
+export default function NationalitesContent({ nationalites }: { nationalites: Nationalite[] }) {
   const { t } = useLanguage()
   const tr = t.referentiel
-  const [list, setList] = useState<Pays[]>(pays)
+  const [list, setList] = useState<Nationalite[]>(nationalites)
   const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<Pays | null>(null)
+  const [editing, setEditing] = useState<Nationalite | null>(null)
   const [form, setForm] = useState({ code: "", nom: "" })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [confirmTarget, setConfirmTarget] = useState<Pays | null>(null)
+  const [confirmTarget, setConfirmTarget] = useState<Nationalite | null>(null)
   const [search, setSearch] = useState("")
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return list
-    return list.filter(p =>
-      p.code.toLowerCase().includes(q) || p.nom.toLowerCase().includes(q)
+    return list.filter(n =>
+      n.code.toLowerCase().includes(q) || n.nom.toLowerCase().includes(q)
     )
   }, [list, search])
 
-  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Pays>(filtered, {
-    code: (p) => p.code,
-    nom: (p) => p.nom,
+  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Nationalite>(filtered, {
+    code: (n) => n.code,
+    nom: (n) => n.nom,
   })
   const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
@@ -48,9 +48,9 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
     setShowForm(true)
   }
 
-  function openEdit(p: Pays) {
-    setEditing(p)
-    setForm({ code: p.code, nom: p.nom })
+  function openEdit(n: Nationalite) {
+    setEditing(n)
+    setForm({ code: n.code, nom: n.nom })
     setError("")
     setSuccess("")
     setShowForm(true)
@@ -73,13 +73,12 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
       fd.set("code", form.code)
       fd.set("nom", form.nom)
       if (editing) {
-        await actionUpdatePays(editing.id, fd)
-        setList(list.map(p => p.id === editing.id ? { ...p, code: form.code.toUpperCase(), nom: form.nom } : p))
-        setSuccess(tr.paysUpdateSuccess)
+        await actionUpdateNationalite(editing.id, fd)
+        setList(list.map(n => n.id === editing.id ? { ...n, code: form.code.toUpperCase(), nom: form.nom } : n))
+        setSuccess(tr.nationalitesUpdateSuccess)
       } else {
-        await actionCreatePays(fd)
-        setSuccess(tr.paysCreateSuccess)
-        // Refresh by reloading
+        await actionCreateNationalite(fd)
+        setSuccess(tr.nationalitesCreateSuccess)
         window.location.reload()
         return
       }
@@ -91,11 +90,11 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
     }
   }
 
-  async function handleDelete(p: Pays) {
+  async function handleDelete(n: Nationalite) {
     try {
-      await actionDeletePays(p.id)
-      setList(list.filter(x => x.id !== p.id))
-      setSuccess(tr.paysDeleteSuccess)
+      await actionDeleteNationalite(n.id)
+      setList(list.filter(x => x.id !== n.id))
+      setSuccess(tr.nationalitesDeleteSuccess)
     } catch (err: any) {
       setError(err.message || tr.deleteError)
     } finally {
@@ -107,14 +106,14 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-xs text-gray-400 tracking-widest uppercase mb-1">{tr.paysBreadcrumb}</p>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-wide">{tr.paysTitle}</h1>
+          <p className="text-xs text-gray-400 tracking-widest uppercase mb-1">{tr.nationalitesBreadcrumb}</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-wide">{tr.nationalitesTitle}</h1>
         </div>
         <button
           onClick={openNew}
           className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] transition"
         >
-          {tr.paysNew}
+          {tr.nationalitesNew}
         </button>
       </div>
 
@@ -134,14 +133,14 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
             <h2 className="text-base font-bold text-gray-900 uppercase tracking-wide mb-5">
-              {editing ? tr.paysFormEdit : tr.paysFormNew}
+              {editing ? tr.nationalitesFormEdit : tr.nationalitesFormNew}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className={labelClass}>{tr.paysLabelCode}</label>
+                <label className={labelClass}>{tr.nationalitesLabelCode}</label>
                 <input
                   className={inputClass}
-                  placeholder={tr.paysPlaceholderCode}
+                  placeholder={tr.nationalitesPlaceholderCode}
                   value={form.code}
                   onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
                   required
@@ -149,10 +148,10 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
                 />
               </div>
               <div>
-                <label className={labelClass}>{tr.paysLabelNom}</label>
+                <label className={labelClass}>{tr.nationalitesLabelNom}</label>
                 <input
                   className={inputClass}
-                  placeholder={tr.paysPlaceholderNom}
+                  placeholder={tr.nationalitesPlaceholderNom}
                   value={form.nom}
                   onChange={e => setForm(f => ({ ...f, nom: e.target.value }))}
                   required
@@ -165,14 +164,14 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
                   disabled={loading}
                   className="flex-1 bg-[#2ac1a3] text-white py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] transition disabled:opacity-60"
                 >
-                  {loading ? "..." : editing ? tr.paysBtnSave : tr.paysBtnCreate}
+                  {loading ? "..." : editing ? tr.nationalitesBtnSave : tr.nationalitesBtnCreate}
                 </button>
                 <button
                   type="button"
                   onClick={closeForm}
                   className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-gray-200 transition"
                 >
-                  {tr.paysBtnCancel}
+                  {tr.nationalitesBtnCancel}
                 </button>
               </div>
             </form>
@@ -196,26 +195,26 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-200">
-              <SortableHeader label={tr.paysCode} sortKey="code" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
-              <SortableHeader label={tr.paysNom} sortKey="nom" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tr.paysActions}</th>
+              <SortableHeader label={tr.nationalitesCode} sortKey="code" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={tr.nationalitesNom} sortKey="nom" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tr.nationalitesActions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {paged.map(p => (
-              <tr key={p.id} className="hover:bg-gray-50 transition">
-                <td className="px-6 py-4 font-mono text-sm font-bold text-[#2ac1a3]">{p.code}</td>
-                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{p.nom}</td>
+            {paged.map(n => (
+              <tr key={n.id} className="hover:bg-gray-50 transition">
+                <td className="px-6 py-4 font-mono text-sm font-bold text-[#2ac1a3]">{n.code}</td>
+                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{n.nom}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
                     <button
-                      onClick={() => openEdit(p)}
+                      onClick={() => openEdit(n)}
                       className="text-xs font-semibold text-gray-500 hover:text-[#2ac1a3] uppercase tracking-wide transition"
                     >
                       {tr.edit}
                     </button>
                     <button
-                      onClick={() => setConfirmTarget(p)}
+                      onClick={() => setConfirmTarget(n)}
                       className="text-xs font-semibold text-gray-500 hover:text-red-500 uppercase tracking-wide transition"
                     >
                       {tr.delete}
@@ -226,7 +225,7 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-6 py-12 text-center text-gray-400 text-sm">{tr.paysEmpty}</td>
+                <td colSpan={3} className="px-6 py-12 text-center text-gray-400 text-sm">{tr.nationalitesEmpty}</td>
               </tr>
             )}
           </tbody>
@@ -239,12 +238,12 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />
-      <p className="text-gray-400 text-sm">{tr.paysCount(filtered.length).toUpperCase()}</p>
+      <p className="text-gray-400 text-sm">{tr.nationalitesCount(filtered.length).toUpperCase()}</p>
 
       <ConfirmModal
         open={!!confirmTarget}
         title={tr.deleteTitle}
-        message={tr.paysDeleteConfirm}
+        message={tr.nationalitesDeleteConfirm}
         confirmLabel={tr.delete}
         cancelLabel={tr.cancel}
         onConfirm={() => confirmTarget && handleDelete(confirmTarget)}

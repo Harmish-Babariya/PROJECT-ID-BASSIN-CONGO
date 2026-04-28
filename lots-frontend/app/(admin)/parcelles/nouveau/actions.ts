@@ -123,7 +123,7 @@ export async function createParcelle(formData: any, returnTo?: string) {
     revalidatePath('/dashboard')
     redirectTo = returnTo || `/parcelles/${data.id}`
   } catch (error: any) {
-    return { error: error.message || "Erreur lors de la creation" }
+    return { error: error.message || "CREATE_FAILED" }
   }
 
   redirect(redirectTo)
@@ -242,7 +242,7 @@ export async function updateParcelle(id: string, formData: any) {
     revalidatePath('/profil')
     revalidatePath('/dashboard')
   } catch (error: any) {
-    return { error: error.message || "Erreur lors de la mise a jour" }
+    return { error: error.message || "UPDATE_FAILED" }
   }
 
   redirect(redirectTo)

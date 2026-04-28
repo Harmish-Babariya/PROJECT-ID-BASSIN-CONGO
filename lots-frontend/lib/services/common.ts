@@ -19,3 +19,17 @@ export async function getVillages() {
   }
   return data || []
 }
+
+export async function getNationalites() {
+  const { data, error } = await supabaseAdmin.from("nationalites").select("*").order("nom")
+  if (error) {
+    if (error.code === "42P01" || /does not exist/i.test(error.message ?? "")) {
+      console.warn(
+        "Table `nationalites` introuvable. Exécutez supabase/nationalites_setup.sql pour la créer."
+      )
+      return []
+    }
+    console.error("Erreur recuperation nationalites:", error.message, error)
+  }
+  return data || []
+}

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import NouveauProducteurClient from "./NouveauProducteurClient"
 import { getNextProducteurCode } from "@/lib/services/producteurs"
-import { getPays, getZones } from "@/lib/services/common"
+import { getPays, getZones, getVillages, getNationalites } from "@/lib/services/common"
 import { getCurrentUser } from "@/lib/services/auth"
 
 export default async function NouveauProducteur({
@@ -15,10 +15,12 @@ export default async function NouveauProducteur({
   const params = await searchParams
   const isAdmin = user.role === "admin"
 
-  const [initialCode, pays, zones] = await Promise.all([
+  const [initialCode, pays, zones, villages, nationalites] = await Promise.all([
     getNextProducteurCode(null, null),
     getPays(),
     getZones(),
+    getVillages(),
+    getNationalites(),
   ])
 
   // For point_focal: only show their assigned country in the pays list
@@ -32,6 +34,8 @@ export default async function NouveauProducteur({
       initialCode={initialCode}
       pays={filteredPays}
       zones={zones}
+      villages={villages}
+      nationalites={nationalites}
       defaultPaysId={isAdmin ? undefined : String(user.country_id ?? "")}
     />
   )

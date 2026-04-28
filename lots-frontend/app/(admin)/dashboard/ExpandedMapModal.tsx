@@ -31,6 +31,16 @@ interface ParcelFeature {
   }
 }
 
+interface ParcelListItem {
+  id: number | string
+  filename: string
+  code_parcelle: string | null
+  status_eudr: string | null
+  area: number
+  surface_ha: string | number | null
+  feature: ParcelFeature | null
+}
+
 interface Stats {
   total: number
   totalSurface: number
@@ -81,20 +91,27 @@ function parseGeometry(geom: unknown): ParcelGeometry | null {
   return null
 }
 
+const STATUS_COLOR_EXPR: mapboxgl.ExpressionSpecification = [
+  "case",
+  ["==", ["get", "status_eudr"], "CONFORME"],
+  "#2AC1A3",
+  "#C4943A",
+]
+
 function addLayersToMap(map: mapboxgl.Map) {
   map.addLayer({
     id: "parcelles-fill",
     type: "fill",
     source: "parcelles",
     filter: ["==", ["geometry-type"], "Polygon"],
-    paint: { "fill-color": "#2AC1A3", "fill-opacity": 0.25 },
+    paint: { "fill-color": STATUS_COLOR_EXPR, "fill-opacity": 0.25 },
   })
   map.addLayer({
     id: "parcelles-outline",
     type: "line",
     source: "parcelles",
     filter: ["==", ["geometry-type"], "Polygon"],
-    paint: { "line-color": "#2AC1A3", "line-width": 3 },
+    paint: { "line-color": STATUS_COLOR_EXPR, "line-width": 3 },
   })
   map.addLayer({
     id: "parcelles-points",
@@ -103,40 +120,50 @@ function addLayersToMap(map: mapboxgl.Map) {
     filter: ["==", ["geometry-type"], "Point"],
     paint: {
       "circle-radius": 7,
-      "circle-color": "#2AC1A3",
+      "circle-color": STATUS_COLOR_EXPR,
       "circle-stroke-color": "#ffffff",
       "circle-stroke-width": 2,
     },
   })
 }
 
-function buildFeatures(parcelles: MapParcelle[]): ParcelFeature[] {
-  return parcelles
-    .map((row, index): ParcelFeature | null => {
-      let geometry = parseGeometry(row.geojson)
-      if (!geometry) {
-        const lat = row.latitude !== null && row.latitude !== "" ? Number(row.latitude) : NaN
-        const lon = row.longitude !== null && row.longitude !== "" ? Number(row.longitude) : NaN
-        if (Number.isFinite(lat) && Number.isFinite(lon)) {
-          geometry = { type: "Point", coordinates: [lon, lat] }
+function buildItems(parcelles: MapParcelle[]): ParcelListItem[] {
+  return parcelles.map((row, index): ParcelListItem => {
+    const id = row.id ?? index + 1
+    const filename = row.code_parcelle ?? `Parcelle ${id}`
+    let geometry = parseGeometry(row.geojson)
+    if (!geometry) {
+      const lat = row.latitude !== null && row.latitude !== "" ? Number(row.latitude) : NaN
+      const lon = row.longitude !== null && row.longitude !== "" ? Number(row.longitude) : NaN
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        geometry = { type: "Point", coordinates: [lon, lat] }
+      }
+    }
+    const area = geometry?.type === "Polygon" ? calculateArea(geometry.coordinates) : 0
+    const feature: ParcelFeature | null = geometry
+      ? {
+          type: "Feature" as const,
+          geometry,
+          properties: {
+            id,
+            filename,
+            code_parcelle: row.code_parcelle ?? null,
+            surface_ha: row.surface_ha ?? null,
+            status_eudr: row.status_eudr ?? null,
+            area,
+          },
         }
-      }
-      if (!geometry) return null
-      const area = geometry.type === "Polygon" ? calculateArea(geometry.coordinates) : 0
-      return {
-        type: "Feature" as const,
-        geometry,
-        properties: {
-          id: row.id ?? index + 1,
-          filename: row.code_parcelle ?? `Parcelle ${row.id ?? index + 1}`,
-          code_parcelle: row.code_parcelle ?? null,
-          surface_ha: row.surface_ha ?? null,
-          status_eudr: row.status_eudr ?? null,
-          area,
-        },
-      }
-    })
-    .filter((f): f is ParcelFeature => f !== null)
+      : null
+    return {
+      id,
+      filename,
+      code_parcelle: row.code_parcelle ?? null,
+      status_eudr: row.status_eudr ?? null,
+      area,
+      surface_ha: row.surface_ha ?? null,
+      feature,
+    }
+  })
 }
 
 export default function ExpandedMapModal({
@@ -153,8 +180,8 @@ export default function ExpandedMapModal({
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [allFeatures, setAllFeatures] = useState<ParcelFeature[]>([])
-  const [filteredFeatures, setFilteredFeatures] = useState<ParcelFeature[]>([])
+  const [allItems, setAllItems] = useState<ParcelListItem[]>([])
+  const [filteredItems, setFilteredItems] = useState<ParcelListItem[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [activeStyle, setActiveStyle] = useState("satellite")
   const [activeId, setActiveId] = useState<number | string | null>(null)
@@ -199,9 +226,15 @@ export default function ExpandedMapModal({
     if (mapContainer.current) ro.observe(mapContainer.current)
 
     map.on("load", () => {
-      const features = buildFeatures(parcelles)
+      const items = buildItems(parcelles)
+      const features = items
+        .map((it) => it.feature)
+        .filter((f): f is ParcelFeature => f !== null)
 
-      if (features.length === 0) {
+      setAllItems(items)
+      setFilteredItems(items)
+
+      if (items.length === 0) {
         setError(t.errors.noParcelsFound)
         setLoading(false)
         return
@@ -215,13 +248,11 @@ export default function ExpandedMapModal({
         .map((f) => f.properties.area / 10000)
       const totalSurface = polygonSurfaces.reduce((a, b) => a + b, 0)
       setStats({
-        total: features.length,
+        total: items.length,
         totalSurface,
         avgSurface: polygonSurfaces.length > 0 ? totalSurface / polygonSurfaces.length : 0,
         maxSurface: polygonSurfaces.length > 0 ? Math.max(...polygonSurfaces) : 0,
       })
-      setAllFeatures(features)
-      setFilteredFeatures(features)
 
       map.addSource("parcelles", {
         type: "geojson",
@@ -299,18 +330,18 @@ export default function ExpandedMapModal({
   useEffect(() => {
     const q = search.trim().toLowerCase()
     if (!q) {
-      setFilteredFeatures(allFeatures)
+      setFilteredItems(allItems)
       return
     }
-    setFilteredFeatures(
-      allFeatures.filter((f) => {
-        const code = String(f.properties.code_parcelle ?? "").toLowerCase()
-        const filename = String(f.properties.filename ?? "").toLowerCase()
-        const id = String(f.properties.id ?? "").toLowerCase()
+    setFilteredItems(
+      allItems.filter((it) => {
+        const code = String(it.code_parcelle ?? "").toLowerCase()
+        const filename = String(it.filename ?? "").toLowerCase()
+        const id = String(it.id ?? "").toLowerCase()
         return code.includes(q) || filename.includes(q) || id.includes(q)
       })
     )
-  }, [search, allFeatures])
+  }, [search, allItems])
 
   const changeStyle = useCallback((styleKey: string) => {
     const map = mapRef.current
@@ -329,9 +360,11 @@ export default function ExpandedMapModal({
     setActiveStyle(styleKey)
   }, [])
 
-  const zoomToParcel = useCallback((feature: ParcelFeature) => {
+  const zoomToParcel = useCallback((item: ParcelListItem) => {
+    setActiveId(item.id)
     const map = mapRef.current
-    if (!map) return
+    const feature = item.feature
+    if (!map || !feature) return
     if (feature.geometry.type === "Polygon") {
       const bounds = new mapboxgl.LngLatBounds()
       feature.geometry.coordinates[0].forEach((c) => bounds.extend(c as [number, number]))
@@ -339,7 +372,6 @@ export default function ExpandedMapModal({
     } else {
       map.flyTo({ center: feature.geometry.coordinates, zoom: 15, duration: 1000 })
     }
-    setActiveId(feature.properties.id)
   }, [])
 
   const exportData = useCallback(() => {
@@ -366,7 +398,7 @@ export default function ExpandedMapModal({
           <div className="absolute inset-0 flex items-center justify-center z-50 bg-white/60 backdrop-blur-sm">
             <div className="text-center">
               <div className="w-12 h-12 border-4 border-slate-200 border-t-[#2AC1A3] rounded-full animate-spin mx-auto" />
-              <p className="mt-4 text-sm text-slate-600 font-medium">Chargement des parcelles...</p>
+              <p className="mt-4 text-sm text-slate-600 font-medium">{t.common.loadingParcels}</p>
             </div>
           </div>
         )}
@@ -396,22 +428,22 @@ export default function ExpandedMapModal({
               onClick={exportData}
               className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-white/10 border border-white/20 hover:bg-white/20 transition"
             >
-              Exporter
+              {t.common.export}
             </button>
             <button
               onClick={onClose}
               className="w-9 h-9 rounded-lg text-white bg-white/10 border border-white/20 hover:bg-white/20 transition flex items-center justify-center"
-              aria-label="Fermer"
+              aria-label={t.common.close}
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </header>
 
-        <aside className="absolute top-[80px] left-4 w-[340px] bg-white rounded-2xl shadow-xl z-20 max-h-[calc(100%-100px)] overflow-y-auto">
-          <div className="px-5 py-4 border-b border-slate-200">
-            <h2 className="text-base font-bold text-slate-900">Tableau de bord</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Statistiques en temps reel</p>
+        <aside className="absolute top-[80px] left-4 bottom-4 w-[340px] bg-white rounded-2xl shadow-xl z-20 flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-200">
+            <h2 className="text-sm font-bold text-slate-900 leading-tight">Tableau de bord</h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">Statistiques en temps reel</p>
           </div>
 
           <div className="p-3 border-b border-slate-200">
@@ -440,24 +472,24 @@ export default function ExpandedMapModal({
           </div>
 
           {stats && (
-            <div className="p-4 grid gap-2.5">
+            <div className="px-3 py-2.5 grid grid-cols-2 gap-1.5 border-b border-slate-200">
               {[
                 { label: t.dashboard.mapExpandedStatTotal, value: stats.total.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB"), unit: "" },
-                { label: t.dashboard.mapExpandedStatSurfaceTotal, value: stats.totalSurface.toFixed(2), unit: "ha" },
-                { label: t.dashboard.mapExpandedStatSurfaceAvg, value: stats.avgSurface.toFixed(2), unit: "ha" },
-                { label: t.dashboard.mapExpandedStatSurfaceMax, value: stats.maxSurface.toFixed(2), unit: "ha" },
+                { label: t.dashboard.mapExpandedStatSurfaceTotal, value: stats.totalSurface.toFixed(1), unit: "ha" },
+                { label: t.dashboard.mapExpandedStatSurfaceAvg, value: stats.avgSurface.toFixed(1), unit: "ha" },
+                { label: t.dashboard.mapExpandedStatSurfaceMax, value: stats.maxSurface.toFixed(1), unit: "ha" },
               ].map(({ label, value, unit }) => (
                 <div
                   key={label}
-                  className="bg-slate-50 p-3.5 rounded-xl border border-slate-200"
+                  className="bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200"
                 >
-                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                  <div className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider truncate">
                     {label}
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-slate-900">{value}</span>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="text-sm font-bold text-slate-900">{value}</span>
                     {unit && (
-                      <span className="text-xs font-medium text-slate-500">{unit}</span>
+                      <span className="text-[10px] font-medium text-slate-500">{unit}</span>
                     )}
                   </div>
                 </div>
@@ -465,29 +497,65 @@ export default function ExpandedMapModal({
             </div>
           )}
 
-          <div className="border-t border-slate-200">
-            {filteredFeatures.length === 0 && !loading && (
+          <div className="flex-1 min-h-0 overflow-y-auto parcels-scroll">
+            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+              {filteredItems.length} / {allItems.length}
+            </div>
+            {filteredItems.length === 0 && !loading && (
               <p className="text-sm text-slate-500 text-center py-6">{t.dashboard.mapExpandedNoResults}</p>
             )}
-            {filteredFeatures.map(feature => (
-              <div
-                key={feature.properties.id}
-                onClick={() => zoomToParcel(feature)}
-                className={`px-4 py-3 border-b border-slate-100 cursor-pointer transition hover:bg-slate-50 ${
-                  activeId === feature.properties.id
-                    ? "bg-[#E8F8F4] border-l-[3px] border-l-[#2AC1A3]"
-                    : ""
-                }`}
-              >
-                <div className="text-xs font-semibold text-slate-900 mb-1 truncate">
-                  {feature.properties.filename}
+            {filteredItems.map(item => {
+              const hasGeo = item.feature !== null
+              const status = String(item.status_eudr ?? "").toUpperCase()
+              const isConforme = status === "CONFORME"
+              const dotColor = !hasGeo ? "#94A3B8" : isConforme ? "#2AC1A3" : "#C4943A"
+              const pillBg = !hasGeo
+                ? "bg-slate-100 text-slate-500"
+                : isConforme
+                  ? "bg-[#E8F8F4] text-[#1E8876]"
+                  : "bg-[#FFF3E0] text-[#8B6A1F]"
+              const pillLabel = isConforme
+                ? t.dashboard.mapStatusConforme
+                : t.dashboard.mapStatusNonConforme
+              const surfaceHa = item.feature
+                ? item.area / 10000
+                : Number(item.surface_ha) || 0
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => zoomToParcel(item)}
+                  className={`px-4 py-3 border-b border-slate-100 transition ${
+                    hasGeo ? "cursor-pointer hover:bg-slate-50" : "cursor-default opacity-75"
+                  } ${
+                    activeId === item.id
+                      ? "bg-[#E8F8F4] border-l-[3px] border-l-[#2AC1A3]"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: dotColor }}
+                    />
+                    <div className="text-xs font-semibold text-slate-900 truncate flex-1">
+                      {item.filename}
+                    </div>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap ${pillBg}`}>
+                      {pillLabel}
+                    </span>
+                  </div>
+                  <div className="flex gap-3 text-[11px] text-slate-500 pl-4">
+                    <span>ID: {item.id}</span>
+                    <span>{surfaceHa.toFixed(2)} ha</span>
+                    {!hasGeo && (
+                      <span className="ml-auto text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                        {t.dashboard.mapNoGps}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex gap-3 text-[11px] text-slate-500">
-                  <span>ID: {feature.properties.id}</span>
-                  <span>{(feature.properties.area / 10000).toFixed(2)} ha</span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </aside>
 
@@ -523,16 +591,12 @@ export default function ExpandedMapModal({
             {t.dashboard.mapExpandedLegendTitle}
           </span>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
-            <div className="w-4 h-[3px] bg-[#2AC1A3] rounded-full" />
-            <span>{t.dashboard.mapExpandedLegendContour}</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2AC1A3] shadow" />
+            <span>{t.dashboard.mapStatusConforme}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
-            <div className="w-4 h-3 rounded bg-[#2AC1A3]/20 border border-[#2AC1A3]/40" />
-            <span>{t.dashboard.mapExpandedLegendSurface}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
-            <div className="w-3 h-3 rounded-full bg-[#2AC1A3] border-2 border-white shadow" />
-            <span>{t.dashboard.mapExpandedLegendPoint}</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#C4943A] shadow" />
+            <span>{t.dashboard.mapStatusNonConforme}</span>
           </div>
         </div>
       </div>

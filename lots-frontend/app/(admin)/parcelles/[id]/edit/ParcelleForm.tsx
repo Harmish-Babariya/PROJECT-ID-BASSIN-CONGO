@@ -68,7 +68,7 @@ function readArray(parcelle: any, ...keys: string[]): string[] {
 }
 
 export default function ParcelleForm({ parcelle, producteurs, zones, pays }: ParcelleFormProps) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const tp = t.parcelles
   const [loading, setLoading] = useState(false)
   const [gpxUploading, setGpxUploading] = useState(false)
@@ -178,7 +178,7 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays }: Par
       const fd = new FormData()
       fd.append("file", file)
       if (formData.annee_plantation) fd.append("annee_plantation", String(formData.annee_plantation))
-      const response = await fetch("/api/upload-gpx", { method: "POST", body: fd })
+      const response = await fetch(`/api/upload-gpx?locale=${locale}`, { method: "POST", body: fd })
       const result = await response.json()
       if (result.success) {
         const statusMap: Record<string, string> = { compliant: "CONFORME", alert: "RISQUE NON NEGLIGEABLE", pending_review: "EN ATTENTE" }
@@ -299,7 +299,14 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays }: Par
               </div>
               <div>
                 <label className={labelClass}>{tp.labelEtatSite}</label>
-                <input type="text" value={formData.etat_site_creation} onChange={e => setFormData({ ...formData, etat_site_creation: e.target.value })} placeholder="Ex: Forêt secondaire" className={inputClass} />
+                <select value={formData.etat_site_creation} onChange={e => setFormData({ ...formData, etat_site_creation: e.target.value })} className={selectClass}>
+                  <option value="">{tp.selectEtat}</option>
+                  <option value="Excellent">Excellent</option>
+                  <option value="Bon">Bon</option>
+                  <option value="Moyen">Moyen</option>
+                  <option value="Dégradé">Dégradé</option>
+                  <option value="Très dégradé">Très dégradé</option>
+                </select>
               </div>
               <div>
                 <label className={labelClass}>{tp.labelAnneeplantation}</label>
@@ -497,9 +504,6 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays }: Par
           <button type="submit" disabled={loading} className="bg-[#2ac1a3] text-white px-8 py-3 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] disabled:opacity-50 transition">
             {loading ? tp.btnSaving : tp.btnSave}
           </button>
-          <Link href={`/parcelles/${parcelle.id}`} className="px-8 py-3 rounded-lg text-sm font-semibold text-gray-600 hover:text-gray-900 transition">
-            {tp.btnCancel}
-          </Link>
         </div>
       </form>
     </>

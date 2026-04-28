@@ -225,10 +225,22 @@ export default function DashboardContent({
           </div>
           <Link
             href="/producteurs"
-            className="xl:w-60 shrink-0 mx-4 mb-4 xl:my-4 xl:mx-4 rounded-xl border-2 border-dashed border-[#D5D5D0] flex items-center justify-center py-5 xl:py-0 hover:border-[#2AC1A3] transition group"
+            className="relative overflow-hidden xl:w-60 shrink-0 mx-4 mb-4 xl:my-4 xl:mx-4 rounded-xl border-2 border-dashed border-[#D5D5D0] flex items-center justify-center py-5 xl:py-0 hover:border-solid hover:border-[#2AC1A3] hover:shadow-[0_4px_14px_rgba(42,193,163,0.25)] transition-all duration-300 ease-out group"
           >
-            <span className="text-[11px] font-medium text-[#2AC1A3] tracking-[0.12em] group-hover:underline">
+            <span className="absolute inset-0 bg-[#2AC1A3] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+            <span className="relative flex items-center gap-2 text-[13px] font-semibold text-[#2AC1A3] tracking-[0.12em] group-hover:text-white transition-colors duration-300">
               {d.seeAllProducers}
+              <svg
+                className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 8h10M9 4l4 4-4 4" />
+              </svg>
             </span>
           </Link>
         </div>
@@ -244,41 +256,41 @@ export default function DashboardContent({
         <div className="bg-white rounded-xl border border-[#E8E8E3] px-4 sm:px-6 lg:px-10 py-6 sm:py-9">
           <div className="flex flex-col xl:flex-row gap-8 xl:gap-0 pb-6 sm:pb-8">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 flex-1 min-w-0">
-              <div>
-                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">{d.collectes}</p>
-                <div className="flex items-end gap-3 flex-wrap">
-                  <span className="text-[40px] sm:text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.collectes.total.toLocaleString()}</span>
-                  <span className="text-[12px] text-[#2AC1A3] font-bold mb-2.5 bg-[#E8F8F4] px-2.5 py-1 rounded-full">+8%</span>
+              <div className="min-w-0">
+                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3 leading-[1.4] min-h-6.5">{d.collectes}</p>
+                <div className="flex items-end gap-2 min-w-0">
+                  <span className="text-[32px] sm:text-[36px] xl:text-[40px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight whitespace-nowrap">{stats.collectes.total.toLocaleString()}</span>
+                  <span className="text-[11px] text-[#2AC1A3] font-bold mb-1.5 bg-[#E8F8F4] px-2 py-1 rounded-full whitespace-nowrap shrink-0">+8%</span>
                 </div>
               </div>
-              <div>
-                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">{d.totalNetWeight}</p>
-                <div className="flex items-end gap-3 flex-wrap">
-                  <span className="text-[40px] sm:text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.collectes.poids.toLocaleString()}</span>
-                  <span className="text-[12px] text-[#8B7355] font-bold mb-2.5 bg-[#F5EEE0] px-2.5 py-1 rounded-full">-2%</span>
+              <div className="min-w-0">
+                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3 leading-[1.4] min-h-6.5">{d.totalNetWeight}</p>
+                <div className="flex items-end gap-2 min-w-0">
+                  <span className="text-[32px] sm:text-[36px] xl:text-[40px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight whitespace-nowrap">{stats.collectes.poids.toLocaleString()}</span>
+                  <span className="text-[11px] text-[#8B7355] font-bold mb-1.5 bg-[#F5EEE0] px-2 py-1 rounded-full whitespace-nowrap shrink-0">-2%</span>
                 </div>
               </div>
-              <div>
-                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">{d.avgWeightPerCollecte}</p>
-                <div className="flex items-end gap-3 flex-wrap">
-                  <span className="text-[40px] sm:text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.collectes.poidsMoyen.toLocaleString()}</span>
-                  <span className="text-[12px] text-[#C4943A] font-bold mb-2.5 bg-[#FFF3E0] px-2.5 py-1 rounded-full">-10%</span>
+              <div className="min-w-0">
+                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3 leading-[1.4] min-h-6.5">{d.avgWeightPerCollecte}</p>
+                <div className="flex items-end gap-2 min-w-0">
+                  <span className="text-[32px] sm:text-[36px] xl:text-[40px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight whitespace-nowrap">{stats.collectes.poidsMoyen.toLocaleString()}</span>
+                  <span className="text-[11px] text-[#C4943A] font-bold mb-1.5 bg-[#FFF3E0] px-2 py-1 rounded-full whitespace-nowrap shrink-0">-10%</span>
                 </div>
               </div>
             </div>
             <div className="hidden xl:block xl:mx-6" />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 flex-1 min-w-0">
               <div>
-                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">{d.lotsConstitues}</p>
-                <span className="text-[40px] sm:text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.lots.total.toLocaleString()}</span>
+                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3 leading-[1.4] min-h-6.5">{d.lotsConstitues}</p>
+                <span className="block text-[32px] sm:text-[36px] xl:text-[40px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight whitespace-nowrap">{stats.lots.total.toLocaleString()}</span>
               </div>
               <div>
-                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">{d.totalExportWeight}</p>
-                <span className="text-[40px] sm:text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.lots.poidsTotal.toLocaleString()}</span>
+                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3 leading-[1.4] min-h-6.5">{d.totalExportWeight}</p>
+                <span className="block text-[32px] sm:text-[36px] xl:text-[40px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight whitespace-nowrap">{stats.lots.poidsTotal.toLocaleString()}</span>
               </div>
               <div>
-                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">{d.avgWeightPerLot}</p>
-                <span className="text-[40px] sm:text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.lots.poidsMoyen.toLocaleString()}</span>
+                <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3 leading-[1.4] min-h-6.5">{d.avgWeightPerLot}</p>
+                <span className="block text-[32px] sm:text-[36px] xl:text-[40px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight whitespace-nowrap">{stats.lots.poidsMoyen.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -287,12 +299,12 @@ export default function DashboardContent({
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-10">
             <div className="min-w-0">
               <div className="h-px bg-[#EEEEEA] mb-5 sm:mb-7" />
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {recentCollectes.map((c) => {
                   const prod = Array.isArray(c.producteurs) ? c.producteurs[0] : c.producteurs
                   const zone = Array.isArray(c.zones) ? c.zones[0] : c.zones
                   return (
-                    <div key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-[#F8F8F5] rounded-lg px-4 py-3.5">
+                    <div key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-[#F8F8F5] rounded-lg px-4 sm:px-5 py-3.5 sm:py-4 border-l-[3px] border-l-[#8B7355]">
                       <span className="font-mono text-[12px] sm:text-[13px] font-bold text-[#8B7355]">{prod?.code_producteur}</span>
                       <span className="text-[12px] sm:text-[13px] text-[#555]">{prod?.nom} {prod?.prenom}</span>
                       <span className="text-[12px] sm:text-[13px] text-[#AAAAAA]">{zone?.nom}</span>

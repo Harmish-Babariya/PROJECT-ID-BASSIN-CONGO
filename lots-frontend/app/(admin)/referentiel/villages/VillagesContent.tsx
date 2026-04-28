@@ -4,6 +4,9 @@ import { useLanguage } from "@/contexts/LanguageContext"
 import { actionCreateVillage, actionUpdateVillage, actionDeleteVillage } from "./actions"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
+import ConfirmModal from "@/components/ConfirmModal"
+import SortableHeader from "@/components/SortableHeader"
+import { useTableSort } from "@/components/useTableSort"
 
 const inputClass = "w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
 const selectClass = "w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
@@ -25,6 +28,7 @@ export default function VillagesContent({ villages, zones }: { villages: Village
   const [success, setSuccess] = useState("")
   const [search, setSearch] = useState("")
   const [filterZone, setFilterZone] = useState("")
+  const [confirmTarget, setConfirmTarget] = useState<Village | null>(null)
 
   const filtered = list.filter(v => {
     const matchSearch = v.nom.toLowerCase().includes(search.toLowerCase()) ||
@@ -33,7 +37,12 @@ export default function VillagesContent({ villages, zones }: { villages: Village
     const matchZone = !filterZone || String(v.zone_id) === filterZone
     return matchSearch && matchZone
   })
-  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(filtered, 10)
+  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Village>(filtered, {
+    nom: (v) => v.nom,
+    zone: (v) => (v.zones as any)?.nom ?? "",
+    pays: (v) => (v.zones as any)?.pays?.nom ?? "",
+  })
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
   function openNew() {
     setEditing(null)
@@ -82,20 +91,21 @@ export default function VillagesContent({ villages, zones }: { villages: Village
         window.location.reload()
       }
     } catch (err: any) {
-      setError(err.message || "Erreur")
+      setError(err.message || tr.genericError)
     } finally {
       setLoading(false)
     }
   }
 
   async function handleDelete(v: Village) {
-    if (!confirm(tr.villagesDeleteConfirm)) return
     try {
       await actionDeleteVillage(v.id)
       setList(list.filter(x => x.id !== v.id))
       setSuccess(tr.villagesDeleteSuccess)
     } catch (err: any) {
-      setError(err.message || "Erreur suppression")
+      setError(err.message || tr.deleteError)
+    } finally {
+      setConfirmTarget(null)
     }
   }
 
@@ -130,7 +140,7 @@ export default function VillagesContent({ villages, zones }: { villages: Village
         <div className="flex-1">
           <input
             type="text"
-            placeholder="Rechercher un village..."
+            placeholder={tr.searchVillage}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className={inputClass}
@@ -141,7 +151,7 @@ export default function VillagesContent({ villages, zones }: { villages: Village
           value={filterZone}
           onChange={e => setFilterZone(e.target.value)}
         >
-          <option value="">Toutes les zones</option>
+          <option value="">{tr.filterAllZones}</option>
           {zones.map(z => (
             <option key={z.id} value={z.id}>{z.nom}</option>
           ))}
@@ -207,9 +217,9 @@ export default function VillagesContent({ villages, zones }: { villages: Village
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tr.villagesNom}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tr.villagesZone}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tr.villagesPays}</th>
+              <SortableHeader label={tr.villagesNom} sortKey="nom" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={tr.villagesZone} sortKey="zone" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={tr.villagesPays} sortKey="pays" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tr.villagesActions}</th>
             </tr>
           </thead>
@@ -222,10 +232,10 @@ export default function VillagesContent({ villages, zones }: { villages: Village
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
                     <button onClick={() => openEdit(v)} className="text-xs font-semibold text-gray-500 hover:text-[#2ac1a3] uppercase tracking-wide transition">
-                      Modifier
+                      {tr.edit}
                     </button>
-                    <button onClick={() => handleDelete(v)} className="text-xs font-semibold text-gray-500 hover:text-red-500 uppercase tracking-wide transition">
-                      Supprimer
+                    <button onClick={() => setConfirmTarget(v)} className="text-xs font-semibold text-gray-500 hover:text-red-500 uppercase tracking-wide transition">
+                      {tr.delete}
                     </button>
                   </div>
                 </td>
@@ -247,6 +257,16 @@ export default function VillagesContent({ villages, zones }: { villages: Village
         onPageSizeChange={setPageSize}
       />
       <p className="text-gray-400 text-sm">{tr.villagesCount(filtered.length).toUpperCase()}</p>
+
+      <ConfirmModal
+        open={!!confirmTarget}
+        title={tr.deleteTitle}
+        message={tr.villagesDeleteConfirm}
+        confirmLabel={tr.delete}
+        cancelLabel={tr.cancel}
+        onConfirm={() => confirmTarget && handleDelete(confirmTarget)}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   )
 }

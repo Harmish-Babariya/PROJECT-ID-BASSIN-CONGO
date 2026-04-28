@@ -77,7 +77,7 @@ export async function updateParcelle(id: number, formData: any) {
     revalidatePath("/profil")
     revalidatePath("/dashboard")
   } catch (error: any) {
-    return { error: error.message || "Erreur lors de la mise à jour" }
+    return { error: error.message || "UPDATE_FAILED" }
   }
 
   redirect(`/parcelles/${id}`)

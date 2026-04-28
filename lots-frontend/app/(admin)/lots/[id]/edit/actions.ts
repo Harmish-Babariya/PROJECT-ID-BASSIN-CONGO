@@ -57,7 +57,7 @@ export async function updateLot(
     revalidatePath("/profil")
     revalidatePath("/dashboard")
   } catch (error: any) {
-    return { error: error.message || "Erreur lors de la mise a jour" }
+    return { error: error.message || "UPDATE_FAILED" }
   }
 
   redirect(`/lots/${lotId}`)

@@ -4,6 +4,9 @@ import { useLanguage } from "@/contexts/LanguageContext"
 import { actionCreateZone, actionUpdateZone, actionDeleteZone } from "./actions"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
+import ConfirmModal from "@/components/ConfirmModal"
+import SortableHeader from "@/components/SortableHeader"
+import { useTableSort } from "@/components/useTableSort"
 
 const inputClass = "w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
 const selectClass = "w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
@@ -23,13 +26,19 @@ export default function ZonesContent({ zones, pays }: { zones: Zone[]; pays: Pay
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [search, setSearch] = useState("")
+  const [confirmTarget, setConfirmTarget] = useState<Zone | null>(null)
 
   const filtered = list.filter(z =>
     z.nom.toLowerCase().includes(search.toLowerCase()) ||
     z.code.toLowerCase().includes(search.toLowerCase()) ||
     (z.pays as any)?.nom?.toLowerCase().includes(search.toLowerCase())
   )
-  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(filtered, 10)
+  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Zone>(filtered, {
+    code: (z) => z.code,
+    nom: (z) => z.nom,
+    pays: (z) => (z.pays as any)?.nom ?? "",
+  })
+  const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
   function openNew() {
     setEditing(null)
@@ -79,20 +88,21 @@ export default function ZonesContent({ zones, pays }: { zones: Zone[]; pays: Pay
         window.location.reload()
       }
     } catch (err: any) {
-      setError(err.message || "Erreur")
+      setError(err.message || tr.genericError)
     } finally {
       setLoading(false)
     }
   }
 
   async function handleDelete(z: Zone) {
-    if (!confirm(tr.zonesDeleteConfirm)) return
     try {
       await actionDeleteZone(z.id)
       setList(list.filter(x => x.id !== z.id))
       setSuccess(tr.zonesDeleteSuccess)
     } catch (err: any) {
-      setError(err.message || "Erreur suppression")
+      setError(err.message || tr.deleteError)
+    } finally {
+      setConfirmTarget(null)
     }
   }
 
@@ -126,7 +136,7 @@ export default function ZonesContent({ zones, pays }: { zones: Zone[]; pays: Pay
       <div className="bg-white border border-gray-200 rounded-xl p-4">
         <input
           type="text"
-          placeholder="Rechercher une zone..."
+          placeholder={tr.searchZone}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className={inputClass}
@@ -203,9 +213,9 @@ export default function ZonesContent({ zones, pays }: { zones: Zone[]; pays: Pay
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tr.zonesCode}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tr.zonesNom}</th>
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tr.zonesPays}</th>
+              <SortableHeader label={tr.zonesCode} sortKey="code" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={tr.zonesNom} sortKey="nom" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
+              <SortableHeader label={tr.zonesPays} sortKey="pays" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 tracking-widest uppercase">{tr.zonesActions}</th>
             </tr>
           </thead>
@@ -218,10 +228,10 @@ export default function ZonesContent({ zones, pays }: { zones: Zone[]; pays: Pay
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
                     <button onClick={() => openEdit(z)} className="text-xs font-semibold text-gray-500 hover:text-[#2ac1a3] uppercase tracking-wide transition">
-                      Modifier
+                      {tr.edit}
                     </button>
-                    <button onClick={() => handleDelete(z)} className="text-xs font-semibold text-gray-500 hover:text-red-500 uppercase tracking-wide transition">
-                      Supprimer
+                    <button onClick={() => setConfirmTarget(z)} className="text-xs font-semibold text-gray-500 hover:text-red-500 uppercase tracking-wide transition">
+                      {tr.delete}
                     </button>
                   </div>
                 </td>
@@ -243,6 +253,16 @@ export default function ZonesContent({ zones, pays }: { zones: Zone[]; pays: Pay
         onPageSizeChange={setPageSize}
       />
       <p className="text-gray-400 text-sm">{tr.zonesCount(filtered.length).toUpperCase()}</p>
+
+      <ConfirmModal
+        open={!!confirmTarget}
+        title={tr.deleteTitle}
+        message={tr.zonesDeleteConfirm}
+        confirmLabel={tr.delete}
+        cancelLabel={tr.cancel}
+        onConfirm={() => confirmTarget && handleDelete(confirmTarget)}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   )
 }

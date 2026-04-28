@@ -7,6 +7,8 @@ import ProducteurFormFields, {
   ProducteurFormState,
   PaysOption,
   ZoneOption,
+  VillageOption,
+  NationaliteOption,
 } from "@/components/ProducteurFormFields"
 import { updateProducteur } from "./actions"
 
@@ -56,13 +58,18 @@ export default function ModifierProducteurClient({
   producteur,
   pays,
   zones,
+  villages,
+  nationalites,
 }: {
   producteur: Producteur
   pays: PaysOption[]
   zones: ZoneOption[]
+  villages: VillageOption[]
+  nationalites: NationaliteOption[]
 }) {
   const { t } = useLanguage()
   const p = t.producteurs
+  const co = t.common
   const { toast, showError, hideToast } = useToast()
   const [loading, setLoading] = useState(false)
 
@@ -102,23 +109,23 @@ export default function ModifierProducteurClient({
     if (loading) return
 
     if (!form.nom.trim()) {
-      showError("Le nom du producteur est requis.")
+      showError(co.validationNomRequired)
       return
     }
     if (!form.sexe) {
-      showError("Veuillez sélectionner le sexe.")
+      showError(co.validationSexeRequired)
       return
     }
     if (!form.pays_id) {
-      showError("Veuillez sélectionner le pays.")
+      showError(co.validationPaysRequired)
       return
     }
     if (!form.zone_id) {
-      showError("Veuillez sélectionner la zone.")
+      showError(co.validationZoneRequired)
       return
     }
     if (!form.village.trim()) {
-      showError("Le village est requis.")
+      showError(co.validationVillageRequired)
       return
     }
 
@@ -162,6 +169,8 @@ export default function ModifierProducteurClient({
           setForm={setForm}
           pays={pays}
           zones={zones}
+          villages={villages}
+          nationalites={nationalites}
         />
 
         <div className="mt-10 pt-6 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap">

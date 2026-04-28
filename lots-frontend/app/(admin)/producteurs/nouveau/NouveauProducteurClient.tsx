@@ -7,6 +7,8 @@ import ProducteurFormFields, {
   ProducteurFormState,
   PaysOption,
   ZoneOption,
+  VillageOption,
+  NationaliteOption,
 } from "@/components/ProducteurFormFields"
 import { createProducteur } from "./actions"
 
@@ -15,16 +17,21 @@ export default function NouveauProducteurClient({
   initialCode,
   pays,
   zones,
+  villages,
+  nationalites,
   defaultPaysId,
 }: {
   returnTo?: string
   initialCode: string
   pays: PaysOption[]
   zones: ZoneOption[]
+  villages: VillageOption[]
+  nationalites: NationaliteOption[]
   defaultPaysId?: string
 }) {
   const { t } = useLanguage()
   const p = t.producteurs
+  const co = t.common
   const { toast, showError, hideToast } = useToast()
   const [loading, setLoading] = useState(false)
 
@@ -86,23 +93,23 @@ export default function NouveauProducteurClient({
     if (loading) return
 
     if (!form.nom.trim()) {
-      showError("Le nom du producteur est requis.")
+      showError(co.validationNomRequired)
       return
     }
     if (!form.sexe) {
-      showError("Veuillez sélectionner le sexe.")
+      showError(co.validationSexeRequired)
       return
     }
     if (!form.pays_id) {
-      showError("Veuillez sélectionner le pays.")
+      showError(co.validationPaysRequired)
       return
     }
     if (!form.zone_id) {
-      showError("Veuillez sélectionner la zone.")
+      showError(co.validationZoneRequired)
       return
     }
     if (!form.village.trim()) {
-      showError("Le village est requis.")
+      showError(co.validationVillageRequired)
       return
     }
 
@@ -135,7 +142,7 @@ export default function NouveauProducteurClient({
           {form.pays_id && form.zone_id ? (
             <span className="text-[#1A1A1A] font-semibold">{codePreview}</span>
           ) : (
-            <span className="text-[#AAAAAA]">généré après sélection du pays et de la zone</span>
+            <span className="text-[#AAAAAA]">{co.codeAfterSelection}</span>
           )}
         </p>
         <div className="mt-3 bg-[#2AC1A3]/10 border-l-2 border-[#2AC1A3] rounded-sm px-4 py-2.5">
@@ -154,6 +161,8 @@ export default function NouveauProducteurClient({
           setForm={setForm}
           pays={pays}
           zones={zones}
+          villages={villages}
+          nationalites={nationalites}
         />
 
         <div className="mt-10 pt-6 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap">
