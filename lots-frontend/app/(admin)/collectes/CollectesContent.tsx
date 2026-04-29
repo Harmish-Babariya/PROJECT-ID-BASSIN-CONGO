@@ -14,7 +14,7 @@ type Collecte = {
   poids_net_kg: string | null
   qualite: string | null
   produit: string | null
-  producteurs: { id: number; nom: string; prenom: string } | null
+  producteurs: { id: number; code_producteur: string; nom: string; prenom: string } | null
   parcelles: { id: number; code_parcelle: string } | null
 }
 
@@ -37,10 +37,12 @@ export default function CollectesContent({
     const q = search.trim().toLowerCase()
     if (!q) return collectes
     return collectes.filter((col) => {
-      const fullName = col.producteurs ? `${col.producteurs.nom} ${col.producteurs.prenom}` : ""
+      const producteurStr = col.producteurs
+        ? `${col.producteurs.code_producteur} ${col.producteurs.nom} ${col.producteurs.prenom}`
+        : ""
       const parcelle = col.parcelles?.code_parcelle ?? ""
       return (
-        fullName.toLowerCase().includes(q) ||
+        producteurStr.toLowerCase().includes(q) ||
         parcelle.toLowerCase().includes(q) ||
         (col.qualite ?? "").toLowerCase().includes(q) ||
         (col.produit ?? "").toLowerCase().includes(q)
@@ -50,7 +52,7 @@ export default function CollectesContent({
 
   const { sorted, sortKey, sortDirection, toggle } = useTableSort<Collecte>(filtered, {
     date: (r) => (r.date_collecte ? new Date(r.date_collecte) : null),
-    producteur: (r) => (r.producteurs ? `${r.producteurs.nom} ${r.producteurs.prenom}` : ""),
+    producteur: (r) => (r.producteurs ? r.producteurs.code_producteur : ""),
     parcelle: (r) => r.parcelles?.code_parcelle ?? "",
     poids: (r) => (r.poids_net_kg ? parseFloat(r.poids_net_kg) : null),
     qualite: (r) => r.qualite ?? "",
@@ -129,9 +131,9 @@ export default function CollectesContent({
                     </td>
 
                     {/* Producteur */}
-                    <td className="px-6 py-3.5 text-[13px] text-gray-800">
+                    <td className="px-6 py-3.5 text-[13px] text-gray-800 uppercase">
                       {col.producteurs
-                        ? `${col.producteurs.nom} ${col.producteurs.prenom}`
+                        ? `${col.producteurs.code_producteur} – ${col.producteurs.nom}${col.producteurs.prenom ? ` ${col.producteurs.prenom}` : ""}`
                         : <span className="text-gray-400">—</span>
                       }
                     </td>

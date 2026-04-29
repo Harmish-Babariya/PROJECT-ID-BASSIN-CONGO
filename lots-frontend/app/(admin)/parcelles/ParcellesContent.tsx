@@ -174,7 +174,7 @@ export default function ParcellesContent({
                       {parc.code_parcelle}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
+                  <td className="px-6 py-4 text-sm text-gray-700 uppercase">
                     {producteur ? `${producteur.code_producteur} – ${producteur.nom}${producteur.prenom ? ` ${producteur.prenom}` : ""}` : "—"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 font-medium">{parc.surface_ha || "—"}</td>

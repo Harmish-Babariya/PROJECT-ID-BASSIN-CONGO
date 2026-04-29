@@ -218,7 +218,7 @@ export default function ProducteursContent({
                       {prod.code_producteur}
                     </Link>
                   </td>
-                  <td className="px-5 py-4 text-[13px] text-[#1A1A1A]">
+                  <td className="px-5 py-4 text-[13px] text-[#1A1A1A] uppercase">
                     {prod.nom} {prod.prenom}
                   </td>
                   <td className="px-5 py-4 text-[13px] text-[#666]">
@@ -279,7 +279,7 @@ export default function ProducteursContent({
                 >
                   {prod.code_producteur}
                 </Link>
-                <p className="text-[14px] font-semibold text-[#1A1A1A] mt-0.5">
+                <p className="text-[14px] font-semibold text-[#1A1A1A] mt-0.5 uppercase">
                   {prod.nom} {prod.prenom}
                 </p>
               </div>
