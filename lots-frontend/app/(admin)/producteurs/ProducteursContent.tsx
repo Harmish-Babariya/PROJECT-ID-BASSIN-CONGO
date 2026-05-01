@@ -8,6 +8,7 @@ import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
 import SortableHeader from "@/components/SortableHeader"
 import { useTableSort } from "@/components/useTableSort"
+import ExportButton from "./ExportButton"
 
 type Producteur = {
   id: number
@@ -94,12 +95,7 @@ export default function ProducteursContent({
             >
               {p.newBtn}
             </Link>
-            <button
-              type="button"
-              className="font-courier inline-block bg-white border border-gray-200 text-[#1A1A1A] px-5 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-gray-50 transition"
-            >
-              {p.export}
-            </button>
+            <ExportButton data={sorted} />
           </div>
         </div>
         <button

@@ -1,6 +1,7 @@
 "use client"
 import Link from "next/link"
 import dynamic from "next/dynamic"
+import { useEffect, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
 
 const CarteMapbox = dynamic(() => import("@/app/(admin)/dashboard/CarteMapbox"), {
@@ -85,6 +86,37 @@ export default function ProducteurDetailClient({
 }) {
   const { t } = useLanguage()
   const p = t.producteurs
+  const [mapExpanded, setMapExpanded] = useState(false)
+
+  useEffect(() => {
+    if (!mapExpanded) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMapExpanded(false)
+    }
+    window.addEventListener("keydown", onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [mapExpanded])
+
+  const mapParcelles = parcelles
+    .filter((pc) => pc.latitude != null && pc.longitude != null)
+    .map((pc) => ({
+      id: pc.id,
+      code_parcelle: pc.code_parcelle,
+      latitude: Number(pc.latitude),
+      longitude: Number(pc.longitude),
+      status_eudr: pc.status_eudr ?? "",
+      surface_ha: Number(pc.surface_ha) || 0,
+      geojson: pc.geojson,
+      producteurs: {
+        code_producteur: producteur.code_producteur,
+        nom: producteur.nom ?? "",
+      },
+    }))
 
   const totalSurface = parcelles.reduce(
     (sum, pc) => sum + (parseFloat(String(pc.surface_ha)) || 0),
@@ -189,25 +221,30 @@ export default function ProducteurDetailClient({
         </div>
 
         {/* Map */}
-        <div className="relative rounded-xl overflow-hidden min-h-[240px] sm:min-h-[280px]">
-          <div className="[&>div]:!h-full [&>div]:!rounded-xl h-full min-h-[240px] sm:min-h-[280px]">
-            <CarteMapbox
-              parcelles={parcelles
-                .filter((pc) => pc.latitude != null && pc.longitude != null)
-                .map((pc) => ({
-                  id: pc.id,
-                  code_parcelle: pc.code_parcelle,
-                  latitude: Number(pc.latitude),
-                  longitude: Number(pc.longitude),
-                  status_eudr: pc.status_eudr ?? "",
-                  surface_ha: Number(pc.surface_ha) || 0,
-                  geojson: pc.geojson,
-                  producteurs: {
-                    code_producteur: producteur.code_producteur,
-                    nom: producteur.nom ?? "",
-                  },
-                }))}
-            />
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label={t.common.expand}
+          onClick={() => setMapExpanded(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault()
+              setMapExpanded(true)
+            }
+          }}
+          className="relative rounded-xl overflow-hidden min-h-[240px] sm:min-h-[280px] cursor-zoom-in group"
+        >
+          <div className="[&>div]:!h-full [&>div]:!rounded-xl h-full min-h-[240px] sm:min-h-[280px] pointer-events-none">
+            <CarteMapbox parcelles={mapParcelles} />
+          </div>
+          <div className="absolute top-3 right-3 z-10 bg-black/60 text-white text-[10px] tracking-[0.15em] uppercase px-2.5 py-1 rounded-md flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="21" y1="3" x2="14" y2="10" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+            {t.common.expand}
           </div>
           {parcelles.length > 0 && (
             <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-2 text-[10px] tracking-[0.15em] uppercase pointer-events-none z-10">
@@ -357,6 +394,52 @@ export default function ProducteurDetailClient({
           {p.actionEdit}
         </Link>
       </div>
+
+      {/* Expanded map modal */}
+      {mapExpanded && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+          onClick={() => setMapExpanded(false)}
+        >
+          <div
+            className="relative w-full h-full max-w-[1400px] max-h-[95vh] bg-[#1A1A1A] rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute top-3 left-3 z-20 bg-black/70 text-white text-[11px] tracking-[0.16em] uppercase px-3 py-1.5 rounded-md font-semibold">
+              {displayName || producteur.code_producteur}
+            </div>
+            <button
+              type="button"
+              onClick={() => setMapExpanded(false)}
+              aria-label={t.common.close}
+              className="absolute top-3 right-3 z-20 bg-black/70 hover:bg-black text-white text-[11px] tracking-[0.16em] uppercase px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+              {t.common.close}
+            </button>
+            <div className="[&>div]:!h-full [&>div]:!rounded-none [&>div]:!border-0 [&>div]:!shadow-none w-full h-full">
+              <CarteMapbox parcelles={mapParcelles} />
+            </div>
+            {parcelles.length > 0 && (
+              <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2 text-[10px] tracking-[0.15em] uppercase pointer-events-none z-10">
+                <span className="flex items-center gap-1.5 text-white/90 bg-black/60 px-2.5 py-1 rounded-md">
+                  <span className="w-2 h-2 rounded-full bg-[#2AC1A3] shrink-0" />
+                  {p.legendConforme} ({conformesCount})
+                </span>
+                <span className="flex items-center gap-1.5 text-white/90 bg-black/60 px-2.5 py-1 rounded-md">
+                  <span className="w-2 h-2 rounded-full bg-[#C4943A] shrink-0" />
+                  {p.legendNonConforme} ({nonConformesCount})
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
