@@ -64,8 +64,9 @@ export default function FiltresBar({ zones, producteurs }: any) {
         >
           <option value="">Tous statuts EUDR</option>
           <option value="CONFORME">Conforme</option>
-          <option value="RISQUE NON NÉGLIGEABLE">Risque</option>
+          <option value="RISQUE NON NÉGLIGEABLE">Risque non négligeable</option>
           <option value="NON CONFORME">Non conforme</option>
+          <option value="EN ATTENTE">En attente</option>
         </select>
 
         <select

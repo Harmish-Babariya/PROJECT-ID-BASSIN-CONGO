@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseStringPromise } from 'xml2js'
+import { EUDR_STATUS } from '@/lib/eudr'
 
 const EUDR_SCRIPT_VERSION = "1.0.0"
 
@@ -127,19 +128,19 @@ export async function POST(request: NextRequest) {
       ring.push([...ring[0]])
     }
 
-    // 8. EUDR verification
-    let eudr_status = "pending_review"
+    // 8. EUDR verification — canonical FR strings (match python script output).
+    let eudr_status: string = EUDR_STATUS.EN_ATTENTE
     let justification = "Verification automatique en attente"
     const verification_timestamp = new Date().toISOString()
 
     if (annee_plantation) {
       const year = parseInt(annee_plantation)
       if (!isNaN(year)) {
-        if (year < 2020) {
-          eudr_status = "compliant"
+        if (year <= 2020) {
+          eudr_status = EUDR_STATUS.CONFORME
           justification = `Plantation creee en ${year}, anterieure au cutoff EUDR (31 dec 2020). Conforme.`
         } else {
-          eudr_status = "alert"
+          eudr_status = EUDR_STATUS.RISQUE
           justification = `Plantation creee en ${year}, posterieure au cutoff EUDR. Verification satellite requise.`
         }
       }

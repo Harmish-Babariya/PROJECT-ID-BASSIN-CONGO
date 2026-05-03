@@ -3,6 +3,7 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 import { useEffect, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 const CarteMapbox = dynamic(() => import("@/app/(admin)/dashboard/CarteMapbox"), {
   ssr: false,
@@ -122,10 +123,13 @@ export default function ProducteurDetailClient({
     (sum, pc) => sum + (parseFloat(String(pc.surface_ha)) || 0),
     0
   )
-  const conformesCount = parcelles.filter((pc) => pc.status_eudr === "CONFORME").length
-  const nonConformesCount = parcelles.filter(
-    (pc) => pc.status_eudr === "NON CONFORME" || pc.status_eudr === "RISQUE NON NEGLIGEABLE"
+  const conformesCount = parcelles.filter(
+    (pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.CONFORME
   ).length
+  const nonConformesCount = parcelles.filter((pc) => {
+    const s = normalizeEudrStatus(pc.status_eudr)
+    return s === EUDR_STATUS.NON_CONFORME || s === EUDR_STATUS.RISQUE
+  }).length
   const conformitePct =
     parcelles.length > 0 ? Math.round((conformesCount / parcelles.length) * 100) : 0
 
@@ -331,15 +335,24 @@ export default function ProducteurDetailClient({
                         {pc.culture ?? "—"}
                       </td>
                       <td className="px-4 sm:px-6 py-4">
-                        <span className={`inline-block px-2 sm:px-3 py-1 rounded-full font-numbers text-[10px] sm:text-[11px] font-bold tracking-[0.1em] uppercase whitespace-nowrap ${
-                          pc.status_eudr === "CONFORME"
-                            ? "bg-[#D4F1E7] text-[#2AC1A3]"
-                            : pc.status_eudr === "RISQUE NON NEGLIGEABLE"
-                            ? "bg-[#FBE9C8] text-[#8B6914]"
-                            : "bg-gray-100 text-gray-500"
-                        }`}>
-                          {pc.status_eudr || "—"}
-                        </span>
+                        {(() => {
+                          const norm = normalizeEudrStatus(pc.status_eudr)
+                          const cls =
+                            norm === EUDR_STATUS.CONFORME
+                              ? "bg-[#D4F1E7] text-[#2AC1A3]"
+                              : norm === EUDR_STATUS.RISQUE
+                              ? "bg-[#FBE9C8] text-[#8B6914]"
+                              : norm === EUDR_STATUS.NON_CONFORME
+                              ? "bg-red-100 text-red-600"
+                              : norm === EUDR_STATUS.EN_ATTENTE
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-gray-100 text-gray-500"
+                          return (
+                            <span className={`inline-block px-2 sm:px-3 py-1 rounded-full font-numbers text-[10px] sm:text-[11px] font-bold tracking-[0.1em] uppercase whitespace-nowrap ${cls}`}>
+                              {norm || "—"}
+                            </span>
+                          )
+                        })()}
                       </td>
                       <td className="px-4 sm:px-6 py-4">
                         <Link

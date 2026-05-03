@@ -7,6 +7,7 @@ import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
 import SortableHeader from "@/components/SortableHeader"
 import { useTableSort } from "@/components/useTableSort"
+import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 type Parcelle = {
   id: number
@@ -32,19 +33,20 @@ function EudrBadge({
   risqueLabel: string
   nonConformeLabel: string
 }) {
-  if (!status || status === "NON VÉRIFIÉ" || status === "NON VERIFIE") {
-    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500 border border-gray-200">{notVerifiedLabel}</span>
-  }
-  if (status === "CONFORME") {
+  const norm = normalizeEudrStatus(status)
+  if (norm === EUDR_STATUS.CONFORME) {
     return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-[#2ac1a3]/10 text-[#2ac1a3] border border-[#2ac1a3]/20">{conformeLabel}</span>
   }
-  if (status === "RISQUE NON NEGLIGEABLE" || status === "RISQUE NON NÉGLIGEABLE") {
+  if (norm === EUDR_STATUS.RISQUE) {
     return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700 border border-yellow-200">{risqueLabel}</span>
   }
-  if (status === "NON CONFORME") {
+  if (norm === EUDR_STATUS.NON_CONFORME) {
     return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-red-100 text-red-600 border border-red-200">{nonConformeLabel}</span>
   }
-  return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500 border border-gray-200">{status}</span>
+  if (norm === EUDR_STATUS.EN_ATTENTE) {
+    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-50 text-amber-700 border border-amber-200">{EUDR_STATUS.EN_ATTENTE}</span>
+  }
+  return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500 border border-gray-200">{notVerifiedLabel}</span>
 }
 
 export default function ParcellesContent({
@@ -140,7 +142,7 @@ export default function ParcellesContent({
             {showFilter && (
               <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[180px] p-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{tp.colEudr}</p>
-                {["", "CONFORME", "RISQUE NON NEGLIGEABLE", "NON CONFORME"].map(s => (
+                {["", "CONFORME", "RISQUE NON NÉGLIGEABLE", "NON CONFORME", "EN ATTENTE"].map(s => (
                   <label key={s} className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-gray-50 px-1 rounded">
                     <input type="radio" name="status_eudr" value={s} checked={filterStatus === s} onChange={() => { handleFilterChange(s); setShowFilter(false) }} className="accent-[#2ac1a3]" />
                     <span className="text-sm text-gray-700">{s || tp.filterAll}</span>

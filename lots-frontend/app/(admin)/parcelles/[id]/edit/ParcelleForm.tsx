@@ -4,6 +4,7 @@ import Link from "next/link"
 import { updateParcelle } from "./action"
 import { Toast, useToast } from "@/components/Toast"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { mapApiCodeToStatus, EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 interface ParcelleFormProps {
   parcelle: any
@@ -181,14 +182,17 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays }: Par
       const response = await fetch(`/api/upload-gpx?locale=${locale}`, { method: "POST", body: fd })
       const result = await response.json()
       if (result.success) {
-        const statusMap: Record<string, string> = { compliant: "CONFORME", alert: "RISQUE NON NEGLIGEABLE", pending_review: "EN ATTENTE" }
+        const status =
+          normalizeEudrStatus(result.eudr_status) ??
+          mapApiCodeToStatus(result.eudr_status) ??
+          EUDR_STATUS.EN_ATTENTE
         setFormData(prev => ({
           ...prev,
           gpx_file_url: result.gpx_file_url,
           latitude: result.latitude,
           longitude: result.longitude,
           surface_ha: result.surface_ha,
-          status_eudr: statusMap[result.eudr_status] || result.eudr_status,
+          status_eudr: status,
           justification_eudr: result.justification || "",
           eudr_verification_timestamp: result.verification_timestamp || "",
           eudr_script_version: result.script_version || "",
@@ -487,8 +491,10 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays }: Par
                   )}
                   {formData.status_eudr && (
                     <p className={`font-semibold mt-1 ${
-                      formData.status_eudr === "CONFORME" ? "text-[#2ac1a3]" :
-                      formData.status_eudr === "RISQUE NON NEGLIGEABLE" ? "text-yellow-600" : "text-gray-500"
+                      normalizeEudrStatus(formData.status_eudr) === EUDR_STATUS.CONFORME ? "text-[#2ac1a3]" :
+                      normalizeEudrStatus(formData.status_eudr) === EUDR_STATUS.RISQUE ? "text-yellow-600" :
+                      normalizeEudrStatus(formData.status_eudr) === EUDR_STATUS.NON_CONFORME ? "text-red-600" :
+                      "text-gray-500"
                     }`}>
                       🌍 EUDR : {formData.status_eudr} — {formData.justification_eudr}
                     </p>

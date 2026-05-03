@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useLanguage } from "@/contexts/LanguageContext"
+import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 interface Parcelle {
   id: number
@@ -19,10 +20,11 @@ interface Parcelle {
 }
 
 function getStatusColor(status: string | null): string {
-  switch (status) {
-    case 'CONFORME': return '#2ac1a3'
-    case 'NON CONFORME': return '#ef4444'
-    case 'RISQUE NON NEGLIGEABLE': return '#eab308'
+  switch (normalizeEudrStatus(status)) {
+    case EUDR_STATUS.CONFORME: return '#2ac1a3'
+    case EUDR_STATUS.NON_CONFORME: return '#ef4444'
+    case EUDR_STATUS.RISQUE: return '#eab308'
+    case EUDR_STATUS.EN_ATTENTE: return '#f59e0b'
     default: return '#6b7280'
   }
 }

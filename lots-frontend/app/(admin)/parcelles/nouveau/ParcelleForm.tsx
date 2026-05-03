@@ -4,6 +4,7 @@ import Link from "next/link"
 import { createParcelle } from "./actions"
 import { Toast, useToast } from "@/components/Toast"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { mapApiCodeToStatus, EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 interface ParcelleFormProps {
   producteurs: any[]
@@ -216,18 +217,20 @@ export default function ParcelleForm({
       const result = await response.json()
 
       if (result.success) {
-        const statusMap: Record<string, string> = {
-          compliant: "CONFORME",
-          alert: "RISQUE NON NEGLIGEABLE",
-          pending_review: "EN ATTENTE",
-        }
+        // The API now returns canonical FR statuses, but mapApiCodeToStatus
+        // also accepts legacy codes (compliant/alert/pending_review) so this
+        // form keeps working if the API hasn't been redeployed.
+        const status =
+          normalizeEudrStatus(result.eudr_status) ??
+          mapApiCodeToStatus(result.eudr_status) ??
+          EUDR_STATUS.EN_ATTENTE
         setFormData(prev => ({
           ...prev,
           latitude: result.latitude,
           longitude: result.longitude,
           surface_ha: result.surface_ha,
           gpx_file_url: result.gpx_file_url,
-          status_eudr: statusMap[result.eudr_status] || result.eudr_status,
+          status_eudr: status,
           justification_eudr: result.justification || "",
           eudr_verification_timestamp: result.verification_timestamp || "",
           eudr_script_version: result.script_version || "",
@@ -543,10 +546,12 @@ export default function ParcelleForm({
               <div className="space-y-1 text-sm text-gray-600">
                 <p>{tp.gpxLatLon(gpxAnalyse.latitude, gpxAnalyse.longitude)}</p>
                 <p>{tp.gpxSurface(gpxAnalyse.surface_ha, gpxAnalyse.nb_points)}</p>
-                {gpxAnalyse.eudr_status && (
+                {formData.status_eudr && (
                   <p className={`font-semibold mt-1 ${
-                    gpxAnalyse.eudr_status === "compliant" ? "text-[#2ac1a3]" :
-                    gpxAnalyse.eudr_status === "alert" ? "text-yellow-600" : "text-gray-500"
+                    formData.status_eudr === EUDR_STATUS.CONFORME ? "text-[#2ac1a3]" :
+                    formData.status_eudr === EUDR_STATUS.RISQUE ? "text-yellow-600" :
+                    formData.status_eudr === EUDR_STATUS.NON_CONFORME ? "text-red-600" :
+                    "text-gray-500"
                   }`}>
                     🌍 EUDR : {formData.status_eudr} — {formData.justification_eudr}
                   </p>

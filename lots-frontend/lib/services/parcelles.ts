@@ -30,7 +30,13 @@ export async function getParcelles(filters?: {
     query = query.eq("culture", filters.culture)
   }
   if (filters?.status_eudr) {
-    query = query.eq("status_eudr", filters.status_eudr)
+    // RISQUE NON NÉGLIGEABLE / RISQUE NON NEGLIGEABLE — accept both spellings
+    // so rows written with or without the diacritic are matched.
+    if (filters.status_eudr === "RISQUE NON NÉGLIGEABLE") {
+      query = query.in("status_eudr", ["RISQUE NON NÉGLIGEABLE", "RISQUE NON NEGLIGEABLE"])
+    } else {
+      query = query.eq("status_eudr", filters.status_eudr)
+    }
   }
   if (filters?.producteur_id) {
     query = query.eq("producteur_id", parseInt(filters.producteur_id))

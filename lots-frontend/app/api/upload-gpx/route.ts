@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { parseStringPromise } from "xml2js"
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { getCurrentUser } from "@/lib/services/auth"
+import { EUDR_STATUS } from "@/lib/eudr"
 
 const EUDR_SCRIPT_VERSION = "1.0.0"
 const BUCKET = "parcelles-gpx"
@@ -183,8 +184,12 @@ export async function POST(request: NextRequest) {
       ring.push([...ring[0]])
     }
 
-    // EUDR check
-    let eudr_status = "pending_review"
+    // Year-based heuristic. Definitive verification is performed by the
+    // server-side python script (eudr_verification.py) which uses Hansen GFC
+    // satellite data and overwrites status_eudr afterwards. Canonical FR
+    // strings here match what the python script writes, so the column is
+    // consistent regardless of which path produced the value.
+    let eudr_status: string = EUDR_STATUS.EN_ATTENTE
     let justification: string = m.pendingReview
     const verification_timestamp = new Date().toISOString()
 
@@ -193,13 +198,13 @@ export async function POST(request: NextRequest) {
       const currentYear = new Date().getFullYear()
       if (!isNaN(year)) {
         if (year > currentYear) {
-          eudr_status = "pending_review"
+          eudr_status = EUDR_STATUS.EN_ATTENTE
           justification = m.pendingFutureYear(year)
         } else if (year <= 2020) {
-          eudr_status = "compliant"
+          eudr_status = EUDR_STATUS.CONFORME
           justification = m.compliant(year)
         } else {
-          eudr_status = "alert"
+          eudr_status = EUDR_STATUS.RISQUE
           justification = m.alert(year)
         }
       }

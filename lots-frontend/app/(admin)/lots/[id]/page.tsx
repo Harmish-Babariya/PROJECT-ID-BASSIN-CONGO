@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { getLotById, getLotCollectes } from "@/lib/services/lots"
 import LotDetailClient from "./LotDetailClient"
+import { isConforme } from "@/lib/eudr"
 
 export default async function LotDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -30,7 +31,7 @@ export default async function LotDetail({ params }: { params: Promise<{ id: stri
     }
   })
   const mapPoints = Array.from(parcellesMap.values()).map((p: any) => {
-    const conforme = (p.status_eudr || "").toString().toUpperCase() === "CONFORME"
+    const conforme = isConforme(p.status_eudr)
     return {
       code: p.code_parcelle,
       lat: p.latitude !== null && p.latitude !== "" ? Number(p.latitude) : NaN,

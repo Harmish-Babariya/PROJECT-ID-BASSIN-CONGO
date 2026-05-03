@@ -2,6 +2,7 @@
 import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
 import ParcelleMap from "./ParcelleMap"
+import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 function readField(obj: any, ...keys: string[]): any {
   for (const key of keys) {
@@ -80,19 +81,20 @@ function EudrBadge({
   risqueLabel: string
   nonConformeLabel: string
 }) {
-  if (!status || status === "NON VÉRIFIÉ" || status === "NON VERIFIE") {
-    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500">{notVerifiedLabel}</span>
-  }
-  if (status === "CONFORME") {
+  const norm = normalizeEudrStatus(status)
+  if (norm === EUDR_STATUS.CONFORME) {
     return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-[#2ac1a3]/15 text-[#2ac1a3]">{conformeLabel}</span>
   }
-  if (status === "RISQUE NON NEGLIGEABLE" || status === "RISQUE NON NÉGLIGEABLE") {
+  if (norm === EUDR_STATUS.RISQUE) {
     return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700">{risqueLabel}</span>
   }
-  if (status === "NON CONFORME") {
+  if (norm === EUDR_STATUS.NON_CONFORME) {
     return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-red-100 text-red-600">{nonConformeLabel}</span>
   }
-  return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500">{status}</span>
+  if (norm === EUDR_STATUS.EN_ATTENTE) {
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-amber-50 text-amber-700">{EUDR_STATUS.EN_ATTENTE}</span>
+  }
+  return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500">{notVerifiedLabel}</span>
 }
 
 export default function ParcelleDetailClient({ parcelle, producteur, collectes }: { parcelle: any; producteur: any; collectes: any[] }) {

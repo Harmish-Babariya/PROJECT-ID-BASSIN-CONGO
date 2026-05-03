@@ -5,6 +5,7 @@ import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { X } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 export type MapParcelle = {
   id: number
@@ -93,8 +94,12 @@ function parseGeometry(geom: unknown): ParcelGeometry | null {
 
 const STATUS_COLOR_EXPR: mapboxgl.ExpressionSpecification = [
   "case",
-  ["==", ["get", "status_eudr"], "CONFORME"],
+  ["==", ["get", "status_eudr"], EUDR_STATUS.CONFORME],
   "#2AC1A3",
+  ["==", ["get", "status_eudr"], EUDR_STATUS.RISQUE],
+  "#EAB308",
+  ["==", ["get", "status_eudr"], EUDR_STATUS.NON_CONFORME],
+  "#EF4444",
   "#C4943A",
 ]
 
@@ -149,7 +154,7 @@ function buildItems(parcelles: MapParcelle[]): ParcelListItem[] {
             filename,
             code_parcelle: row.code_parcelle ?? null,
             surface_ha: row.surface_ha ?? null,
-            status_eudr: row.status_eudr ?? null,
+            status_eudr: normalizeEudrStatus(row.status_eudr) ?? "",
             area,
           },
         }
@@ -158,7 +163,7 @@ function buildItems(parcelles: MapParcelle[]): ParcelListItem[] {
       id,
       filename,
       code_parcelle: row.code_parcelle ?? null,
-      status_eudr: row.status_eudr ?? null,
+      status_eudr: normalizeEudrStatus(row.status_eudr) ?? null,
       area,
       surface_ha: row.surface_ha ?? null,
       feature,
@@ -506,8 +511,8 @@ export default function ExpandedMapModal({
             )}
             {filteredItems.map(item => {
               const hasGeo = item.feature !== null
-              const status = String(item.status_eudr ?? "").toUpperCase()
-              const isConforme = status === "CONFORME"
+              const norm = normalizeEudrStatus(item.status_eudr)
+              const isConforme = norm === EUDR_STATUS.CONFORME
               const dotColor = !hasGeo ? "#94A3B8" : isConforme ? "#2AC1A3" : "#C4943A"
               const pillBg = !hasGeo
                 ? "bg-slate-100 text-slate-500"

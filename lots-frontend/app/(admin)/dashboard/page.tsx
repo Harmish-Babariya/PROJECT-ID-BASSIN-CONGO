@@ -4,6 +4,7 @@ import { getParcellesStats, getParcellesForMap } from "@/lib/services/parcelles"
 import { getLotsStats, getRecentLots } from "@/lib/services/lots"
 import { getCollectesStats, getRecentCollectes } from "@/lib/services/collectes"
 import { getCurrentUser } from "@/lib/services/auth"
+import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -52,8 +53,12 @@ async function getStats(paysId: number | null, range: Range) {
   const ageMax = ages.length > 0 ? Math.max(...ages) : 0
 
   const totalParcelles = parcelles.length
-  const conformes = parcelles.filter(p => p.status_eudr === "CONFORME").length
-  const nonConformes = parcelles.filter(p => p.status_eudr === "NON CONFORME").length
+  const normalisedStatuses = parcelles.map(p => normalizeEudrStatus(p.status_eudr))
+  const conformes = normalisedStatuses.filter(s => s === EUDR_STATUS.CONFORME).length
+  const nonConformes = normalisedStatuses.filter(
+    s => s === EUDR_STATUS.NON_CONFORME || s === EUDR_STATUS.RISQUE
+  ).length
+  // "à traiter" = pending verification or never verified
   const aTraiter = totalParcelles - conformes - nonConformes
   const pourcentageConformite =
     totalParcelles > 0 ? Math.round((conformes / totalParcelles) * 100) : 0

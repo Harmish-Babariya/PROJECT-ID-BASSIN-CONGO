@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { PDFDocument, StandardFonts, rgb, PDFPage } from "pdf-lib"
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { verifyToken } from "@/lib/auth/jwt"
+import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 const EUDR_SCRIPT_VERSION = "1.0.0"
 const PAGE_WIDTH = 595
@@ -284,10 +285,11 @@ export async function GET(
     const producteurs = Array.from(producteursMap.values())
     const parcelles = Array.from(parcellesMap.values())
 
-    // EUDR stats
-    const conformes = parcelles.filter(p => p.status_eudr === "CONFORME").length
-    const risques = parcelles.filter(p =>
-      p.status_eudr === "RISQUE NON NEGLIGEABLE" || p.status_eudr === "alert"
+    // EUDR stats — normalise status so legacy variants are folded.
+    const normStatuses = parcelles.map(p => normalizeEudrStatus(p.status_eudr))
+    const conformes = normStatuses.filter(s => s === EUDR_STATUS.CONFORME).length
+    const risques = normStatuses.filter(
+      s => s === EUDR_STATUS.RISQUE || s === EUDR_STATUS.NON_CONFORME
     ).length
     const nonVerifies = parcelles.length - conformes - risques
 
@@ -406,7 +408,7 @@ export async function GET(
       } else {
         row(d.parcelleCentroid, d.parcelleNotAvailable)
       }
-      row(d.parcelleEudrStatus, p.status_eudr || d.parcelleEudrNotVerified)
+      row(d.parcelleEudrStatus, normalizeEudrStatus(p.status_eudr) || d.parcelleEudrNotVerified)
       if (p.eudr_verification_timestamp) {
         row(d.parcelleVerifiedDate, new Date(p.eudr_verification_timestamp).toLocaleDateString(dateLocale))
       }

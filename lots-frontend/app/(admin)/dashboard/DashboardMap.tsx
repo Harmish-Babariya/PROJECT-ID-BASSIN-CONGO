@@ -6,6 +6,7 @@ import "mapbox-gl/dist/mapbox-gl.css"
 import { Maximize2 } from "lucide-react"
 import ExpandedMapModal from "./ExpandedMapModal"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 export type MapParcelle = {
   id: number
@@ -96,7 +97,7 @@ function buildFeatures(parcelles: MapParcelle[]): ParcelFeature[] {
           filename: row.code_parcelle ?? `Parcelle ${row.id ?? index + 1}`,
           code_parcelle: row.code_parcelle ?? null,
           surface_ha: row.surface_ha ?? null,
-          status_eudr: row.status_eudr ?? null,
+          status_eudr: normalizeEudrStatus(row.status_eudr) ?? "",
           area,
         },
       }
@@ -106,8 +107,12 @@ function buildFeatures(parcelles: MapParcelle[]): ParcelFeature[] {
 
 const STATUS_COLOR_EXPR: mapboxgl.ExpressionSpecification = [
   "case",
-  ["==", ["get", "status_eudr"], "CONFORME"],
+  ["==", ["get", "status_eudr"], EUDR_STATUS.CONFORME],
   "#2AC1A3",
+  ["==", ["get", "status_eudr"], EUDR_STATUS.RISQUE],
+  "#EAB308",
+  ["==", ["get", "status_eudr"], EUDR_STATUS.NON_CONFORME],
+  "#EF4444",
   "#C4943A",
 ]
 
@@ -158,8 +163,9 @@ export default function DashboardMap({ parcelles }: { parcelles: MapParcelle[] }
     let c = 0
     let nc = 0
     for (const p of parcelles) {
-      if ((p.status_eudr ?? "").toUpperCase() === "CONFORME") c++
-      else nc++
+      const norm = normalizeEudrStatus(p.status_eudr)
+      if (norm === EUDR_STATUS.CONFORME) c++
+      else if (norm === EUDR_STATUS.RISQUE || norm === EUDR_STATUS.NON_CONFORME) nc++
     }
     return { conformeCount: c, nonConformeCount: nc }
   }, [parcelles])
