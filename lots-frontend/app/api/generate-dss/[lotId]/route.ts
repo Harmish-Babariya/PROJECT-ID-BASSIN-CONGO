@@ -49,6 +49,7 @@ type Dict = {
   totalParcelles: string
   countConforme: string
   countAtRisk: string
+  countEnAttente: string
   countNotVerified: string
   auditTimestamp: string
   auditScriptVersion: string
@@ -105,6 +106,7 @@ const DICTS: Record<Lang, Dict> = {
     totalParcelles: "Total parcelles :",
     countConforme: "Conformes :",
     countAtRisk: "Risque non negligeable :",
+    countEnAttente: "En attente :",
     countNotVerified: "Non verifiees :",
     auditTimestamp: "Timestamp generation :",
     auditScriptVersion: "Version script EUDR :",
@@ -171,7 +173,8 @@ const DICTS: Record<Lang, Dict> = {
     parcelleVerifiedDate: "  Verified on:",
     totalParcelles: "Total parcels:",
     countConforme: "Compliant:",
-    countAtRisk: "At risk:",
+    countAtRisk: "Significant risk:",
+    countEnAttente: "Pending:",
     countNotVerified: "Not verified:",
     auditTimestamp: "Generation timestamp:",
     auditScriptVersion: "EUDR script version:",
@@ -288,10 +291,9 @@ export async function GET(
     // EUDR stats — normalise status so legacy variants are folded.
     const normStatuses = parcelles.map(p => normalizeEudrStatus(p.status_eudr))
     const conformes = normStatuses.filter(s => s === EUDR_STATUS.CONFORME).length
-    const risques = normStatuses.filter(
-      s => s === EUDR_STATUS.RISQUE || s === EUDR_STATUS.NON_CONFORME
-    ).length
-    const nonVerifies = parcelles.length - conformes - risques
+    const risques = normStatuses.filter(s => s === EUDR_STATUS.RISQUE).length
+    const enAttente = normStatuses.filter(s => s === EUDR_STATUS.EN_ATTENTE).length
+    const nonVerifies = parcelles.length - conformes - risques - enAttente
 
     // ── BUILD PDF ──
     const pdf = await PDFDocument.create()
@@ -421,6 +423,7 @@ export async function GET(
     row(d.totalParcelles, String(parcelles.length))
     row(d.countConforme, String(conformes))
     row(d.countAtRisk, String(risques))
+    row(d.countEnAttente, String(enAttente))
     row(d.countNotVerified, String(nonVerifies))
     separator()
 

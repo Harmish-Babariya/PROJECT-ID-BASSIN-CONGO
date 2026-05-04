@@ -1,7 +1,10 @@
 "use client"
 import * as XLSX from 'xlsx'
+import { useLanguage } from "@/contexts/LanguageContext"
 
 export default function ExportButton({ data }: { data: any[] }) {
+  const { t } = useLanguage()
+
   const handleExport = () => {
     const worksheet = XLSX.utils.json_to_sheet(data)
     const workbook = XLSX.utils.book_new()
@@ -14,7 +17,7 @@ export default function ExportButton({ data }: { data: any[] }) {
       onClick={handleExport}
       className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold"
     >
-      📥 Exporter Excel
+      {t.parcelles.exportExcelBtn}
     </button>
   )
 }

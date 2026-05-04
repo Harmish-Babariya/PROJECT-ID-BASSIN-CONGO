@@ -73,13 +73,13 @@ function EudrBadge({
   notVerifiedLabel,
   conformeLabel,
   risqueLabel,
-  nonConformeLabel,
+  enAttenteLabel,
 }: {
   status: string | null
   notVerifiedLabel: string
   conformeLabel: string
   risqueLabel: string
-  nonConformeLabel: string
+  enAttenteLabel: string
 }) {
   const norm = normalizeEudrStatus(status)
   if (norm === EUDR_STATUS.CONFORME) {
@@ -88,11 +88,8 @@ function EudrBadge({
   if (norm === EUDR_STATUS.RISQUE) {
     return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700">{risqueLabel}</span>
   }
-  if (norm === EUDR_STATUS.NON_CONFORME) {
-    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-red-100 text-red-600">{nonConformeLabel}</span>
-  }
   if (norm === EUDR_STATUS.EN_ATTENTE) {
-    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-amber-50 text-amber-700">{EUDR_STATUS.EN_ATTENTE}</span>
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-amber-50 text-amber-700">{enAttenteLabel}</span>
   }
   return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500">{notVerifiedLabel}</span>
 }
@@ -176,7 +173,7 @@ export default function ParcelleDetailClient({ parcelle, producteur, collectes }
                 notVerifiedLabel={tp.notVerified}
                 conformeLabel={tp.eudrConforme}
                 risqueLabel={tp.eudrRisque}
-                nonConformeLabel={tp.eudrNonConforme}
+                enAttenteLabel={tp.eudrEnAttente}
               />
             </div>
             <p className="text-sm text-gray-500">

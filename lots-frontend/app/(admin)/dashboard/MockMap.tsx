@@ -38,11 +38,11 @@ const mockDots = [
 
 export default function MockMap({
   conformes,
-  nonConformes,
+  nonVerifies,
   totalPoints,
 }: {
   conformes: number
-  nonConformes: number
+  nonVerifies: number
   totalPoints: number
 }) {
   return (
@@ -102,8 +102,8 @@ export default function MockMap({
           CONFORME ({conformes})
         </span>
         <span className="flex items-center gap-2 text-[10px] text-white/45 tracking-[0.1em] font-medium">
-          <span className="w-2 h-2 rounded-full bg-[#C4943A]" />
-          NON CONFORME ({nonConformes})
+          <span className="w-2 h-2 rounded-full bg-[#94A3B8]" />
+          NON VÉRIFIÉ ({nonVerifies})
         </span>
       </div>
     </div>

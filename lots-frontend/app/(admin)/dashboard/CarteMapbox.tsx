@@ -22,10 +22,9 @@ interface Parcelle {
 function getStatusColor(status: string | null): string {
   switch (normalizeEudrStatus(status)) {
     case EUDR_STATUS.CONFORME: return '#2ac1a3'
-    case EUDR_STATUS.NON_CONFORME: return '#ef4444'
     case EUDR_STATUS.RISQUE: return '#eab308'
     case EUDR_STATUS.EN_ATTENTE: return '#f59e0b'
-    default: return '#6b7280'
+    default: return '#94a3b8'
   }
 }
 
@@ -96,7 +95,12 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
             map.current!.on('click', `${sourceId}-fill`, (e) => {
               new mapboxgl.Popup()
                 .setLngLat(e.lngLat)
-                .setHTML(buildPopupHtml(parcelle, color, t.common.notVerified))
+                .setHTML(buildPopupHtml(
+                  parcelle,
+                  color,
+                  t.common.notVerified,
+                  t.dashboard.mapPopupSurfaceValue(String(parcelle.surface_ha || '-')),
+                ))
                 .addTo(map.current!)
             })
 
@@ -138,7 +142,12 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
       el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)'
 
       const popup = new mapboxgl.Popup({ offset: 25 })
-        .setHTML(buildPopupHtml(parcelle, color, t.common.notVerified))
+        .setHTML(buildPopupHtml(
+          parcelle,
+          color,
+          t.common.notVerified,
+          t.dashboard.mapPopupSurfaceValue(String(parcelle.surface_ha || '-')),
+        ))
 
       new mapboxgl.Marker(el)
         .setLngLat([parcelle.longitude, parcelle.latitude])
@@ -171,14 +180,19 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
   )
 }
 
-function buildPopupHtml(parcelle: Parcelle, color: string, notVerifiedLabel: string): string {
+function buildPopupHtml(
+  parcelle: Parcelle,
+  color: string,
+  notVerifiedLabel: string,
+  surfaceLine: string,
+): string {
   return `
     <div style="padding: 8px; min-width: 200px;">
       <p style="font-weight: bold; margin-bottom: 4px;">${parcelle.code_parcelle}</p>
       <p style="font-size: 12px; color: #666; margin-bottom: 8px;">
         ${parcelle.producteurs?.code_producteur || ''} - ${parcelle.producteurs?.nom || ''}
       </p>
-      <p style="font-size: 12px; margin-bottom: 4px;">Surface: ${parcelle.surface_ha || '-'} ha</p>
+      <p style="font-size: 12px; margin-bottom: 4px;">${surfaceLine}</p>
       <span style="
         font-size: 12px;
         padding: 4px 8px;

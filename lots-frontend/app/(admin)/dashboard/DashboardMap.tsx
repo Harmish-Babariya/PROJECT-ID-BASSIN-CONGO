@@ -111,9 +111,9 @@ const STATUS_COLOR_EXPR: mapboxgl.ExpressionSpecification = [
   "#2AC1A3",
   ["==", ["get", "status_eudr"], EUDR_STATUS.RISQUE],
   "#EAB308",
-  ["==", ["get", "status_eudr"], EUDR_STATUS.NON_CONFORME],
-  "#EF4444",
-  "#C4943A",
+  ["==", ["get", "status_eudr"], EUDR_STATUS.EN_ATTENTE],
+  "#F59E0B",
+  "#94A3B8",
 ]
 
 function addLayersToMap(map: mapboxgl.Map) {
@@ -159,15 +159,19 @@ export default function DashboardMap({ parcelles }: { parcelles: MapParcelle[] }
 
   const features = useMemo(() => buildFeatures(parcelles), [parcelles])
 
-  const { conformeCount, nonConformeCount } = useMemo(() => {
+  const { conformeCount, risqueCount, enAttenteCount, notVerifiedCount } = useMemo(() => {
     let c = 0
-    let nc = 0
+    let r = 0
+    let pe = 0
+    let nv = 0
     for (const p of parcelles) {
       const norm = normalizeEudrStatus(p.status_eudr)
       if (norm === EUDR_STATUS.CONFORME) c++
-      else if (norm === EUDR_STATUS.RISQUE || norm === EUDR_STATUS.NON_CONFORME) nc++
+      else if (norm === EUDR_STATUS.RISQUE) r++
+      else if (norm === EUDR_STATUS.EN_ATTENTE) pe++
+      else nv++
     }
-    return { conformeCount: c, nonConformeCount: nc }
+    return { conformeCount: c, risqueCount: r, enAttenteCount: pe, notVerifiedCount: nv }
   }, [parcelles])
 
   // Mount the map exactly once. Subsequent updates patch the source data
@@ -311,15 +315,15 @@ export default function DashboardMap({ parcelles }: { parcelles: MapParcelle[] }
       className="bg-[#1E2A35] rounded-xl overflow-hidden relative border border-[#E8E8E3] cursor-pointer group"
       onClick={() => setExpanded(true)}
       role="button"
-      aria-label="Agrandir la carte"
+      aria-label={t.dashboard.mapExpandSectionAria}
     >
       <div ref={mapContainer} className="h-[240px] w-full pointer-events-none" />
 
       <button
         onClick={(e) => { e.stopPropagation(); setExpanded(true) }}
         className="absolute top-3 right-3 z-10 w-8 h-8 rounded-md bg-black/50 backdrop-blur-sm text-white hover:bg-[#2AC1A3] transition flex items-center justify-center"
-        aria-label="Agrandir"
-        title="Agrandir la carte"
+        aria-label={t.common.expand}
+        title={t.dashboard.mapExpandSectionAria}
       >
         <Maximize2 className="w-4 h-4" />
       </button>
@@ -363,14 +367,22 @@ export default function DashboardMap({ parcelles }: { parcelles: MapParcelle[] }
         })}
       </div>
 
-      <div className="flex items-center gap-6 px-5 py-3 bg-[#1E2A35] border-t border-white/5">
-        <span className="flex items-center gap-2 text-[10px] text-white/50 tracking-[0.1em] font-medium">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-5 py-3 bg-[#1E2A35] border-t border-white/5">
+        <span className="flex items-center gap-2 text-[10px] text-white/60 tracking-[0.1em] font-medium">
           <span className="w-2 h-2 rounded-full bg-[#2AC1A3]" />
           {t.dashboard.mapLegendConforme(conformeCount)}
         </span>
-        <span className="flex items-center gap-2 text-[10px] text-white/50 tracking-[0.1em] font-medium">
-          <span className="w-2 h-2 rounded-full bg-[#C4943A]" />
-          {t.dashboard.mapLegendNonConforme(nonConformeCount)}
+        <span className="flex items-center gap-2 text-[10px] text-white/60 tracking-[0.1em] font-medium">
+          <span className="w-2 h-2 rounded-full bg-[#EAB308]" />
+          {t.dashboard.mapLegendRisque(risqueCount)}
+        </span>
+        <span className="flex items-center gap-2 text-[10px] text-white/60 tracking-[0.1em] font-medium">
+          <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+          {t.dashboard.mapLegendEnAttente(enAttenteCount)}
+        </span>
+        <span className="flex items-center gap-2 text-[10px] text-white/60 tracking-[0.1em] font-medium">
+          <span className="w-2 h-2 rounded-full bg-[#94A3B8]" />
+          {t.dashboard.mapLegendNotVerified(notVerifiedCount)}
         </span>
       </div>
     </div>

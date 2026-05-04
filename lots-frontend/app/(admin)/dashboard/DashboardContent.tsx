@@ -17,8 +17,9 @@ type Stats = {
   parcelles: {
     total: number
     conformes: number
-    nonConformes: number
-    aTraiter: number
+    risques: number
+    enAttente: number
+    nonVerifies: number
     pourcentageConformite: number
     superficieTotale: number
     haParProducteur: string
@@ -102,8 +103,8 @@ export default function DashboardContent({
         </div>
       </div>
 
-      {/* Alert Banner */}
-      {stats.parcelles.aTraiter > 0 && (
+      {/* Alert Banner — pending verification + never verified rows still need processing */}
+      {(stats.parcelles.enAttente + stats.parcelles.nonVerifies) > 0 && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[#FFF8F0] border border-[#F0DCC0] rounded-xl px-4 sm:px-5 py-3.5">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 bg-[#F5E6D0] rounded-lg flex items-center justify-center shrink-0">
@@ -111,7 +112,7 @@ export default function DashboardContent({
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold text-[#C4943A] tracking-[0.1em] uppercase">{d.alertTitle}</p>
-              <p className="text-[12px] sm:text-[13px] text-[#8B7355]">{d.alertDesc(stats.parcelles.aTraiter)}</p>
+              <p className="text-[12px] sm:text-[13px] text-[#8B7355]">{d.alertDesc(stats.parcelles.enAttente + stats.parcelles.nonVerifies)}</p>
             </div>
           </div>
           <Link
@@ -166,13 +167,17 @@ export default function DashboardContent({
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#2AC1A3"/><path d="M3.5 6L5.5 8L8.5 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 {stats.parcelles.conformes} {d.verified}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] bg-[#FFF3E0] text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#C4943A"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                {stats.parcelles.aTraiter} {d.toProcess}
+              <span className="inline-flex items-center gap-1.5 text-[10px] bg-yellow-100 text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#EAB308"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {stats.parcelles.risques} {d.atRisk}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] bg-[#F0E6D6] text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#C4943A"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                {stats.parcelles.nonConformes} {d.nonCompliant}
+              <span className="inline-flex items-center gap-1.5 text-[10px] bg-amber-50 text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#F59E0B"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {stats.parcelles.enAttente} {d.pending}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] bg-gray-100 text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#94A3B8"/><path d="M4 6H8" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {stats.parcelles.nonVerifies} {d.notVerified}
               </span>
             </div>
           </div>

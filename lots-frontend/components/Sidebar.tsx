@@ -78,7 +78,7 @@ export default function Sidebar({
       <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-[#1A1A1A] flex items-center justify-between px-4 z-40">
         <button
           onClick={() => setOpen(true)}
-          aria-label="Open menu"
+          aria-label={t.common.openMenu}
           className="w-9 h-9 rounded-md flex items-center justify-center text-white/80 hover:bg-white/10 transition"
         >
           <Menu className="w-5 h-5" />
@@ -106,7 +106,7 @@ export default function Sidebar({
           <Image src="/logo.png" alt="ID Bassin Congo" width={140} height={44} priority />
           <button
             onClick={() => setOpen(false)}
-            aria-label="Close menu"
+            aria-label={t.common.closeMenu}
             className="lg:hidden w-8 h-8 rounded-md flex items-center justify-center text-white/70 hover:bg-white/10 transition"
           >
             <X className="w-4 h-4" />
@@ -231,7 +231,7 @@ export default function Sidebar({
             </Link>
             <button
               onClick={handleLogout}
-              title="Logout"
+              title={t.common.logout}
               className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-white/30 hover:text-white/80 hover:bg-white/5 transition"
             >
               <LogOut className="w-3.5 h-3.5" />

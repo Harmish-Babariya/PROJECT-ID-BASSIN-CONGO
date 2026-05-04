@@ -5,13 +5,23 @@ import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { Maximize2, X } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 type ParcelPoint = {
   code: string
   lat: number
   lon: number
-  conforme: boolean
+  status_eudr: string | null
   geojson?: unknown
+}
+
+function statusColor(status: string | null): string {
+  switch (normalizeEudrStatus(status)) {
+    case EUDR_STATUS.CONFORME: return "#2AC1A3"
+    case EUDR_STATUS.RISQUE: return "#EAB308"
+    case EUDR_STATUS.EN_ATTENTE: return "#F59E0B"
+    default: return "#94A3B8"
+  }
 }
 
 type PolygonGeo = { type: "Polygon"; coordinates: number[][][] }
@@ -50,13 +60,17 @@ export default function LotMap({
   height = 320,
   emptyLabel,
   legendConformeLabel,
-  legendNonConformeLabel,
+  legendRisqueLabel,
+  legendEnAttenteLabel,
+  legendNotVerifiedLabel,
 }: {
   points: ParcelPoint[]
   height?: number
   emptyLabel: string
   legendConformeLabel: (count: number) => string
-  legendNonConformeLabel: (count: number) => string
+  legendRisqueLabel: (count: number) => string
+  legendEnAttenteLabel: (count: number) => string
+  legendNotVerifiedLabel: (count: number) => string
 }) {
   const { t } = useLanguage()
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -101,7 +115,7 @@ export default function LotMap({
         el.style.borderRadius = "50%"
         el.style.border = "2px solid #fff"
         el.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.3)"
-        el.style.background = p.conforme ? "#2AC1A3" : "#F59E0B"
+        el.style.background = statusColor(p.status_eudr)
         el.title = p.code
 
         new mapboxgl.Marker({ element: el })
@@ -143,8 +157,10 @@ export default function LotMap({
     }
   }, [expanded])
 
-  const conformeCount = resolved.filter((p) => p.conforme).length
-  const nonConformeCount = resolved.length - conformeCount
+  const conformeCount = resolved.filter((p) => normalizeEudrStatus(p.status_eudr) === EUDR_STATUS.CONFORME).length
+  const risqueCount = resolved.filter((p) => normalizeEudrStatus(p.status_eudr) === EUDR_STATUS.RISQUE).length
+  const enAttenteCount = resolved.filter((p) => normalizeEudrStatus(p.status_eudr) === EUDR_STATUS.EN_ATTENTE).length
+  const notVerifiedCount = resolved.filter((p) => normalizeEudrStatus(p.status_eudr) === null).length
 
   if (resolved.length === 0) {
     return (
@@ -180,14 +196,22 @@ export default function LotMap({
           {expanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
         </button>
 
-        <div className="absolute bottom-3 left-3 flex items-center gap-4 text-[10px] font-mono tracking-widest text-white/80">
+        <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px] font-mono tracking-widest text-white/80">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#2AC1A3]" />
             {legendConformeLabel(conformeCount)}
           </span>
           <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308]" />
+            {legendRisqueLabel(risqueCount)}
+          </span>
+          <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
-            {legendNonConformeLabel(nonConformeCount)}
+            {legendEnAttenteLabel(enAttenteCount)}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#94A3B8]" />
+            {legendNotVerifiedLabel(notVerifiedCount)}
           </span>
         </div>
       </div>

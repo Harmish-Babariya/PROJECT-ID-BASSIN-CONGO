@@ -8,7 +8,7 @@ type ParcelPoint = {
   code: string
   lat: number
   lon: number
-  conforme: boolean
+  status_eudr: string | null
   geojson?: unknown
 }
 
@@ -169,7 +169,9 @@ export default function LotDetailClient({
           points={mapPoints}
           emptyLabel={l.mapEmpty}
           legendConformeLabel={l.legendConforme}
-          legendNonConformeLabel={l.legendNonConforme}
+          legendRisqueLabel={l.legendRisque}
+          legendEnAttenteLabel={l.legendEnAttente}
+          legendNotVerifiedLabel={l.legendNotVerified}
         />
       </div>
     </div>

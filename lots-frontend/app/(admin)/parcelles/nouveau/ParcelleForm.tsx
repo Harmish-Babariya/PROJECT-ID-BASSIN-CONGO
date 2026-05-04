@@ -550,7 +550,7 @@ export default function ParcelleForm({
                   <p className={`font-semibold mt-1 ${
                     formData.status_eudr === EUDR_STATUS.CONFORME ? "text-[#2ac1a3]" :
                     formData.status_eudr === EUDR_STATUS.RISQUE ? "text-yellow-600" :
-                    formData.status_eudr === EUDR_STATUS.NON_CONFORME ? "text-red-600" :
+                    formData.status_eudr === EUDR_STATUS.EN_ATTENTE ? "text-amber-600" :
                     "text-gray-500"
                   }`}>
                     🌍 EUDR : {formData.status_eudr} — {formData.justification_eudr}

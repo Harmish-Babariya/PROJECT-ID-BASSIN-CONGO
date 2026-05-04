@@ -98,9 +98,9 @@ const STATUS_COLOR_EXPR: mapboxgl.ExpressionSpecification = [
   "#2AC1A3",
   ["==", ["get", "status_eudr"], EUDR_STATUS.RISQUE],
   "#EAB308",
-  ["==", ["get", "status_eudr"], EUDR_STATUS.NON_CONFORME],
-  "#EF4444",
-  "#C4943A",
+  ["==", ["get", "status_eudr"], EUDR_STATUS.EN_ATTENTE],
+  "#F59E0B",
+  "#94A3B8",
 ]
 
 function addLayersToMap(map: mapboxgl.Map) {
@@ -424,7 +424,7 @@ export default function ExpandedMapModal({
             <div>
               <h1 className="text-lg font-bold text-white tracking-tight">ID Bassin Congo</h1>
               <p className="text-[10px] text-slate-300 font-medium uppercase tracking-widest">
-                Gestion des Parcelles Cadastrales
+                {t.dashboard.mapExpandedSubtitle}
               </p>
             </div>
           </div>
@@ -447,8 +447,8 @@ export default function ExpandedMapModal({
 
         <aside className="absolute top-[80px] left-4 bottom-4 w-[340px] bg-white rounded-2xl shadow-xl z-20 flex flex-col overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200">
-            <h2 className="text-sm font-bold text-slate-900 leading-tight">Tableau de bord</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">Statistiques en temps reel</p>
+            <h2 className="text-sm font-bold text-slate-900 leading-tight">{t.dashboard.mapExpandedDashboardTitle}</h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">{t.dashboard.mapExpandedStatsSubtitle}</p>
           </div>
 
           <div className="p-3 border-b border-slate-200">
@@ -512,16 +512,24 @@ export default function ExpandedMapModal({
             {filteredItems.map(item => {
               const hasGeo = item.feature !== null
               const norm = normalizeEudrStatus(item.status_eudr)
-              const isConforme = norm === EUDR_STATUS.CONFORME
-              const dotColor = !hasGeo ? "#94A3B8" : isConforme ? "#2AC1A3" : "#C4943A"
-              const pillBg = !hasGeo
-                ? "bg-slate-100 text-slate-500"
-                : isConforme
-                  ? "bg-[#E8F8F4] text-[#1E8876]"
-                  : "bg-[#FFF3E0] text-[#8B6A1F]"
-              const pillLabel = isConforme
-                ? t.dashboard.mapStatusConforme
-                : t.dashboard.mapStatusNonConforme
+              let dotColor = "#94A3B8"
+              let pillBg = "bg-slate-100 text-slate-500"
+              let pillLabel: string = t.parcelles.notVerified
+              if (!hasGeo) {
+                // keep gray defaults
+              } else if (norm === EUDR_STATUS.CONFORME) {
+                dotColor = "#2AC1A3"
+                pillBg = "bg-[#E8F8F4] text-[#1E8876]"
+                pillLabel = t.dashboard.mapStatusConforme
+              } else if (norm === EUDR_STATUS.RISQUE) {
+                dotColor = "#EAB308"
+                pillBg = "bg-yellow-100 text-yellow-800"
+                pillLabel = t.dashboard.mapStatusRisque
+              } else if (norm === EUDR_STATUS.EN_ATTENTE) {
+                dotColor = "#F59E0B"
+                pillBg = "bg-amber-50 text-amber-700"
+                pillLabel = t.dashboard.mapStatusEnAttente
+              }
               const surfaceHa = item.feature
                 ? item.area / 10000
                 : Number(item.surface_ha) || 0
@@ -591,7 +599,7 @@ export default function ExpandedMapModal({
           </div>
         </div>
 
-        <div className="absolute bottom-6 right-4 bg-white/95 backdrop-blur-sm px-4 py-2.5 rounded-xl shadow-lg z-20 flex items-center gap-4">
+        <div className="absolute bottom-6 right-4 bg-white/95 backdrop-blur-sm px-4 py-2.5 rounded-xl shadow-lg z-20 flex flex-wrap items-center gap-x-4 gap-y-1.5 max-w-[calc(100%-2rem)]">
           <span className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">
             {t.dashboard.mapExpandedLegendTitle}
           </span>
@@ -600,8 +608,16 @@ export default function ExpandedMapModal({
             <span>{t.dashboard.mapStatusConforme}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#C4943A] shadow" />
-            <span>{t.dashboard.mapStatusNonConforme}</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] shadow" />
+            <span>{t.dashboard.mapStatusRisque}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] shadow" />
+            <span>{t.dashboard.mapStatusEnAttente}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#94A3B8] shadow" />
+            <span>{t.dashboard.mapStatusNotVerified}</span>
           </div>
         </div>
       </div>

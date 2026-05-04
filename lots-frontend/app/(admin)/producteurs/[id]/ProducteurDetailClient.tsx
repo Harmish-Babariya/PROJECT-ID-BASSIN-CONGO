@@ -126,10 +126,15 @@ export default function ProducteurDetailClient({
   const conformesCount = parcelles.filter(
     (pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.CONFORME
   ).length
-  const nonConformesCount = parcelles.filter((pc) => {
-    const s = normalizeEudrStatus(pc.status_eudr)
-    return s === EUDR_STATUS.NON_CONFORME || s === EUDR_STATUS.RISQUE
-  }).length
+  const risquesCount = parcelles.filter(
+    (pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.RISQUE
+  ).length
+  const enAttenteCount = parcelles.filter(
+    (pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.EN_ATTENTE
+  ).length
+  const notVerifiedCount = parcelles.filter(
+    (pc) => normalizeEudrStatus(pc.status_eudr) === null
+  ).length
   const conformitePct =
     parcelles.length > 0 ? Math.round((conformesCount / parcelles.length) * 100) : 0
 
@@ -257,8 +262,16 @@ export default function ProducteurDetailClient({
                 {p.legendConforme} ({conformesCount})
               </span>
               <span className="flex items-center gap-1.5 text-white/90 bg-black/60 px-2.5 py-1 rounded-md">
-                <span className="w-2 h-2 rounded-full bg-[#C4943A] shrink-0" />
-                {p.legendNonConforme} ({nonConformesCount})
+                <span className="w-2 h-2 rounded-full bg-[#EAB308] shrink-0" />
+                {p.legendRisque} ({risquesCount})
+              </span>
+              <span className="flex items-center gap-1.5 text-white/90 bg-black/60 px-2.5 py-1 rounded-md">
+                <span className="w-2 h-2 rounded-full bg-[#F59E0B] shrink-0" />
+                {p.legendEnAttente} ({enAttenteCount})
+              </span>
+              <span className="flex items-center gap-1.5 text-white/90 bg-black/60 px-2.5 py-1 rounded-md">
+                <span className="w-2 h-2 rounded-full bg-[#94A3B8] shrink-0" />
+                {p.legendNotVerified} ({notVerifiedCount})
               </span>
             </div>
           )}
@@ -337,19 +350,21 @@ export default function ProducteurDetailClient({
                       <td className="px-4 sm:px-6 py-4">
                         {(() => {
                           const norm = normalizeEudrStatus(pc.status_eudr)
-                          const cls =
-                            norm === EUDR_STATUS.CONFORME
-                              ? "bg-[#D4F1E7] text-[#2AC1A3]"
-                              : norm === EUDR_STATUS.RISQUE
-                              ? "bg-[#FBE9C8] text-[#8B6914]"
-                              : norm === EUDR_STATUS.NON_CONFORME
-                              ? "bg-red-100 text-red-600"
-                              : norm === EUDR_STATUS.EN_ATTENTE
-                              ? "bg-amber-50 text-amber-700"
-                              : "bg-gray-100 text-gray-500"
+                          let cls = "bg-gray-100 text-gray-500"
+                          let label: string = t.parcelles.notVerified
+                          if (norm === EUDR_STATUS.CONFORME) {
+                            cls = "bg-[#D4F1E7] text-[#2AC1A3]"
+                            label = t.parcelles.eudrConforme
+                          } else if (norm === EUDR_STATUS.RISQUE) {
+                            cls = "bg-[#FBE9C8] text-[#8B6914]"
+                            label = t.parcelles.eudrRisque
+                          } else if (norm === EUDR_STATUS.EN_ATTENTE) {
+                            cls = "bg-amber-50 text-amber-700"
+                            label = t.parcelles.eudrEnAttente
+                          }
                           return (
                             <span className={`inline-block px-2 sm:px-3 py-1 rounded-full font-numbers text-[10px] sm:text-[11px] font-bold tracking-[0.1em] uppercase whitespace-nowrap ${cls}`}>
-                              {norm || "—"}
+                              {label}
                             </span>
                           )
                         })()}
@@ -445,8 +460,16 @@ export default function ProducteurDetailClient({
                   {p.legendConforme} ({conformesCount})
                 </span>
                 <span className="flex items-center gap-1.5 text-white/90 bg-black/60 px-2.5 py-1 rounded-md">
-                  <span className="w-2 h-2 rounded-full bg-[#C4943A] shrink-0" />
-                  {p.legendNonConforme} ({nonConformesCount})
+                  <span className="w-2 h-2 rounded-full bg-[#EAB308] shrink-0" />
+                  {p.legendRisque} ({risquesCount})
+                </span>
+                <span className="flex items-center gap-1.5 text-white/90 bg-black/60 px-2.5 py-1 rounded-md">
+                  <span className="w-2 h-2 rounded-full bg-[#F59E0B] shrink-0" />
+                  {p.legendEnAttente} ({enAttenteCount})
+                </span>
+                <span className="flex items-center gap-1.5 text-white/90 bg-black/60 px-2.5 py-1 rounded-md">
+                  <span className="w-2 h-2 rounded-full bg-[#94A3B8] shrink-0" />
+                  {p.legendNotVerified} ({notVerifiedCount})
                 </span>
               </div>
             )}

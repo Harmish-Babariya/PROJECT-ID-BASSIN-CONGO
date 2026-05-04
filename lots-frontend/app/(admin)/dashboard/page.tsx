@@ -55,11 +55,10 @@ async function getStats(paysId: number | null, range: Range) {
   const totalParcelles = parcelles.length
   const normalisedStatuses = parcelles.map(p => normalizeEudrStatus(p.status_eudr))
   const conformes = normalisedStatuses.filter(s => s === EUDR_STATUS.CONFORME).length
-  const nonConformes = normalisedStatuses.filter(
-    s => s === EUDR_STATUS.NON_CONFORME || s === EUDR_STATUS.RISQUE
-  ).length
-  // "à traiter" = pending verification or never verified
-  const aTraiter = totalParcelles - conformes - nonConformes
+  const risques = normalisedStatuses.filter(s => s === EUDR_STATUS.RISQUE).length
+  const enAttente = normalisedStatuses.filter(s => s === EUDR_STATUS.EN_ATTENTE).length
+  // Rows with no status set (null after normalisation) — never verified.
+  const nonVerifies = normalisedStatuses.filter(s => s === null).length
   const pourcentageConformite =
     totalParcelles > 0 ? Math.round((conformes / totalParcelles) * 100) : 0
   const superficieTotale =
@@ -78,7 +77,7 @@ async function getStats(paysId: number | null, range: Range) {
 
   return {
     producteurs: { total: totalProducteurs, femmes, pourcentageFemmes, ageMoyen, ageMin, ageMax },
-    parcelles: { total: totalParcelles, conformes, nonConformes, aTraiter, pourcentageConformite, superficieTotale, haParProducteur },
+    parcelles: { total: totalParcelles, conformes, risques, enAttente, nonVerifies, pourcentageConformite, superficieTotale, haParProducteur },
     lots: { total: totalLots, exportes: lotsExportes, poidsTotal: poidsTotalLots, poidsMoyen: poidsMoyenLot },
     collectes: { total: totalCollectes, poids: poidsCollectes, poidsMoyen: poidsMoyenCollecte },
   }
