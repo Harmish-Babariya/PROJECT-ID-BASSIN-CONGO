@@ -144,7 +144,7 @@ export default function ParcellesContent({
                   { value: "CONFORME", label: tp.eudrConforme },
                   { value: "RISQUE NON NÉGLIGEABLE", label: tp.eudrRisque },
                   { value: "EN ATTENTE", label: tp.eudrEnAttente },
-                  { value: "__not_verified__", label: tp.notVerified },
+                  { value: "__not_verified__", label: tp.notVerified.toUpperCase() },
                 ].map(({ value, label }) => (
                   <label key={value} className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-gray-50 px-1 rounded">
                     <input type="radio" name="status_eudr" value={value} checked={filterStatus === value} onChange={() => { handleFilterChange(value); setShowFilter(false) }} className="accent-[#2ac1a3]" />
