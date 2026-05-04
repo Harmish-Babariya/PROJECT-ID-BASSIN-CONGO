@@ -30,9 +30,13 @@ export async function getParcelles(filters?: {
     query = query.eq("culture", filters.culture)
   }
   if (filters?.status_eudr) {
-    // RISQUE NON NÉGLIGEABLE / RISQUE NON NEGLIGEABLE — accept both spellings
-    // so rows written with or without the diacritic are matched.
-    if (filters.status_eudr === "RISQUE NON NÉGLIGEABLE") {
+    // Sentinel: "__not_verified__" means status_eudr IS NULL or empty string.
+    // The DB stores French status strings; the URL value carries the canonical
+    // French form so the equality match works regardless of UI locale.
+    if (filters.status_eudr === "__not_verified__") {
+      query = query.or("status_eudr.is.null,status_eudr.eq.")
+    } else if (filters.status_eudr === "RISQUE NON NÉGLIGEABLE") {
+      // Accept both diacritic and non-diacritic spellings written historically.
       query = query.in("status_eudr", ["RISQUE NON NÉGLIGEABLE", "RISQUE NON NEGLIGEABLE"])
     } else {
       query = query.eq("status_eudr", filters.status_eudr)

@@ -139,10 +139,16 @@ export default function ParcellesContent({
             {showFilter && (
               <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[180px] p-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{tp.colEudr}</p>
-                {["", "CONFORME", "RISQUE NON NÉGLIGEABLE", "EN ATTENTE"].map(s => (
-                  <label key={s} className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-gray-50 px-1 rounded">
-                    <input type="radio" name="status_eudr" value={s} checked={filterStatus === s} onChange={() => { handleFilterChange(s); setShowFilter(false) }} className="accent-[#2ac1a3]" />
-                    <span className="text-sm text-gray-700">{s || tp.filterAll}</span>
+                {[
+                  { value: "", label: tp.filterAll },
+                  { value: "CONFORME", label: tp.eudrConforme },
+                  { value: "RISQUE NON NÉGLIGEABLE", label: tp.eudrRisque },
+                  { value: "EN ATTENTE", label: tp.eudrEnAttente },
+                  { value: "__not_verified__", label: tp.notVerified },
+                ].map(({ value, label }) => (
+                  <label key={value} className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-gray-50 px-1 rounded">
+                    <input type="radio" name="status_eudr" value={value} checked={filterStatus === value} onChange={() => { handleFilterChange(value); setShowFilter(false) }} className="accent-[#2ac1a3]" />
+                    <span className="text-sm text-gray-700">{label}</span>
                   </label>
                 ))}
               </div>
