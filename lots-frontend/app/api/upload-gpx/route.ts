@@ -134,6 +134,20 @@ export async function POST(request: NextRequest) {
 
     coords = coords.filter(c => !isNaN(c.lat) && !isNaN(c.lon))
 
+    // Drop the trailing point if it duplicates the first — GPX often closes
+    // the ring explicitly, but GeoJSON closure is added below.
+    if (
+      coords.length >= 2 &&
+      coords[0].lat === coords[coords.length - 1].lat &&
+      coords[0].lon === coords[coords.length - 1].lon
+    ) {
+      coords = coords.slice(0, -1)
+    }
+
+    // Drop consecutive duplicate points which can create false self-intersection
+    // hits and spurious zero-length segments.
+    coords = coords.filter((c, i, arr) => i === 0 || c.lat !== arr[i - 1].lat || c.lon !== arr[i - 1].lon)
+
     if (coords.length === 0) {
       return NextResponse.json({ success: false, error: m.noCoords }, { status: 400 })
     }
@@ -142,11 +156,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: m.notEnoughPoints }, { status: 400 })
     }
 
-    // Auto-fix self-intersecting polygons using convex hull
-    if (hasSelfIntersection(coords)) {
-      coords = convexHull(coords)
-    }
-
+    // Preserve the surveyor's actual trace. The shoelace area below works for
+    // any simple polygon, concave or convex, so we do NOT replace coords with a
+    // convex hull — that would discard the parcel's real shape.
     const surface_ha = calculatePolygonArea(coords)
 
     if (surface_ha < 0.0001) {
@@ -243,49 +255,3 @@ function calculatePolygonArea(coords: { lat: number; lon: number }[]): number {
   return area * 111320 * 111320 * Math.cos(avgLat * Math.PI / 180) / 10000
 }
 
-function hasSelfIntersection(coords: { lat: number; lon: number }[]): boolean {
-  const n = coords.length
-  if (n < 4) return false
-  for (let i = 0; i < n - 1; i++) {
-    for (let j = i + 2; j < n - 1; j++) {
-      if (i === 0 && j === n - 2) continue
-      if (segmentsIntersect(coords[i], coords[i + 1], coords[j], coords[j + 1])) return true
-    }
-  }
-  return false
-}
-
-function segmentsIntersect(
-  a: { lat: number; lon: number }, b: { lat: number; lon: number },
-  c: { lat: number; lon: number }, d: { lat: number; lon: number }
-): boolean {
-  const ccw = (p1: typeof a, p2: typeof a, p3: typeof a) =>
-    (p3.lat - p1.lat) * (p2.lon - p1.lon) > (p2.lat - p1.lat) * (p3.lon - p1.lon)
-  return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d)
-}
-
-function convexHull(coords: { lat: number; lon: number }[]): { lat: number; lon: number }[] {
-  const pts = [...coords].sort((a, b) => a.lon !== b.lon ? a.lon - b.lon : a.lat - b.lat)
-  const cross = (o: typeof pts[0], a: typeof pts[0], b: typeof pts[0]) =>
-    (a.lon - o.lon) * (b.lat - o.lat) - (a.lat - o.lat) * (b.lon - o.lon)
-
-  const lower: typeof pts = []
-  for (const p of pts) {
-    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0)
-      lower.pop()
-    lower.push(p)
-  }
-
-  const upper: typeof pts = []
-  for (let i = pts.length - 1; i >= 0; i--) {
-    const p = pts[i]
-    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0)
-      upper.pop()
-    upper.push(p)
-  }
-
-  // Remove last point of each half (duplicates of first point of other half)
-  lower.pop()
-  upper.pop()
-  return [...lower, ...upper]
-}

@@ -1,11 +1,15 @@
 "use client"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 export default function FiltresBar({ zones }: any) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  
+  const { t } = useLanguage()
+  const p = t.producteurs
+  const co = t.common
+
   const [filtres, setFiltres] = useState({
     recherche: searchParams.get('recherche') || '',
     zone_id: searchParams.get('zone_id') || '',
@@ -31,18 +35,18 @@ export default function FiltresBar({ zones }: any) {
       <div className="grid grid-cols-5 gap-4">
         <input
           type="text"
-          placeholder="🔍 Code ou nom..."
+          placeholder={p.searchPlaceholder}
           value={filtres.recherche}
           onChange={(e) => setFiltres({...filtres, recherche: e.target.value})}
           className="px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
         />
-        
+
         <select
           value={filtres.zone_id}
           onChange={(e) => setFiltres({...filtres, zone_id: e.target.value})}
           className="px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
         >
-          <option value="">Toutes zones</option>
+          <option value="">{p.filterAllZones}</option>
           {zones?.map((z: any) => <option key={z.id} value={z.id}>{z.nom}</option>)}
         </select>
 
@@ -51,9 +55,9 @@ export default function FiltresBar({ zones }: any) {
           onChange={(e) => setFiltres({...filtres, sexe: e.target.value})}
           className="px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
         >
-          <option value="">Tous sexes</option>
-          <option value="Homme">Homme</option>
-          <option value="Femme">Femme</option>
+          <option value="">{p.filterAllSexes}</option>
+          <option value="Homme">{co.male}</option>
+          <option value="Femme">{co.female}</option>
         </select>
 
         <select
@@ -61,9 +65,9 @@ export default function FiltresBar({ zones }: any) {
           onChange={(e) => setFiltres({...filtres, statut: e.target.value})}
           className="px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
         >
-          <option value="">Tous statuts</option>
-          <option value="Actif">Actif</option>
-          <option value="Inactif">Inactif</option>
+          <option value="">{p.filterAllStatuts}</option>
+          <option value="Actif">{co.active}</option>
+          <option value="Inactif">{co.inactive}</option>
         </select>
 
         <select
@@ -71,17 +75,17 @@ export default function FiltresBar({ zones }: any) {
           onChange={(e) => setFiltres({...filtres, avec_parcelles: e.target.value})}
           className="px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
         >
-          <option value="">Avec/Sans parcelles</option>
-          <option value="oui">Avec parcelles</option>
-          <option value="non">Sans parcelle</option>
+          <option value="">{p.filterAnyParcelles}</option>
+          <option value="oui">{p.filterWithParcelles}</option>
+          <option value="non">{p.filterWithoutParcelles}</option>
         </select>
       </div>
-      
+
       <button
         onClick={resetFiltres}
         className="mt-3 text-primary hover:underline text-sm"
       >
-        ✖️ Réinitialiser
+        {p.resetFilters}
       </button>
     </div>
   )

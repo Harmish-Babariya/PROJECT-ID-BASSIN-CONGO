@@ -159,9 +159,9 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
                 className={inputClass}
                 required
               >
-                <option value="Cacao">Cacao</option>
-                <option value="Café">Café</option>
-                <option value="Palmier à huile">Palmier à huile</option>
+                <option value="Cacao">{c.optionLabels["Cacao"]}</option>
+                <option value="Café">{c.optionLabels["Café"]}</option>
+                <option value="Palmier à huile">{c.optionLabels["Palmier à huile"]}</option>
               </select>
             </div>
 
@@ -230,10 +230,10 @@ export default function CollecteForm({ collecte, producteurs, parcelles }: Colle
                 className={inputClass}
               >
                 <option value="">{c.selectQualite}</option>
-                <option value="Standard">Standard</option>
-                <option value="Grade 1">Grade 1</option>
-                <option value="Grade 2">Grade 2</option>
-                <option value="Grade 3">Grade 3</option>
+                <option value="Standard">{c.optionLabels["Standard"]}</option>
+                <option value="Grade 1">{c.optionLabels["Grade 1"]}</option>
+                <option value="Grade 2">{c.optionLabels["Grade 2"]}</option>
+                <option value="Grade 3">{c.optionLabels["Grade 3"]}</option>
               </select>
             </div>
 

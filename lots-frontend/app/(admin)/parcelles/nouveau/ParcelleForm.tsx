@@ -331,29 +331,29 @@ export default function ParcelleForm({
               <label className={labelClass}>{tp.labelModeAcces}</label>
               <select value={formData.mode_acces_terre} onChange={e => setFormData({ ...formData, mode_acces_terre: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectModeAcces}</option>
-                <option value="Propriété familiale">Propriété familiale</option>
-                <option value="Achat">Achat</option>
-                <option value="Location">Location</option>
-                <option value="Don">Don</option>
-                <option value="Autre">Autre</option>
+                <option value="Propriété familiale">{tp.optionLabels["Propriété familiale"]}</option>
+                <option value="Achat">{tp.optionLabels["Achat"]}</option>
+                <option value="Location">{tp.optionLabels["Location"]}</option>
+                <option value="Don">{tp.optionLabels["Don"]}</option>
+                <option value="Autre">{tp.optionLabels["Autre"]}</option>
               </select>
             </div>
             <div>
               <label className={labelClass}>{tp.labelAutorisationOccupation}</label>
               <select value={formData.autorisation_occupation} onChange={e => setFormData({ ...formData, autorisation_occupation: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectAutorisation}</option>
-                <option value="Oui">Oui</option>
-                <option value="Non">Non</option>
+                <option value="Oui">{tp.optionLabels["Oui"]}</option>
+                <option value="Non">{tp.optionLabels["Non"]}</option>
               </select>
             </div>
             <div>
               <label className={labelClass}>{tp.labelTypeAutorisation}</label>
               <select value={formData.type_autorisation} onChange={e => setFormData({ ...formData, type_autorisation: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectTypeAutorisation}</option>
-                <option value="Titre foncier">Titre foncier</option>
-                <option value="Autorisation verbale">Autorisation verbale</option>
-                <option value="Autorisation écrite">Autorisation écrite</option>
-                <option value="Autre">Autre</option>
+                <option value="Titre foncier">{tp.optionLabels["Titre foncier"]}</option>
+                <option value="Autorisation verbale">{tp.optionLabels["Autorisation verbale"]}</option>
+                <option value="Autorisation écrite">{tp.optionLabels["Autorisation écrite"]}</option>
+                <option value="Autre">{tp.optionLabels["Autre"]}</option>
               </select>
             </div>
             <div>
@@ -364,11 +364,11 @@ export default function ParcelleForm({
               <label className={labelClass}>{tp.labelEtatSite}</label>
               <select value={formData.etat_site_creation} onChange={e => setFormData({ ...formData, etat_site_creation: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectEtat}</option>
-                <option value="Excellent">Excellent</option>
-                <option value="Bon">Bon</option>
-                <option value="Moyen">Moyen</option>
-                <option value="Dégradé">Dégradé</option>
-                <option value="Très dégradé">Très dégradé</option>
+                <option value="Excellent">{tp.optionLabels["Excellent"]}</option>
+                <option value="Bon">{tp.optionLabels["Bon"]}</option>
+                <option value="Moyen">{tp.optionLabels["Moyen"]}</option>
+                <option value="Dégradé">{tp.optionLabels["Dégradé"]}</option>
+                <option value="Très dégradé">{tp.optionLabels["Très dégradé"]}</option>
               </select>
             </div>
             <div>
@@ -386,16 +386,16 @@ export default function ParcelleForm({
               <label className={labelClass}>{tp.labelProvenance}</label>
               <select value={formData.provenance_semences} onChange={e => setFormData({ ...formData, provenance_semences: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectProvenance}</option>
-                <option value="Connue">Connue</option>
-                <option value="Inconnue">Inconnue</option>
+                <option value="Connue">{tp.optionLabels["Connue"]}</option>
+                <option value="Inconnue">{tp.optionLabels["Inconnue"]}</option>
               </select>
             </div>
             <div>
               <label className={labelClass}>{tp.labelLieu}</label>
               <select value={formData.lieu_semences} onChange={e => setFormData({ ...formData, lieu_semences: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectLieu}</option>
-                <option value="Local">Local</option>
-                <option value="Importé">Importé</option>
+                <option value="Local">{tp.optionLabels["Local"]}</option>
+                <option value="Importé">{tp.optionLabels["Importé"]}</option>
               </select>
             </div>
             <div>
@@ -410,9 +410,9 @@ export default function ParcelleForm({
               <label className={labelClass}>{tp.labelSysteme}</label>
               <select value={formData.systeme_agricole} onChange={e => setFormData({ ...formData, systeme_agricole: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectSysteme}</option>
-                <option value="Monoculture">Monoculture</option>
-                <option value="Agroforesterie simple">Agroforesterie simple</option>
-                <option value="Agroforesterie complexe">Agroforesterie complexe</option>
+                <option value="Monoculture">{tp.optionLabels["Monoculture"]}</option>
+                <option value="Agroforesterie simple">{tp.optionLabels["Agroforesterie simple"]}</option>
+                <option value="Agroforesterie complexe">{tp.optionLabels["Agroforesterie complexe"]}</option>
               </select>
             </div>
             <div>
@@ -421,7 +421,7 @@ export default function ParcelleForm({
                 {["Avocatier", "Safoutier", "Manguier", "Palmier", "Bananier", "Papayer", "Autre", "Aucun"].map(a => (
                   <label key={a} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
                     <input type="checkbox" checked={formData.arbres_accompagnons.includes(a)} onChange={() => handleArrayToggle("arbres_accompagnons", a)} className="accent-[#2ac1a3] rounded" />
-                    {a}
+                    {tp.optionLabels[a] ?? a}
                   </label>
                 ))}
               </div>
@@ -441,8 +441,8 @@ export default function ParcelleForm({
               <label className={labelClass}>{tp.labelSignesMaladies}</label>
               <select value={formData.signes_maladies} onChange={e => setFormData({ ...formData, signes_maladies: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectOuiNon}</option>
-                <option value="Oui">Oui</option>
-                <option value="Non">Non</option>
+                <option value="Oui">{tp.optionLabels["Oui"]}</option>
+                <option value="Non">{tp.optionLabels["Non"]}</option>
               </select>
             </div>
             <div>
@@ -451,7 +451,7 @@ export default function ParcelleForm({
                 {["Pourriture brune", "Miride", "Chenille", "Swollen Shoot", "Autre", "Aucun"].map(m => (
                   <label key={m} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
                     <input type="checkbox" checked={formData.identification_maladies.includes(m)} onChange={() => handleArrayToggle("identification_maladies", m)} className="accent-[#2ac1a3] rounded" />
-                    {m}
+                    {tp.optionLabels[m] ?? m}
                   </label>
                 ))}
               </div>
@@ -460,16 +460,16 @@ export default function ParcelleForm({
               <label className={labelClass}>{tp.labelPlantationProduit}</label>
               <select value={formData.plantation_produit} onChange={e => setFormData({ ...formData, plantation_produit: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectOuiNon}</option>
-                <option value="Oui">Oui</option>
-                <option value="Non">Non</option>
+                <option value="Oui">{tp.optionLabels["Oui"]}</option>
+                <option value="Non">{tp.optionLabels["Non"]}</option>
               </select>
             </div>
             <div>
               <label className={labelClass}>{tp.labelRecolte}</label>
               <select value={formData.recolte_annee_derniere} onChange={e => setFormData({ ...formData, recolte_annee_derniere: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectOuiNon}</option>
-                <option value="Oui">Oui</option>
-                <option value="Non">Non</option>
+                <option value="Oui">{tp.optionLabels["Oui"]}</option>
+                <option value="Non">{tp.optionLabels["Non"]}</option>
               </select>
             </div>
             <div>
@@ -487,8 +487,8 @@ export default function ParcelleForm({
               <label className={labelClass}>{tp.labelFormations}</label>
               <select value={formData.formations_recues} onChange={e => setFormData({ ...formData, formations_recues: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectOuiNon}</option>
-                <option value="Oui">Oui</option>
-                <option value="Non">Non</option>
+                <option value="Oui">{tp.optionLabels["Oui"]}</option>
+                <option value="Non">{tp.optionLabels["Non"]}</option>
               </select>
             </div>
             <div>
@@ -497,7 +497,7 @@ export default function ParcelleForm({
                 {["Désherbage", "Élagage", "Fertilisation", "Traitement", "Récolte sanitaire", "Autre", "Aucun"].map(o => (
                   <label key={o} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
                     <input type="checkbox" checked={formData.operations_entretien.includes(o)} onChange={() => handleArrayToggle("operations_entretien", o)} className="accent-[#2ac1a3] rounded" />
-                    {o}
+                    {tp.optionLabels[o] ?? o}
                   </label>
                 ))}
               </div>
@@ -506,19 +506,19 @@ export default function ParcelleForm({
               <label className={labelClass}>{tp.labelPesticides}</label>
               <select value={formData.utilisation_pesticides} onChange={e => setFormData({ ...formData, utilisation_pesticides: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectOuiNon}</option>
-                <option value="Oui">Oui</option>
-                <option value="Non">Non</option>
+                <option value="Oui">{tp.optionLabels["Oui"]}</option>
+                <option value="Non">{tp.optionLabels["Non"]}</option>
               </select>
             </div>
             <div>
               <label className={labelClass}>{tp.labelEtatPlantation}</label>
               <select value={formData.etat_plantation_enquete} onChange={e => setFormData({ ...formData, etat_plantation_enquete: e.target.value })} className={selectClass}>
                 <option value="">{tp.selectEtat}</option>
-                <option value="Excellent">Excellent</option>
-                <option value="Bon">Bon</option>
-                <option value="Moyen">Moyen</option>
-                <option value="Dégradé">Dégradé</option>
-                <option value="Très dégradé">Très dégradé</option>
+                <option value="Excellent">{tp.optionLabels["Excellent"]}</option>
+                <option value="Bon">{tp.optionLabels["Bon"]}</option>
+                <option value="Moyen">{tp.optionLabels["Moyen"]}</option>
+                <option value="Dégradé">{tp.optionLabels["Dégradé"]}</option>
+                <option value="Très dégradé">{tp.optionLabels["Très dégradé"]}</option>
               </select>
             </div>
           </div>

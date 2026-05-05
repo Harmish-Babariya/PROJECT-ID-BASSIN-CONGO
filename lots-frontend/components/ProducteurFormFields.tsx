@@ -98,11 +98,12 @@ function FieldsetBox({ legend, children }: { legend?: string; children: React.Re
   )
 }
 
-function CheckboxGroupInline({ options, values, onChange, cols = 6 }: {
+function CheckboxGroupInline({ options, values, onChange, cols = 6, labels }: {
   options: string[]
   values: string[]
   onChange: (next: string[]) => void
   cols?: number
+  labels?: Record<string, string>
 }) {
   const gridCls =
     cols === 6 ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-6"
@@ -121,7 +122,7 @@ function CheckboxGroupInline({ options, values, onChange, cols = 6 }: {
               className="w-3.5 h-3.5 appearance-none border border-gray-300 rounded-xs bg-white checked:bg-[#2AC1A3] checked:border-[#2AC1A3] relative cursor-pointer transition
                 checked:after:content-[''] checked:after:absolute checked:after:top-px checked:after:left-1 checked:after:w-1 checked:after:h-2 checked:after:border-white checked:after:border-r-2 checked:after:border-b-2 checked:after:rotate-45"
             />
-            <span>{opt}</span>
+            <span>{labels?.[opt] ?? opt}</span>
           </label>
         )
       })}
@@ -229,7 +230,7 @@ export default function ProducteurFormFields({
             <Input
               value={form.communaute}
               onChange={(e) => update("communaute", e.target.value)}
-              placeholder="ex. Bantou, Autochtone, Autre"
+              placeholder={p.placeholderCommunaute}
               maxLength={50}
             />
           </div>
@@ -322,7 +323,7 @@ export default function ProducteurFormFields({
             <Input
               value={form.role_activite_cacao}
               onChange={(e) => update("role_activite_cacao", e.target.value)}
-              placeholder="ex. Producteur, Collecteur, Intermédiaire…"
+              placeholder={p.placeholderRoleCacao}
             />
           </div>
           <div>
@@ -330,7 +331,7 @@ export default function ProducteurFormFields({
             <Input
               value={form.type_proprietaire}
               onChange={(e) => update("type_proprietaire", e.target.value)}
-              placeholder="ex. Propriétaire, Locataire, Métayer…"
+              placeholder={p.placeholderTypeProprietaire}
             />
           </div>
         </div>
@@ -347,7 +348,7 @@ export default function ProducteurFormFields({
             <Input
               value={form.source_principale_revenus}
               onChange={(e) => update("source_principale_revenus", e.target.value)}
-              placeholder="ex. Agriculture, Élevage, Commerce…"
+              placeholder={p.placeholderSourceRevenus}
               maxLength={50}
             />
           </div>
@@ -356,18 +357,18 @@ export default function ProducteurFormFields({
             <Input
               value={form.place_cacao}
               onChange={(e) => update("place_cacao", e.target.value)}
-              placeholder="ex. 1er rang, 2ème rang, 3ème rang"
+              placeholder={p.placeholderPlaceCacao}
               maxLength={20}
             />
           </div>
           <div>
             <FieldsetBox legend={p.labelCulturesPhares}>
-              <CheckboxGroupInline options={CULTURES_PHARES} values={form.cultures_phares} onChange={(next) => update("cultures_phares", next)} cols={3} />
+              <CheckboxGroupInline options={CULTURES_PHARES} values={form.cultures_phares} onChange={(next) => update("cultures_phares", next)} cols={3} labels={p.optionLabels} />
             </FieldsetBox>
           </div>
           <div>
             <FieldsetBox legend={p.labelAutresActivites}>
-              <CheckboxGroupInline options={AUTRES_ACTIVITES} values={form.autres_activites} onChange={(next) => update("autres_activites", next)} cols={3} />
+              <CheckboxGroupInline options={AUTRES_ACTIVITES} values={form.autres_activites} onChange={(next) => update("autres_activites", next)} cols={3} labels={p.optionLabels} />
             </FieldsetBox>
           </div>
         </div>
@@ -400,7 +401,7 @@ export default function ProducteurFormFields({
             <Input
               value={form.usage_cacao_recolte[0] ?? ""}
               onChange={(e) => update("usage_cacao_recolte", e.target.value ? [e.target.value] : [])}
-              placeholder="ex. Vente, Don, Transformation…"
+              placeholder={p.placeholderUsageCacao}
             />
           </div>
           <div>
@@ -408,7 +409,7 @@ export default function ProducteurFormFields({
             <Input
               value={form.mode_vente[0] ?? ""}
               onChange={(e) => update("mode_vente", e.target.value ? [e.target.value] : [])}
-              placeholder="ex. Cabosse, Par pesage, Par sac"
+              placeholder={p.placeholderModeVente}
             />
           </div>
           <div>
@@ -436,13 +437,13 @@ export default function ProducteurFormFields({
             <Input
               value={form.lieu_vente}
               onChange={(e) => update("lieu_vente", e.target.value)}
-              placeholder="ex. Marché local, Coopérative, Bord champ…"
+              placeholder={p.placeholderLieuVente}
             />
           </div>
           <div className="sm:col-span-2">
             <Label>{p.labelAcheteur}</Label>
             <FieldsetBox>
-              <CheckboxGroupInline options={ACHETEUR_OPTIONS} values={form.acheteur} onChange={(next) => update("acheteur", next)} cols={3} />
+              <CheckboxGroupInline options={ACHETEUR_OPTIONS} values={form.acheteur} onChange={(next) => update("acheteur", next)} cols={3} labels={p.optionLabels} />
             </FieldsetBox>
           </div>
         </div>
