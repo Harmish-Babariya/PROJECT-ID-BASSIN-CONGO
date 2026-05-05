@@ -37,6 +37,13 @@ function parseGeojson(geo: unknown): PolygonGeo | null {
   return null
 }
 
+function polygonCentroid(coords: number[][]): [number, number] {
+  let x = 0, y = 0
+  for (const [lon, lat] of coords) { x += lon; y += lat }
+  const n = coords.length || 1
+  return [x / n, y / n]
+}
+
 function addPolygonLayers(map: mapboxgl.Map) {
   map.addLayer({
     id: "parcelle-fill",
@@ -108,6 +115,12 @@ export default function ParcelleMap({
           data: { type: "Feature", geometry: polygon, properties: {} } as GeoJSON.Feature,
         })
         addPolygonLayers(map)
+        // Drop a marker at the polygon centroid so the parcel is visible even
+        // when zoomed out far enough that the fill/outline disappear.
+        const centroid = polygonCentroid(polygon.coordinates[0])
+        markerRef.current = new mapboxgl.Marker({ color: "#2AC1A3" })
+          .setLngLat(centroid)
+          .addTo(map)
         const bounds = new mapboxgl.LngLatBounds()
         polygon.coordinates[0].forEach((c) => bounds.extend(c as [number, number]))
         map.fitBounds(bounds, { padding: 30, duration: 800, maxZoom: 17 })
@@ -156,6 +169,12 @@ export default function ParcelleMap({
           data: { type: "Feature", geometry: polygon, properties: {} } as GeoJSON.Feature,
         })
         addPolygonLayers(map)
+        if (!markerRef.current) {
+          const centroid = polygonCentroid(polygon.coordinates[0])
+          markerRef.current = new mapboxgl.Marker({ color: "#2AC1A3" })
+            .setLngLat(centroid)
+            .addTo(map)
+        }
       } else if (hasPoint && !markerRef.current) {
         markerRef.current = new mapboxgl.Marker({ color: "#2AC1A3" })
           .setLngLat([lon, lat])
