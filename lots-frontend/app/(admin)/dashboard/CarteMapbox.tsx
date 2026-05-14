@@ -1,9 +1,21 @@
 "use client"
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useLanguage } from "@/contexts/LanguageContext"
 import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
+
+const MAP_STYLES: Record<string, string> = {
+  satellite: "mapbox://styles/mapbox/satellite-streets-v12",
+  streets: "mapbox://styles/mapbox/streets-v12",
+  terrain: "mapbox://styles/mapbox/outdoors-v12",
+}
+
+const STYLE_OPTIONS = [
+  { key: "satellite", label: "SAT" },
+  { key: "streets", label: "PLAN" },
+  { key: "terrain", label: "TERRAIN" },
+]
 
 interface Parcelle {
   id: number
@@ -32,6 +44,7 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
   const { t } = useLanguage()
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
+  const [activeStyle, setActiveStyle] = useState("satellite")
 
   useEffect(() => {
     if (!mapContainer.current) return
@@ -44,7 +57,7 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/satellite-streets-v12',
+      style: MAP_STYLES.satellite,
       center: defaultCenter,
       zoom: 6
     })
@@ -163,6 +176,12 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
     }
   }, [parcelles])
 
+  function changeStyle(key: string) {
+    if (!map.current) return
+    map.current.setStyle(MAP_STYLES[key])
+    setActiveStyle(key)
+  }
+
   if (parcelles.length === 0) {
     return (
       <div className="bg-white border border-gray-200 rounded-lg shadow overflow-hidden flex items-center justify-center" style={{ height: '600px' }}>
@@ -172,11 +191,22 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
   }
 
   return (
-    <div
-      ref={mapContainer}
-      className="bg-white border border-gray-200 rounded-lg shadow overflow-hidden"
-      style={{ height: '600px', width: '100%' }}
-    />
+    <div className="relative bg-white border border-gray-200 rounded-lg shadow overflow-hidden" style={{ height: '600px', width: '100%' }}>
+      <div ref={mapContainer} className="w-full h-full" />
+      <div className="absolute top-3 left-3 z-10 flex gap-1.5 bg-black/40 backdrop-blur-sm rounded-md p-1">
+        {STYLE_OPTIONS.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => changeStyle(key)}
+            className={`px-2.5 py-1 rounded text-[9px] font-bold tracking-widest transition ${
+              activeStyle === key ? "bg-[#2AC1A3] text-white" : "text-white/70 hover:text-white"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 

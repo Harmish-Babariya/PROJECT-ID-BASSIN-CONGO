@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect, useMemo } from "react"
 import { Filter, Search } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { translateGeoName } from "@/lib/i18n/geo"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
 import SortableHeader from "@/components/SortableHeader"
@@ -34,7 +35,7 @@ export default function ProducteursContent({
   zones: Zone[]
   isAdmin?: boolean
 }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const p = t.producteurs
   const co = t.common
   const router = useRouter()
@@ -145,7 +146,7 @@ export default function ProducteursContent({
           >
             <option value="">{p.filterAllZones}</option>
             {zones.map((z) => (
-              <option key={z.id} value={z.id}>{z.nom}</option>
+              <option key={z.id} value={z.id}>{translateGeoName(z.nom, locale)}</option>
             ))}
           </select>
           <select

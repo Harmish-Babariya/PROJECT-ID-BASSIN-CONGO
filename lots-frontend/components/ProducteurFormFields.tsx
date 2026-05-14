@@ -1,5 +1,6 @@
 "use client"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { translateGeoName } from "@/lib/i18n/geo"
 
 export type ProducteurFormState = {
   nom: string
@@ -149,9 +150,10 @@ export default function ProducteurFormFields({
   villages: VillageOption[]
   nationalites: NationaliteOption[]
 }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const p = t.producteurs
   const co = t.common
+  const geo = (n: string | null | undefined) => translateGeoName(n, locale)
 
   const update = <K extends keyof ProducteurFormState>(key: K, value: ProducteurFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -270,8 +272,8 @@ export default function ProducteurFormFields({
               }}
             >
               <option value="">— {p.placeholderSelect} —</option>
-              {pays.map((p) => (
-                <option key={p.id} value={String(p.id)}>{p.nom}</option>
+              {pays.map((py) => (
+                <option key={py.id} value={String(py.id)}>{geo(py.nom)}</option>
               ))}
             </Select>
           </div>
@@ -286,7 +288,7 @@ export default function ProducteurFormFields({
             >
               <option value="">— {p.placeholderSelect} —</option>
               {filteredZones.map((z) => (
-                <option key={z.id} value={String(z.id)}>{z.nom}</option>
+                <option key={z.id} value={String(z.id)}>{geo(z.nom)}</option>
               ))}
             </Select>
           </div>

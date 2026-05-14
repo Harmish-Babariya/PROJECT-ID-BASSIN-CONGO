@@ -20,6 +20,7 @@ const messages = {
     noCoords: "Aucune coordonnée trouvée dans le fichier GPX",
     notEnoughPoints: "Le fichier GPX doit contenir au moins 3 points",
     zeroArea: "Le polygone a une surface nulle ou quasi-nulle",
+    selfIntersect: "Le polygone présente des auto-intersections. Veuillez corriger le tracé GPX.",
     uploadError: (msg: string) => `Erreur upload : ${msg}`,
     internalError: "Erreur interne",
     pendingReview: "Vérification automatique en attente",
@@ -40,6 +41,7 @@ const messages = {
     noCoords: "No coordinates found in the GPX file",
     notEnoughPoints: "The GPX file must contain at least 3 points",
     zeroArea: "The polygon has zero or near-zero area",
+    selfIntersect: "The polygon is self-intersecting. Please correct the GPX trace.",
     uploadError: (msg: string) => `Upload error: ${msg}`,
     internalError: "Internal error",
     pendingReview: "Automatic verification pending",
@@ -165,6 +167,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: m.zeroArea }, { status: 400 })
     }
 
+    if (hasSelfIntersection(coords)) {
+      return NextResponse.json({ success: false, error: m.selfIntersect }, { status: 400 })
+    }
+
     // Upload to Supabase Storage only after validation passes
     const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`
 
@@ -196,31 +202,13 @@ export async function POST(request: NextRequest) {
       ring.push([...ring[0]])
     }
 
-    // Year-based heuristic. Definitive verification is performed by the
-    // server-side python script (eudr_verification.py) which uses Hansen GFC
-    // satellite data and overwrites status_eudr afterwards. Canonical FR
-    // strings here match what the python script writes, so the column is
-    // consistent regardless of which path produced the value.
-    let eudr_status: string = EUDR_STATUS.EN_ATTENTE
-    let justification: string = m.pendingReview
+    // Per EUDR rules, plantation year alone is not a valid compliance signal.
+    // Status stays EN_ATTENTE until the Hansen + WDPA satellite analysis runs
+    // (see /api/verify-eudr) and overwrites this row with the real result.
+    const eudr_status: string = EUDR_STATUS.EN_ATTENTE
+    const justification: string = m.pendingReview
     const verification_timestamp = new Date().toISOString()
-
-    if (annee_plantation) {
-      const year = parseInt(annee_plantation)
-      const currentYear = new Date().getFullYear()
-      if (!isNaN(year)) {
-        if (year > currentYear) {
-          eudr_status = EUDR_STATUS.EN_ATTENTE
-          justification = m.pendingFutureYear(year)
-        } else if (year <= 2020) {
-          eudr_status = EUDR_STATUS.CONFORME
-          justification = m.compliant(year)
-        } else {
-          eudr_status = EUDR_STATUS.RISQUE
-          justification = m.alert(year)
-        }
-      }
-    }
+    void annee_plantation
 
     return NextResponse.json({
       success: true,
@@ -253,5 +241,30 @@ function calculatePolygonArea(coords: { lat: number; lon: number }[]): number {
   area = Math.abs(area) / 2
   const avgLat = coords.reduce((s, c) => s + c.lat, 0) / coords.length
   return area * 111320 * 111320 * Math.cos(avgLat * Math.PI / 180) / 10000
+}
+
+function hasSelfIntersection(coords: { lat: number; lon: number }[]): boolean {
+  const n = coords.length
+  if (n < 4) return false
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = i + 2; j < n - 1; j++) {
+      if (i === 0 && j === n - 2) continue
+      if (segmentsIntersect(coords[i], coords[i + 1], coords[j], coords[j + 1])) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+function segmentsIntersect(
+  a: { lat: number; lon: number },
+  b: { lat: number; lon: number },
+  c: { lat: number; lon: number },
+  d: { lat: number; lon: number }
+): boolean {
+  const ccw = (p1: typeof a, p2: typeof a, p3: typeof a) =>
+    (p3.lat - p1.lat) * (p2.lon - p1.lon) > (p2.lat - p1.lat) * (p3.lon - p1.lon)
+  return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d)
 }
 

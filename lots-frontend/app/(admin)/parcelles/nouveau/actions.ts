@@ -117,6 +117,21 @@ export async function createParcelle(formData: any, returnTo?: string) {
       })
     }
 
+    // Trigger satellite verification (Hansen + WDPA) for parcels with a GPX.
+    // Fire-and-forget — the parcel stays EN ATTENTE until the call completes
+    // and overwrites status_eudr / justification_eudr.
+    if (data?.id && dataToInsert.gpx_file_url) {
+      const base = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
+      const origin = base?.startsWith("http") ? base : base ? `https://${base}` : ""
+      if (origin) {
+        fetch(`${origin}/api/verify-eudr`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ parcelle_id: data.id }),
+        }).catch(() => {})
+      }
+    }
+
     revalidatePath('/parcelles')
     revalidatePath(`/producteurs/${formData.producteur_id}`)
     revalidatePath('/profil')

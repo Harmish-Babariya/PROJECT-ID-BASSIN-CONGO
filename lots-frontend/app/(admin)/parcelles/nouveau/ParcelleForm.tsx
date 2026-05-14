@@ -5,6 +5,7 @@ import { createParcelle } from "./actions"
 import { Toast, useToast } from "@/components/Toast"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { mapApiCodeToStatus, EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
+import { translateGeoName } from "@/lib/i18n/geo"
 
 interface ParcelleFormProps {
   producteurs: any[]
@@ -293,14 +294,14 @@ export default function ParcelleForm({
               <label className={labelClass}>{tp.labelPays}</label>
               <select value={formData.pays_id} onChange={e => handlePaysChange(e.target.value)} className={selectClass} disabled={producteurBloque || paysLocked} required>
                 <option value="">{tp.selectPays}</option>
-                {pays.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+                {pays.map(p => <option key={p.id} value={p.id}>{translateGeoName(p.nom, locale)}</option>)}
               </select>
             </div>
             <div>
               <label className={labelClass}>{tp.labelZone}</label>
               <select value={formData.zone_id} onChange={e => handleZoneChange(e.target.value)} className={selectClass} required disabled={producteurBloque}>
                 <option value="">{tp.selectZone}</option>
-                {filteredZones.map(z => <option key={z.id} value={z.id}>{z.nom}</option>)}
+                {filteredZones.map(z => <option key={z.id} value={z.id}>{translateGeoName(z.nom, locale)}</option>)}
               </select>
             </div>
             <div className="col-span-2">
@@ -546,16 +547,24 @@ export default function ParcelleForm({
               <div className="space-y-1 text-sm text-gray-600">
                 <p>{tp.gpxLatLon(gpxAnalyse.latitude, gpxAnalyse.longitude)}</p>
                 <p>{tp.gpxSurface(gpxAnalyse.surface_ha, gpxAnalyse.nb_points)}</p>
-                {formData.status_eudr && (
-                  <p className={`font-semibold mt-1 ${
-                    formData.status_eudr === EUDR_STATUS.CONFORME ? "text-[#2ac1a3]" :
-                    formData.status_eudr === EUDR_STATUS.RISQUE ? "text-yellow-600" :
-                    formData.status_eudr === EUDR_STATUS.EN_ATTENTE ? "text-amber-600" :
+                {formData.status_eudr && (() => {
+                  const norm = normalizeEudrStatus(formData.status_eudr)
+                  const statusLabel =
+                    norm === EUDR_STATUS.CONFORME ? tp.eudrConforme :
+                    norm === EUDR_STATUS.RISQUE ? tp.eudrRisque :
+                    norm === EUDR_STATUS.EN_ATTENTE ? tp.eudrEnAttente :
+                    formData.status_eudr
+                  const colorClass =
+                    norm === EUDR_STATUS.CONFORME ? "text-[#2ac1a3]" :
+                    norm === EUDR_STATUS.RISQUE ? "text-yellow-600" :
+                    norm === EUDR_STATUS.EN_ATTENTE ? "text-amber-600" :
                     "text-gray-500"
-                  }`}>
-                    🌍 EUDR : {formData.status_eudr} — {formData.justification_eudr}
-                  </p>
-                )}
+                  return (
+                    <p className={`font-semibold mt-1 ${colorClass}`}>
+                      {tp.gpxEudrLabel} {statusLabel}{formData.justification_eudr ? ` — ${formData.justification_eudr}` : ""}
+                    </p>
+                  )
+                })()}
               </div>
             </div>
           )}

@@ -167,7 +167,7 @@ export default function CollectesContent({
                             ? "bg-yellow-50 text-yellow-600 border-yellow-200"
                             : "bg-transparent text-gray-400 border-gray-300"
                         }`}>
-                          {col.qualite}
+                          {c.optionLabels[col.qualite] ?? col.qualite}
                         </span>
                       ) : (
                         <span className="font-courier px-3 py-1 rounded-full text-[10px] font-semibold bg-transparent text-gray-400 border border-gray-300 tracking-widest uppercase">

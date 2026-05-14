@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     // 1. Fetch parcel from Supabase
     const { data: parcelle, error: fetchError } = await supabaseAdmin
       .from("parcelles")
-      .select("id, code_parcelle, latitude, longitude, gpx_file_url, annee_plantation")
+      .select("id, code_parcelle, latitude, longitude, gpx_file_url, annee_plantation, eudr_admin_override")
       .eq("id", parcelle_id)
       .single()
 
@@ -72,6 +72,19 @@ export async function POST(request: NextRequest) {
         { success: false, error: `Parcelle ${parcelle_id} non trouvée` },
         { status: 404 }
       )
+    }
+
+    // Admin override — when set, an admin has manually corrected the EUDR
+    // status. Skip automated re-verification so the admin's decision is not
+    // overwritten on Hansen data refreshes.
+    if (parcelle.eudr_admin_override) {
+      return NextResponse.json({
+        success: true,
+        parcelle_id,
+        code_parcelle: parcelle.code_parcelle,
+        skipped: true,
+        reason: "admin_override",
+      })
     }
 
     // 2. Parse GPX → polygon

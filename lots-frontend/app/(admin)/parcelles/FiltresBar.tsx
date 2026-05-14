@@ -2,11 +2,12 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { translateGeoName } from "@/lib/i18n/geo"
 
 export default function FiltresBar({ zones, producteurs }: any) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const tp = t.parcelles
   const tc = t.common
 
@@ -47,7 +48,7 @@ export default function FiltresBar({ zones, producteurs }: any) {
           className="px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg"
         >
           <option value="">{tp.filterAllZones}</option>
-          {zones?.map((z: any) => <option key={z.id} value={z.id}>{z.nom}</option>)}
+          {zones?.map((z: any) => <option key={z.id} value={z.id}>{translateGeoName(z.nom, locale)}</option>)}
         </select>
 
         <select

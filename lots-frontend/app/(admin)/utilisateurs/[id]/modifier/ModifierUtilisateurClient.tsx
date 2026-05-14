@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { User } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { translateGeoName } from "@/lib/i18n/geo"
 import ConfirmModal from "@/components/ConfirmModal"
 
 type Pays = { id: number | string; nom: string }
@@ -68,7 +69,7 @@ export default function ModifierUtilisateurClient({
 }) {
   const formatCount = (n: number | null) =>
     n == null ? "—" : n.toLocaleString()
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const u = t.utilisateurs
   const m = u.modify
   const router = useRouter()
@@ -296,7 +297,9 @@ export default function ModifierUtilisateurClient({
           <SummaryRow
             label={m.summaryCountry}
             value={
-              user.role === "admin" ? u.allCountries : user.pays_nom || "—"
+              user.role === "admin"
+                ? u.allCountries
+                : translateGeoName(user.pays_nom, locale) || "—"
             }
             valueClass="text-[14px] text-gray-900 font-semibold"
           />
@@ -424,7 +427,7 @@ export default function ModifierUtilisateurClient({
                   <option value="">{m.countrySelectPlaceholder}</option>
                   {pays.map((p) => (
                     <option key={p.id} value={String(p.id)}>
-                      {p.nom}
+                      {translateGeoName(p.nom, locale)}
                     </option>
                   ))}
                 </select>

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic"
 import { useEffect, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
+import { translateGeoName } from "@/lib/i18n/geo"
 
 const CarteMapbox = dynamic(() => import("@/app/(admin)/dashboard/CarteMapbox"), {
   ssr: false,
@@ -59,14 +60,19 @@ type Parcelle = {
   geojson?: unknown
 }
 
-function formatList(values: string[] | null): string {
-  if (!values || values.length === 0) return "—"
-  return values.join("; ")
+function tx(value: string | null | undefined, labels?: Record<string, string>): string {
+  if (!value) return value ?? ""
+  return labels?.[value] ?? value
 }
 
-function formatValue(value: string | number | null | undefined): string {
+function formatList(values: string[] | null, labels?: Record<string, string>): string {
+  if (!values || values.length === 0) return "—"
+  return values.map(v => tx(v, labels)).join("; ")
+}
+
+function formatValue(value: string | number | null | undefined, labels?: Record<string, string>): string {
   if (value === null || value === undefined || value === "") return "—"
-  return String(value)
+  return tx(String(value), labels)
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -85,8 +91,9 @@ export default function ProducteurDetailClient({
   producteur: Producteur
   parcelles: Parcelle[]
 }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const p = t.producteurs
+  const geo = (n: string | null | undefined) => translateGeoName(n, locale)
   const [mapExpanded, setMapExpanded] = useState(false)
 
   useEffect(() => {
@@ -135,37 +142,36 @@ export default function ProducteurDetailClient({
   const notVerifiedCount = parcelles.filter(
     (pc) => normalizeEudrStatus(pc.status_eudr) === null
   ).length
-  const conformitePct =
-    parcelles.length > 0 ? Math.round((conformesCount / parcelles.length) * 100) : 0
 
   const displayName = [producteur.nom, producteur.prenom].filter(Boolean).join(" ").trim()
 
+  const labels = p.optionLabels
   const infoRows: Array<{ label: string; value: string }> = [
-    { label: p.fieldSexe, value: formatValue(producteur.sexe) },
+    { label: p.fieldSexe, value: formatValue(producteur.sexe, labels) },
     { label: p.fieldAnneeNaissance, value: formatValue(producteur.annee_naissance) },
-    { label: p.fieldNationalite, value: formatValue(producteur.nationalite) },
+    { label: p.fieldNationalite, value: formatValue(producteur.nationalite, labels) },
     { label: p.fieldCommunaute, value: formatValue(producteur.communaute) },
     { label: p.fieldTelephone, value: formatValue(producteur.telephone) },
-    { label: p.fieldPays, value: formatValue(producteur.pays?.nom) },
-    { label: p.fieldZone, value: formatValue(producteur.zones?.nom) },
+    { label: p.fieldPays, value: formatValue(geo(producteur.pays?.nom)) },
+    { label: p.fieldZone, value: formatValue(geo(producteur.zones?.nom)) },
     { label: p.fieldVillage, value: formatValue(producteur.village) },
   ]
 
   const otherRows: Array<{ label: string; value: string }> = [
-    { label: p.fieldRole, value: formatValue(producteur.role_activite_cacao) },
-    { label: p.fieldTypeProprietaire, value: formatValue(producteur.type_proprietaire) },
-    { label: p.fieldSourceRevenus, value: formatValue(producteur.source_principale_revenus) },
+    { label: p.fieldRole, value: formatValue(producteur.role_activite_cacao, labels) },
+    { label: p.fieldTypeProprietaire, value: formatValue(producteur.type_proprietaire, labels) },
+    { label: p.fieldSourceRevenus, value: formatValue(producteur.source_principale_revenus, labels) },
     { label: p.fieldPlaceCacao, value: formatValue(producteur.place_cacao) },
-    { label: p.fieldCulturesPhares, value: formatList(producteur.cultures_phares) },
-    { label: p.fieldAutresActivites, value: formatList(producteur.autres_activites) },
-    { label: p.fieldMainOeuvre, value: formatValue(producteur.main_oeuvre_supplementaire) },
-    { label: p.fieldRecolte, value: formatValue(producteur.recolte_annee_derniere) },
-    { label: p.fieldUsageCacao, value: formatList(producteur.usage_cacao_recolte) },
-    { label: p.fieldModeVente, value: formatList(producteur.mode_vente) },
+    { label: p.fieldCulturesPhares, value: formatList(producteur.cultures_phares, labels) },
+    { label: p.fieldAutresActivites, value: formatList(producteur.autres_activites, labels) },
+    { label: p.fieldMainOeuvre, value: formatValue(producteur.main_oeuvre_supplementaire, labels) },
+    { label: p.fieldRecolte, value: formatValue(producteur.recolte_annee_derniere, labels) },
+    { label: p.fieldUsageCacao, value: formatList(producteur.usage_cacao_recolte, labels) },
+    { label: p.fieldModeVente, value: formatList(producteur.mode_vente, labels) },
     { label: p.fieldKilos, value: formatValue(producteur.kilos_vendus) },
     { label: p.fieldPrixKiloFcfa, value: formatValue(producteur.prix_kilo) },
     { label: p.fieldLieuVente, value: formatValue(producteur.lieu_vente) },
-    { label: p.fieldAcheteur, value: formatList(producteur.acheteur) },
+    { label: p.fieldAcheteur, value: formatList(producteur.acheteur, labels) },
   ]
 
   return (
@@ -184,7 +190,7 @@ export default function ProducteurDetailClient({
         <p className="text-[11px] text-[#AAAAAA] tracking-[0.18em] uppercase font-medium mt-1 flex flex-wrap gap-1 items-center">
           <span className="font-mono">{producteur.code_producteur}</span>
           <span>·</span>
-          <span>{producteur.statut || "—"}</span>
+          <span>{producteur.statut ? (labels[producteur.statut] ?? producteur.statut) : "—"}</span>
         </p>
       </div>
 
@@ -210,9 +216,25 @@ export default function ProducteurDetailClient({
           <p className="text-[9px] text-[#AAAAAA] tracking-[0.18em] uppercase font-medium leading-tight">
             {p.kpiEudr}
           </p>
-          <p className="text-[22px] sm:text-[28px] font-bold text-[#1A1A1A] mt-1 font-numbers">
-            {conformitePct}%
-          </p>
+          <div className="mt-2">
+            {(() => {
+              // Dominant status: alert wins over pending, pending over compliant,
+              // compliant over not-verified. Mirrors the priority used in the
+              // parcel list filters.
+              const tParc = t.parcelles
+              const cls = "inline-block px-3 py-1.5 rounded-lg text-[11px] sm:text-[12px] font-bold uppercase tracking-wide"
+              if (risquesCount > 0) {
+                return <span className={`${cls} bg-yellow-100 text-yellow-700`}>{tParc.eudrRisque}</span>
+              }
+              if (enAttenteCount > 0) {
+                return <span className={`${cls} bg-amber-50 text-amber-700`}>{tParc.eudrEnAttente}</span>
+              }
+              if (conformesCount > 0) {
+                return <span className={`${cls} bg-[#2ac1a3]/15 text-[#2ac1a3]`}>{tParc.eudrConforme}</span>
+              }
+              return <span className={`${cls} bg-gray-100 text-gray-500`}>{tParc.notVerified}</span>
+            })()}
+          </div>
         </div>
       </div>
 

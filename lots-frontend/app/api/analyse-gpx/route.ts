@@ -128,23 +128,12 @@ export async function POST(request: NextRequest) {
       ring.push([...ring[0]])
     }
 
-    // 8. EUDR verification — canonical FR strings (match python script output).
-    let eudr_status: string = EUDR_STATUS.EN_ATTENTE
-    let justification = "Verification automatique en attente"
+    // Plantation year is not a valid EUDR signal — final status comes from the
+    // Hansen + WDPA satellite analysis (/api/verify-eudr).
+    const eudr_status: string = EUDR_STATUS.EN_ATTENTE
+    const justification = "Verification automatique en attente"
     const verification_timestamp = new Date().toISOString()
-
-    if (annee_plantation) {
-      const year = parseInt(annee_plantation)
-      if (!isNaN(year)) {
-        if (year <= 2020) {
-          eudr_status = EUDR_STATUS.CONFORME
-          justification = `Plantation creee en ${year}, anterieure au cutoff EUDR (31 dec 2020). Conforme.`
-        } else {
-          eudr_status = EUDR_STATUS.RISQUE
-          justification = `Plantation creee en ${year}, posterieure au cutoff EUDR. Verification satellite requise.`
-        }
-      }
-    }
+    void annee_plantation
 
     return NextResponse.json({
       success: true,

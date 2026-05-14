@@ -4,11 +4,12 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { User } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { translateGeoName } from "@/lib/i18n/geo"
 
 type Pays = { id: number | string; nom: string }
 
 export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode: string }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const u = t.utilisateurs
   const i = u.invite
   const router = useRouter()
@@ -302,7 +303,7 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
                   <option value="">{i.countrySelectPlaceholder}</option>
                   {pays.map((p) => (
                     <option key={p.id} value={String(p.id)}>
-                      {p.nom}
+                      {translateGeoName(p.nom, locale)}
                     </option>
                   ))}
                 </select>

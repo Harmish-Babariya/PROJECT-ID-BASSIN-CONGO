@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { User } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { translateGeoName } from "@/lib/i18n/geo"
 import ConfirmModal from "@/components/ConfirmModal"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
@@ -53,7 +54,7 @@ const ACTION_PATH: Record<ActionKind, string> = {
 }
 
 export default function UtilisateursContent({ profiles }: { profiles: Profile[] }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const u = t.utilisateurs
   const tr = t.referentiel
   const c = u.confirm
@@ -77,7 +78,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
   const { sorted, sortKey, sortDirection, toggle } = useTableSort<Profile>(filtered, {
     user: (r) => r.nom_complet ?? r.email ?? "",
     role: (r) => r.role ?? "",
-    country: (r) => r.pays?.nom ?? "",
+    country: (r) => translateGeoName(r.pays?.nom, locale),
     statut: (r) => r.statut ?? "",
     last: (r) => (r.last_sign_in_at ? new Date(r.last_sign_in_at) : null),
   })
@@ -366,7 +367,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                       </span>
                     </td>
                     <td className={`px-4 lg:px-6 py-4 text-xs lg:text-[14px] whitespace-nowrap ${isInactive ? "text-gray-400" : "text-gray-800"}`}>
-                      {isAdmin ? u.allCountries : user.pays?.nom || "-"}
+                      {isAdmin ? u.allCountries : translateGeoName(user.pays?.nom, locale) || "-"}
                     </td>
                     <td className="px-4 lg:px-6 py-4">
                       <span

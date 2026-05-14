@@ -4,6 +4,7 @@ import Link from "next/link"
 import { createCollecte } from "./actions"
 import { Toast, useToast } from "@/components/Toast"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { translateGeoName } from "@/lib/i18n/geo"
 
 type Producteur = {
   id: number
@@ -50,7 +51,7 @@ function Section({ number, title }: { number: number; title: string }) {
 }
 
 export default function CollecteForm({ producteurs, parcelles, pays, zones, villages }: CollecteFormProps) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const c = t.collectes
   const [loading, setLoading] = useState(false)
   const [parcellesFiltrees, setParcellesFiltrees] = useState(parcelles)
@@ -179,7 +180,7 @@ export default function CollecteForm({ producteurs, parcelles, pays, zones, vill
                 >
                   <option value="">{c.filterAllPays}</option>
                   {pays.map((p) => (
-                    <option key={p.id} value={String(p.id)}>{p.nom}</option>
+                    <option key={p.id} value={String(p.id)}>{translateGeoName(p.nom, locale)}</option>
                   ))}
                 </select>
                 <select
@@ -193,7 +194,7 @@ export default function CollecteForm({ producteurs, parcelles, pays, zones, vill
                 >
                   <option value="">{c.filterAllZones}</option>
                   {filteredZones.map((z) => (
-                    <option key={z.id} value={String(z.id)}>{z.nom}</option>
+                    <option key={z.id} value={String(z.id)}>{translateGeoName(z.nom, locale)}</option>
                   ))}
                 </select>
                 <select

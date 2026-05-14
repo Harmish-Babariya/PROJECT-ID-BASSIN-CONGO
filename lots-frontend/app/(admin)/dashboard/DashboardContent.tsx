@@ -2,6 +2,7 @@
 import Link from "next/link"
 import { AlertTriangle } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { translateGeoName } from "@/lib/i18n/geo"
 import DashboardMap from "./DashboardMap"
 import PeriodFilter from "./PeriodFilter"
 
@@ -303,7 +304,8 @@ export default function DashboardContent({
           {/* Recent rows */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-10">
             <div className="min-w-0">
-              <div className="h-px bg-[#EEEEEA] mb-5 sm:mb-7" />
+              <div className="h-px bg-[#EEEEEA] mb-3" />
+              <p className="text-[9px] text-[#AAAAAA] tracking-[0.18em] uppercase font-semibold mb-3">{d.mostRecent}</p>
               <div className="space-y-2.5">
                 {recentCollectes.map((c) => {
                   const prod = Array.isArray(c.producteurs) ? c.producteurs[0] : c.producteurs
@@ -312,7 +314,7 @@ export default function DashboardContent({
                     <div key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-[#F8F8F5] rounded-lg px-4 sm:px-5 py-3.5 sm:py-4 border-l-[3px] border-l-[#8B7355]">
                       <span className="font-mono text-[12px] sm:text-[13px] font-bold text-[#8B7355]">{prod?.code_producteur}</span>
                       <span className="text-[12px] sm:text-[13px] text-[#555]">{prod?.nom} {prod?.prenom}</span>
-                      <span className="text-[12px] sm:text-[13px] text-[#AAAAAA]">{zone?.nom}</span>
+                      <span className="text-[12px] sm:text-[13px] text-[#AAAAAA]">{translateGeoName(zone?.nom, locale)}</span>
                       <span className="text-[12px] sm:text-[13px] text-[#AAAAAA]">{c.produit || d.defaultProduit}</span>
                       <span className="text-[12px] sm:text-[13px] text-[#1A1A1A] font-semibold">{c.poids_net_kg ? Math.round(Number(c.poids_net_kg)) + " kg" : "-"}</span>
                       <span className="text-[12px] sm:text-[13px] text-[#BBBBBB] ml-auto">{c.date_collecte ? new Date(c.date_collecte).toLocaleDateString(localeCode) : "-"}</span>
@@ -323,7 +325,8 @@ export default function DashboardContent({
             </div>
 
             <div className="min-w-0">
-              <div className="h-px bg-[#EEEEEA] mb-5 sm:mb-7" />
+              <div className="h-px bg-[#EEEEEA] mb-3" />
+              <p className="text-[9px] text-[#AAAAAA] tracking-[0.18em] uppercase font-semibold mb-3">{d.mostRecent}</p>
               <div className="space-y-2.5">
                 {recentLots.map((l) => {
                   const isExporte = l.statut === "Exporte"
@@ -338,7 +341,7 @@ export default function DashboardContent({
                     >
                       <span className="font-mono text-[12px] sm:text-[13px] font-bold text-[#2AC1A3]">{l.code_lot}</span>
                       <span className="text-[12px] sm:text-[13px] text-[#AAAAAA] flex-1 min-w-0">
-                        {zone?.nom} · {l.poids_total_kg ? Math.round(Number(l.poids_total_kg)).toLocaleString() + " kg" : "-"} · {l.date_creation ? new Date(l.date_creation).toLocaleDateString(localeCode) : "-"}
+                        {translateGeoName(zone?.nom, locale)} · {l.poids_total_kg ? Math.round(Number(l.poids_total_kg)).toLocaleString() + " kg" : "-"} · {l.date_creation ? new Date(l.date_creation).toLocaleDateString(localeCode) : "-"}
                       </span>
                       {isExporte ? (
                         <span className="text-[11px] sm:text-[12px] font-bold text-[#2AC1A3] tracking-[0.08em] whitespace-nowrap">{d.exported}</span>

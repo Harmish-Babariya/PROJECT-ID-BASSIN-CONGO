@@ -37,13 +37,6 @@ function parseGeojson(geo: unknown): PolygonGeo | null {
   return null
 }
 
-function polygonCentroid(coords: number[][]): [number, number] {
-  let x = 0, y = 0
-  for (const [lon, lat] of coords) { x += lon; y += lat }
-  const n = coords.length || 1
-  return [x / n, y / n]
-}
-
 function addPolygonLayers(map: mapboxgl.Map) {
   map.addLayer({
     id: "parcelle-fill",
@@ -115,12 +108,6 @@ export default function ParcelleMap({
           data: { type: "Feature", geometry: polygon, properties: {} } as GeoJSON.Feature,
         })
         addPolygonLayers(map)
-        // Drop a marker at the polygon centroid so the parcel is visible even
-        // when zoomed out far enough that the fill/outline disappear.
-        const centroid = polygonCentroid(polygon.coordinates[0])
-        markerRef.current = new mapboxgl.Marker({ color: "#2AC1A3" })
-          .setLngLat(centroid)
-          .addTo(map)
         const bounds = new mapboxgl.LngLatBounds()
         polygon.coordinates[0].forEach((c) => bounds.extend(c as [number, number]))
         map.fitBounds(bounds, { padding: 30, duration: 800, maxZoom: 17 })
@@ -169,12 +156,6 @@ export default function ParcelleMap({
           data: { type: "Feature", geometry: polygon, properties: {} } as GeoJSON.Feature,
         })
         addPolygonLayers(map)
-        if (!markerRef.current) {
-          const centroid = polygonCentroid(polygon.coordinates[0])
-          markerRef.current = new mapboxgl.Marker({ color: "#2AC1A3" })
-            .setLngLat(centroid)
-            .addTo(map)
-        }
       } else if (hasPoint && !markerRef.current) {
         markerRef.current = new mapboxgl.Marker({ color: "#2AC1A3" })
           .setLngLat([lon, lat])
@@ -213,7 +194,7 @@ export default function ParcelleMap({
             <button
               key={key}
               onClick={() => changeStyle(key)}
-              className={`px-2.5 py-1 rounded text-[9px] font-bold tracking-[0.1em] transition ${
+              className={`px-2.5 py-1 rounded text-[9px] font-bold tracking-widest transition ${
                 activeStyle === key
                   ? "bg-[#2AC1A3] text-white"
                   : "text-white/70 hover:text-white"
@@ -224,11 +205,13 @@ export default function ParcelleMap({
           ))}
         </div>
 
+        {/* Close/expand button placed at bottom-right so it does not overlap
+            Mapbox's NavigationControl (top-right) on the expanded view. */}
         <button
           type="button"
           onClick={() => setExpanded(v => !v)}
           aria-label={expanded ? t.common.reduce : t.common.expand}
-          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-md bg-black/50 hover:bg-black/70 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center transition"
+          className="absolute bottom-3 right-3 z-10 w-9 h-9 rounded-md bg-black/50 hover:bg-black/70 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center transition"
         >
           {expanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
         </button>
