@@ -4,6 +4,7 @@ import { useLanguage } from "@/contexts/LanguageContext"
 import ParcelleMap from "./ParcelleMap"
 import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 import { translateGeoName } from "@/lib/i18n/geo"
+import { translateJustification } from "@/lib/i18n/justification"
 
 function readField(obj: any, ...keys: string[]): any {
   for (const key of keys) {
@@ -23,118 +24,6 @@ function readArray(obj: any, ...keys: string[]): string[] {
     if (Array.isArray(val) && val.length > 0) return val
   }
   return []
-}
-
-// Re-renders stored EUDR justifications (saved in either FR or EN) using the
-// active locale's translations. The verification API stores the justification
-// as a concatenation of several sentence fragments — this helper splits the
-// raw text into known fragments and re-renders each one in the active locale.
-type JustificationTr = {
-  eudrJustifPending: string
-  eudrJustifFutureYear: (y: number) => string
-  eudrJustifCompliant: (y: number) => string
-  eudrJustifAlert: (y: number) => string
-  eudrHansenStableForest: (pct: number) => string
-  eudrHansenAgricultural: (pct: number) => string
-  eudrHansenPixels: (pixels: number) => string
-  eudrHansenDeforestation: (pct: number) => string
-  eudrHansenProtectedArea: (name: string, type: string) => string
-  eudrHansenNotProtected: string
-  eudrHansenNoRisk: string
-}
-
-function translateSentence(s: string, tp: JustificationTr): string {
-  const t = s.trim()
-  if (!t) return ""
-
-  // Pending review
-  if (
-    /^V[ée]rification automatique en attente\.?$/i.test(t) ||
-    /^Automatic verification pending\.?$/i.test(t)
-  ) return tp.eudrJustifPending
-
-  // Plantation-year (legacy rows only — new uploads no longer write this)
-  let m =
-    t.match(/Ann[ée]e de plantation (\d{4}) invalide \(future\)/i) ||
-    t.match(/Plantation year (\d{4}) is invalid \(future\)/i)
-  if (m) return tp.eudrJustifFutureYear(parseInt(m[1], 10))
-
-  m = t.match(/Plantation cr[ée]{2}e en (\d{4}), ant[ée]rieure au cutoff EUDR/i) ||
-      t.match(/Plantation established in (\d{4}), prior to the EUDR cutoff/i)
-  if (m) return tp.eudrJustifCompliant(parseInt(m[1], 10))
-
-  m = t.match(/Plantation cr[ée]{2}e en (\d{4}), post[ée]rieure au cutoff EUDR/i) ||
-      t.match(/Plantation established in (\d{4}), after the EUDR cutoff/i)
-  if (m) return tp.eudrJustifAlert(parseInt(m[1], 10))
-
-  // Hansen — agricultural already in 2000
-  m = t.match(/Parcelle d[ée]j[àa] en usage agricole en 2000 \(([\d.]+)% de couverture forest/i) ||
-      t.match(/Parcel already in agricultural use in 2000 \(([\d.]+)% forest cover/i)
-  if (m) {
-    const pct = parseFloat(m[1])
-    // Combined sentence — strip the trailing "No deforestation..." since the
-    // FR version stores it as part of the same sentence.
-    return tp.eudrHansenAgricultural(pct)
-  }
-
-  // Hansen — stable forest
-  m = t.match(/Couverture foresti[èe]re stable depuis 2000 \(([\d.]+)%\)/i) ||
-      t.match(/Forest cover stable since 2000 \(([\d.]+)%\)/i)
-  if (m) return tp.eudrHansenStableForest(parseFloat(m[1]))
-
-  // Hansen — no deforestation (stand-alone sentence form)
-  if (
-    /Aucune d[ée]forestation ni conversion foresti[èe]re post[ée]rieure au 31 d[ée]cembre 2020/i.test(t) ||
-    /No deforestation or forest conversion has been detected on the parcel after 31 December 2020/i.test(t)
-  ) {
-    // Don't translate alone — merged into stableForest/agricultural above.
-    return ""
-  }
-
-  // Hansen — pixel resolution note
-  m = t.match(/Analyse r[ée]alis[ée]e [àa] la r[ée]solution native des donn[ée]es Hansen \(30m, (\d+) pixels/i) ||
-      t.match(/Analysis performed at the native resolution of Hansen data \(30m, (\d+) pixels/i)
-  if (m) return tp.eudrHansenPixels(parseInt(m[1], 10))
-
-  // Hansen — deforestation detected
-  m = t.match(/D[ée]forestation de ([\d.]+)% d[ée]tect[ée]e apr[èe]s le 31 d[ée]cembre 2020/i) ||
-      t.match(/Deforestation of ([\d.]+)% detected after 31 December 2020/i)
-  if (m) return tp.eudrHansenDeforestation(parseFloat(m[1]))
-
-  if (
-    /La parcelle ne respecte pas le r[èe]glement \(UE\) 2023\/1115/i.test(t) ||
-    /The parcel does not comply with Regulation \(EU\) 2023\/1115/i.test(t)
-  ) {
-    // Merged into deforestation sentence above.
-    return ""
-  }
-
-  // WDPA — protected area intersection
-  m = t.match(/zone prot[ée]g[ée]e ['"]([^'"]+)['"] \(([^)]+)\) selon la base WDPA/i) ||
-      t.match(/protected area ['"]([^'"]+)['"] \(([^)]+)\) according to the WDPA database/i)
-  if (m) return tp.eudrHansenProtectedArea(m[1], m[2])
-
-  // WDPA — not protected
-  if (
-    /n'est pas situ[ée]e dans une zone prot[ée]g[ée]e selon la base WDPA/i.test(t) ||
-    /not located inside any WDPA protected area/i.test(t)
-  ) return tp.eudrHansenNotProtected
-
-  // Final regulatory conclusion
-  if (
-    /Aucun [ée]l[ée]ment ne permet d'identifier un risque non n[ée]gligeable/i.test(t) ||
-    /No element allows the identification of a non-negligible risk/i.test(t)
-  ) return tp.eudrHansenNoRisk
-
-  return s.trim()
-}
-
-function translateJustification(raw: string, tp: JustificationTr): string {
-  if (!raw) return raw
-  // The verification API joins sentences with ". " — split on that boundary,
-  // translate each one, drop empties, then re-join.
-  const parts = raw.split(/(?<=[.!?])\s+/).map(s => translateSentence(s, tp)).filter(Boolean)
-  return parts.join(" ").trim() || raw
 }
 
 function EudrBadge({
@@ -257,7 +146,7 @@ export default function ParcelleDetailClient({ parcelle, producteur, collectes }
         {parcelle.justification_eudr && (
           <div className="mb-6 p-4 bg-[#e6f9f5] border border-[#2ac1a3]/20 rounded-lg">
             <p className="text-xs font-bold text-[#2ac1a3] uppercase tracking-widest mb-1">{tp.eudrJustificationLabel}</p>
-            <p className="text-sm text-gray-700">{translateJustification(parcelle.justification_eudr, tp)}</p>
+            <p className="text-sm text-gray-700">{translateJustification(parcelle.justification_eudr, locale)}</p>
           </div>
         )}
 

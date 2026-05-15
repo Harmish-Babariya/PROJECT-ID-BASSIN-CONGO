@@ -5,6 +5,7 @@ import { updateParcelle } from "./action"
 import { Toast, useToast } from "@/components/Toast"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { translateGeoName } from "@/lib/i18n/geo"
+import { translateJustification } from "@/lib/i18n/justification"
 import { mapApiCodeToStatus, EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
 interface ParcelleFormProps {
@@ -507,7 +508,7 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays }: Par
                       "text-gray-500"
                     return (
                       <p className={`font-semibold mt-1 ${colorClass}`}>
-                        {tp.gpxEudrLabel} {statusLabel}{formData.justification_eudr ? ` — ${formData.justification_eudr}` : ""}
+                        {tp.gpxEudrLabel} {statusLabel}{formData.justification_eudr ? ` — ${translateJustification(formData.justification_eudr, locale)}` : ""}
                       </p>
                     )
                   })()}

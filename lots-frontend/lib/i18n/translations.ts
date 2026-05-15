@@ -407,6 +407,21 @@ export const translations = {
         "L'analyse par intersection géométrique confirme que la parcelle n'est pas située dans une zone protégée selon la base WDPA.",
       eudrHansenNoRisk:
         "Aucun élément ne permet d'identifier un risque non négligeable au sens du règlement (UE) 2023/1115.",
+      eudrHansenUnavailable:
+        "Données Hansen non disponibles pour cette localisation.",
+      eudrHansenOutOfBounds:
+        "Polygon hors limites du raster Hansen.",
+      eudrHansenNoValidPixels:
+        "Aucun pixel valide dans le polygone (parcelle hors couverture Hansen).",
+      // Composite "Vérification impossible : <raisons>." sentence
+      eudrJustifImpossible: (reasons: string[]) =>
+        `Vérification impossible : ${reasons.join(" ; ")}.`,
+      eudrReasonNoGpx: "aucun fichier GPX lié à la parcelle",
+      eudrReasonGpxUnreadable: "fichier GPX introuvable ou illisible",
+      eudrReasonNotEnoughPoints: (n: number) =>
+        `GPX ne contient que ${n} point(s), 3 minimum requis`,
+      eudrReasonNoGps: "coordonnées GPS manquantes sur la parcelle",
+      eudrReasonIncomplete: "données incomplètes",
       // Stored DB option labels — keys are the canonical French values stored in DB
       optionLabels: {
         "Cacao": "Cacao",
@@ -1654,6 +1669,20 @@ export const translations = {
         "Geometric intersection analysis confirms the parcel is not located inside any WDPA protected area.",
       eudrHansenNoRisk:
         "No element allows the identification of a non-negligible risk within the meaning of Regulation (EU) 2023/1115.",
+      eudrHansenUnavailable:
+        "Hansen data not available for this location.",
+      eudrHansenOutOfBounds:
+        "Polygon outside Hansen raster bounds.",
+      eudrHansenNoValidPixels:
+        "No valid pixel in the polygon (parcel outside Hansen coverage).",
+      eudrJustifImpossible: (reasons: string[]) =>
+        `Verification impossible: ${reasons.join("; ")}.`,
+      eudrReasonNoGpx: "no GPX file linked to the parcel",
+      eudrReasonGpxUnreadable: "GPX file not found or unreadable",
+      eudrReasonNotEnoughPoints: (n: number) =>
+        `GPX only contains ${n} point(s), 3 minimum required`,
+      eudrReasonNoGps: "missing GPS coordinates on the parcel",
+      eudrReasonIncomplete: "incomplete data",
       // Stored DB option labels — keys are the canonical French values stored in DB
       optionLabels: {
         "Cacao": "Cocoa",
