@@ -7,12 +7,15 @@ import { useLanguage } from "@/contexts/LanguageContext"
 import { translateGeoName } from "@/lib/i18n/geo"
 import { translateJustification } from "@/lib/i18n/justification"
 import { mapApiCodeToStatus, EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
+import EudrOverrideControl from "../EudrOverrideControl"
 
 interface ParcelleFormProps {
   parcelle: any
   producteurs: any[]
   zones: any[]
   pays: any[]
+  isAdmin?: boolean
+  overrideByName?: string | null
 }
 
 const inputClass = "w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
@@ -70,7 +73,7 @@ function readArray(parcelle: any, ...keys: string[]): string[] {
   return []
 }
 
-export default function ParcelleForm({ parcelle, producteurs, zones, pays }: ParcelleFormProps) {
+export default function ParcelleForm({ parcelle, producteurs, zones, pays, isAdmin = false, overrideByName = null }: ParcelleFormProps) {
   const { t, locale } = useLanguage()
   const tp = t.parcelles
   const [loading, setLoading] = useState(false)
@@ -513,6 +516,21 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays }: Par
                     )
                   })()}
                 </div>
+              </div>
+            )}
+
+            {(isAdmin || parcelle.eudr_admin_override) && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <label className={labelClass}>{tp.overrideModalTitle}</label>
+                <EudrOverrideControl
+                  parcelleId={parcelle.id}
+                  currentStatus={formData.status_eudr || parcelle.status_eudr}
+                  overrideActive={!!parcelle.eudr_admin_override}
+                  overrideReason={parcelle.eudr_admin_override_reason ?? null}
+                  overrideAt={parcelle.eudr_admin_override_at ?? null}
+                  overrideByName={overrideByName}
+                  isAdmin={isAdmin}
+                />
               </div>
             )}
           </div>

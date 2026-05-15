@@ -4,6 +4,7 @@ import { getParcelleById } from "@/lib/services/parcelles"
 import { getProducteursAll } from "@/lib/services/producteurs"
 import { getZones, getPays } from "@/lib/services/common"
 import { getCurrentUser } from "@/lib/services/auth"
+import { supabaseAdmin } from "@/lib/supabase-server"
 
 export default async function EditParcelle({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
@@ -28,12 +29,24 @@ export default async function EditParcelle({ params }: { params: Promise<{ id: s
     ? producteurs
     : producteurs.filter(p => p.pays_id === user.country_id)
 
+  let overrideByName: string | null = null
+  if (parcelle.eudr_admin_override_by) {
+    const { data: profile } = await supabaseAdmin
+      .from("user_profiles")
+      .select("nom_complet, email")
+      .eq("id", parcelle.eudr_admin_override_by)
+      .single()
+    overrideByName = profile?.nom_complet || profile?.email || null
+  }
+
   return (
     <ParcelleForm
       parcelle={parcelle}
       producteurs={filteredProducteurs}
       zones={filteredZones}
       pays={pays}
+      isAdmin={isAdmin}
+      overrideByName={overrideByName}
     />
   )
 }

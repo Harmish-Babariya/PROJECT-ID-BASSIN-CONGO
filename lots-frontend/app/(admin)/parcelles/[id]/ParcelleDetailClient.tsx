@@ -5,7 +5,6 @@ import ParcelleMap from "./ParcelleMap"
 import { EUDR_STATUS, normalizeEudrStatus, eudrBucket } from "@/lib/eudr"
 import { translateGeoName } from "@/lib/i18n/geo"
 import { translateJustification } from "@/lib/i18n/justification"
-import EudrOverrideControl from "./EudrOverrideControl"
 
 function readField(obj: any, ...keys: string[]): any {
   for (const key of keys) {
@@ -65,14 +64,10 @@ export default function ParcelleDetailClient({
   parcelle,
   producteur,
   collectes,
-  isAdmin = false,
-  overrideByName = null,
 }: {
   parcelle: any
   producteur: any
   collectes: any[]
-  isAdmin?: boolean
-  overrideByName?: string | null
 }) {
   const { t, locale } = useLanguage()
   const tp = t.parcelles
@@ -154,15 +149,6 @@ export default function ParcelleDetailClient({
                 nonConformeLabel={tp.eudrNonConforme}
                 risqueLabel={tp.eudrRisque}
                 enAttenteLabel={tp.eudrEnAttente}
-              />
-              <EudrOverrideControl
-                parcelleId={parcelle.id}
-                currentStatus={parcelle.status_eudr}
-                overrideActive={!!parcelle.eudr_admin_override}
-                overrideReason={parcelle.eudr_admin_override_reason ?? null}
-                overrideAt={parcelle.eudr_admin_override_at ?? null}
-                overrideByName={overrideByName}
-                isAdmin={isAdmin}
               />
             </div>
             <p className="text-sm text-gray-500">
