@@ -1,47 +1,72 @@
-// Canonical EUDR statuses. Source of truth: client MVP spec lists exactly
-// three (compliant / alert / pending_review). Legacy "NON CONFORME" rows
-// produced by the python batch script are folded into RISQUE since both
-// represent a deforestation alert that requires manual review.
+// Canonical EUDR model.
+//
+// DB stores one of 4 distinct values (mirrors the Python script output):
+//   CONFORME                  → display bucket "compliant"
+//   NON CONFORME              → display bucket "alert"  (deforestation post-2020)
+//   RISQUE NON NÉGLIGEABLE    → display bucket "alert"  (protected-area overlay)
+//   EN ATTENTE                → display bucket "pending_review" (indeterminate)
+//
+// Rows with `status_eudr = null` (never verified) are also rendered as
+// "pending_review" by the UI, but the DB row itself stays null until the
+// satellite verification produces a real value.
 
 export const EUDR_STATUS = {
   CONFORME: "CONFORME",
+  NON_CONFORME: "NON CONFORME",
   RISQUE: "RISQUE NON NÉGLIGEABLE",
   EN_ATTENTE: "EN ATTENTE",
 } as const
 
 export type EudrStatus =
   | typeof EUDR_STATUS.CONFORME
+  | typeof EUDR_STATUS.NON_CONFORME
   | typeof EUDR_STATUS.RISQUE
   | typeof EUDR_STATUS.EN_ATTENTE
   | null
 
-// Legacy/variant strings get folded into a canonical value. Returns null for
-// rows with no status set (rendered as "Non vérifié" in the UI).
+// The 3 buckets the UI actually renders. Multiple DB statuses collapse to the
+// same bucket — see eudrBucket() below.
+export type EudrBucket = "compliant" | "alert" | "pending_review"
+
+// Normalize whatever string is in the DB (legacy variants, case mismatches,
+// English values written by older code) to one of the 4 canonical statuses.
+// Returns null only when nothing was stored at all.
 export function normalizeEudrStatus(raw: string | null | undefined): EudrStatus {
   if (!raw) return null
   const v = raw.trim().toUpperCase()
   if (v === "CONFORME" || v === "COMPLIANT") return EUDR_STATUS.CONFORME
+  if (v === "NON CONFORME" || v === "NON-CONFORME") return EUDR_STATUS.NON_CONFORME
   if (
     v === "RISQUE NON NÉGLIGEABLE" ||
     v === "RISQUE NON NEGLIGEABLE" ||
-    v === "ALERT" ||
-    v === "NON CONFORME" ||
-    v === "NON-CONFORME"
-  )
-    return EUDR_STATUS.RISQUE
+    v === "ALERT"
+  ) return EUDR_STATUS.RISQUE
   if (
     v === "EN ATTENTE" ||
     v === "PENDING_REVIEW" ||
     v === "PENDING REVIEW" ||
-    v === "PENDING"
-  )
-    return EUDR_STATUS.EN_ATTENTE
+    v === "PENDING" ||
+    v === "INDÉTERMINÉ" ||
+    v === "INDETERMINE"
+  ) return EUDR_STATUS.EN_ATTENTE
   if (v === "NON VÉRIFIÉ" || v === "NON VERIFIE" || v === "NON VERIFIÉ") return null
   return null
 }
 
-// Map the short codes used by the GPX analysis APIs (compliant / alert /
-// pending_review) to canonical FR statuses for storage and display.
+// Map any DB status (or null) to one of the 3 display buckets.
+// Null is treated as pending_review per the MVP spec.
+export function eudrBucket(raw: string | null | undefined): EudrBucket {
+  const s = normalizeEudrStatus(raw)
+  if (s === EUDR_STATUS.CONFORME) return "compliant"
+  if (s === EUDR_STATUS.NON_CONFORME || s === EUDR_STATUS.RISQUE) return "alert"
+  // EN_ATTENTE and null both fall through to pending_review.
+  return "pending_review"
+}
+
+// Map the short codes used by the GPX analysis APIs to canonical FR statuses
+// for storage. "alert" defaults to RISQUE NON NÉGLIGEABLE; if a route needs to
+// specifically write NON CONFORME (deforestation), it should reference the
+// constant directly instead of going through this helper.
 export function mapApiCodeToStatus(code: string | null | undefined): EudrStatus {
   if (!code) return null
   switch (code.toLowerCase()) {
@@ -57,10 +82,10 @@ export function mapApiCodeToStatus(code: string | null | undefined): EudrStatus 
 }
 
 export function isVerified(raw: string | null | undefined): boolean {
-  const s = normalizeEudrStatus(raw)
-  return s === EUDR_STATUS.CONFORME || s === EUDR_STATUS.RISQUE
+  const b = eudrBucket(raw)
+  return b === "compliant" || b === "alert"
 }
 
 export function isConforme(raw: string | null | undefined): boolean {
-  return normalizeEudrStatus(raw) === EUDR_STATUS.CONFORME
+  return eudrBucket(raw) === "compliant"
 }

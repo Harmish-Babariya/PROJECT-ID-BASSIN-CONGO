@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useLanguage } from "@/contexts/LanguageContext"
-import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
+import { normalizeEudrStatus, EUDR_STATUS } from "@/lib/eudr"
 
 const MAP_STYLES: Record<string, string> = {
   satellite: "mapbox://styles/mapbox/satellite-streets-v12",
@@ -32,12 +32,11 @@ interface Parcelle {
 }
 
 function getStatusColor(status: string | null): string {
-  switch (normalizeEudrStatus(status)) {
-    case EUDR_STATUS.CONFORME: return '#2ac1a3'
-    case EUDR_STATUS.RISQUE: return '#eab308'
-    case EUDR_STATUS.EN_ATTENTE: return '#f59e0b'
-    default: return '#94a3b8'
-  }
+  const norm = normalizeEudrStatus(status)
+  if (norm === EUDR_STATUS.CONFORME) return '#2ac1a3'
+  if (norm === EUDR_STATUS.NON_CONFORME) return '#dc2626'
+  if (norm === EUDR_STATUS.RISQUE) return '#eab308'
+  return '#f59e0b' // EN ATTENTE + null → pending_review
 }
 
 export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {

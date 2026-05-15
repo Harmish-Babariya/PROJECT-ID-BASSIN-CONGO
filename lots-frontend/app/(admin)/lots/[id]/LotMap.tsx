@@ -5,7 +5,7 @@ import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { Maximize2, X } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
+import { normalizeEudrStatus, EUDR_STATUS, eudrBucket } from "@/lib/eudr"
 
 type ParcelPoint = {
   code: string
@@ -16,12 +16,11 @@ type ParcelPoint = {
 }
 
 function statusColor(status: string | null): string {
-  switch (normalizeEudrStatus(status)) {
-    case EUDR_STATUS.CONFORME: return "#2AC1A3"
-    case EUDR_STATUS.RISQUE: return "#EAB308"
-    case EUDR_STATUS.EN_ATTENTE: return "#F59E0B"
-    default: return "#94A3B8"
-  }
+  const norm = normalizeEudrStatus(status)
+  if (norm === EUDR_STATUS.CONFORME) return "#2AC1A3"
+  if (norm === EUDR_STATUS.NON_CONFORME) return "#DC2626"
+  if (norm === EUDR_STATUS.RISQUE) return "#EAB308"
+  return "#F59E0B"
 }
 
 type PolygonGeo = { type: "Polygon"; coordinates: number[][][] }
@@ -157,10 +156,12 @@ export default function LotMap({
     }
   }, [expanded])
 
-  const conformeCount = resolved.filter((p) => normalizeEudrStatus(p.status_eudr) === EUDR_STATUS.CONFORME).length
-  const risqueCount = resolved.filter((p) => normalizeEudrStatus(p.status_eudr) === EUDR_STATUS.RISQUE).length
-  const enAttenteCount = resolved.filter((p) => normalizeEudrStatus(p.status_eudr) === EUDR_STATUS.EN_ATTENTE).length
-  const notVerifiedCount = resolved.filter((p) => normalizeEudrStatus(p.status_eudr) === null).length
+  const conformeCount = resolved.filter((p) => eudrBucket(p.status_eudr) === "compliant").length
+  const risqueCount = resolved.filter((p) => eudrBucket(p.status_eudr) === "alert").length
+  const enAttenteCount = resolved.filter((p) => eudrBucket(p.status_eudr) === "pending_review").length
+  // Folded into pending_review in the 3-bucket model — kept at 0 for legend
+  // back-compat (some callers still reference the symbol).
+  const notVerifiedCount = 0
 
   if (resolved.length === 0) {
     return (

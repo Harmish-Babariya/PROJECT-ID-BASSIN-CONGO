@@ -4,7 +4,7 @@ import { getParcellesStats, getParcellesForMap } from "@/lib/services/parcelles"
 import { getLotsStats, getRecentLots } from "@/lib/services/lots"
 import { getCollectesStats, getRecentCollectes } from "@/lib/services/collectes"
 import { getCurrentUser } from "@/lib/services/auth"
-import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
+import { eudrBucket, normalizeEudrStatus, EUDR_STATUS } from "@/lib/eudr"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -53,12 +53,16 @@ async function getStats(paysId: number | null, range: Range) {
   const ageMax = ages.length > 0 ? Math.max(...ages) : 0
 
   const totalParcelles = parcelles.length
-  const normalisedStatuses = parcelles.map(p => normalizeEudrStatus(p.status_eudr))
-  const conformes = normalisedStatuses.filter(s => s === EUDR_STATUS.CONFORME).length
-  const risques = normalisedStatuses.filter(s => s === EUDR_STATUS.RISQUE).length
-  const enAttente = normalisedStatuses.filter(s => s === EUDR_STATUS.EN_ATTENTE).length
-  // Rows with no status set (null after normalisation) — never verified.
-  const nonVerifies = normalisedStatuses.filter(s => s === null).length
+  // 4 displayed statuses, 3 logical buckets. Dashboard chips show all four
+  // so admins can distinguish deforestation alerts from protected-area
+  // alerts at a glance.
+  const norms = parcelles.map(p => normalizeEudrStatus(p.status_eudr))
+  const conformes = norms.filter(s => s === EUDR_STATUS.CONFORME).length
+  const nonConformes = norms.filter(s => s === EUDR_STATUS.NON_CONFORME).length
+  const risques = norms.filter(s => s === EUDR_STATUS.RISQUE).length
+  const enAttente = parcelles.filter(p => eudrBucket(p.status_eudr) === "pending_review").length
+  // Legacy field kept at 0 for back-compat — null status now folds into enAttente.
+  const nonVerifies = 0
   const pourcentageConformite =
     totalParcelles > 0 ? Math.round((conformes / totalParcelles) * 100) : 0
   const superficieTotale =
@@ -77,7 +81,7 @@ async function getStats(paysId: number | null, range: Range) {
 
   return {
     producteurs: { total: totalProducteurs, femmes, pourcentageFemmes, ageMoyen, ageMin, ageMax },
-    parcelles: { total: totalParcelles, conformes, risques, enAttente, nonVerifies, pourcentageConformite, superficieTotale, haParProducteur },
+    parcelles: { total: totalParcelles, conformes, nonConformes, risques, enAttente, nonVerifies, pourcentageConformite, superficieTotale, haParProducteur },
     lots: { total: totalLots, exportes: lotsExportes, poidsTotal: poidsTotalLots, poidsMoyen: poidsMoyenLot },
     collectes: { total: totalCollectes, poids: poidsCollectes, poidsMoyen: poidsMoyenCollecte },
   }

@@ -2,9 +2,10 @@
 import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
 import ParcelleMap from "./ParcelleMap"
-import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
+import { EUDR_STATUS, normalizeEudrStatus, eudrBucket } from "@/lib/eudr"
 import { translateGeoName } from "@/lib/i18n/geo"
 import { translateJustification } from "@/lib/i18n/justification"
+import EudrOverrideControl from "./EudrOverrideControl"
 
 function readField(obj: any, ...keys: string[]): any {
   for (const key of keys) {
@@ -30,29 +31,49 @@ function EudrBadge({
   status,
   notVerifiedLabel,
   conformeLabel,
+  nonConformeLabel,
   risqueLabel,
   enAttenteLabel,
 }: {
   status: string | null
   notVerifiedLabel: string
   conformeLabel: string
+  nonConformeLabel: string
   risqueLabel: string
   enAttenteLabel: string
 }) {
+  // Four display variants. NON CONFORME and RISQUE NON NÉGLIGEABLE both
+  // belong to the "alert" bucket logically but get distinct badges per spec.
   const norm = normalizeEudrStatus(status)
   if (norm === EUDR_STATUS.CONFORME) {
     return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-[#2ac1a3]/15 text-[#2ac1a3]">{conformeLabel}</span>
   }
+  if (norm === EUDR_STATUS.NON_CONFORME) {
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-red-100 text-red-700">{nonConformeLabel}</span>
+  }
   if (norm === EUDR_STATUS.RISQUE) {
     return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700">{risqueLabel}</span>
   }
-  if (norm === EUDR_STATUS.EN_ATTENTE) {
+  // EN ATTENTE + null both fall through to pending_review badge.
+  if (eudrBucket(status) === "pending_review") {
     return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-amber-50 text-amber-700">{enAttenteLabel}</span>
   }
   return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500">{notVerifiedLabel}</span>
 }
 
-export default function ParcelleDetailClient({ parcelle, producteur, collectes }: { parcelle: any; producteur: any; collectes: any[] }) {
+export default function ParcelleDetailClient({
+  parcelle,
+  producteur,
+  collectes,
+  isAdmin = false,
+  overrideByName = null,
+}: {
+  parcelle: any
+  producteur: any
+  collectes: any[]
+  isAdmin?: boolean
+  overrideByName?: string | null
+}) {
   const { t, locale } = useLanguage()
   const tp = t.parcelles
   const tl = t.lots
@@ -122,23 +143,33 @@ export default function ParcelleDetailClient({ parcelle, producteur, collectes }
       </Link>
 
       <div className="bg-white rounded-xl border border-gray-200 p-8">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <div className="flex items-center gap-4 mb-1">
+        <div className="flex justify-between items-start mb-6 gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3 mb-1">
               <h1 className="text-3xl font-bold text-gray-900">{parcelle.code_parcelle}</h1>
               <EudrBadge
                 status={parcelle.status_eudr}
                 notVerifiedLabel={tp.notVerified}
                 conformeLabel={tp.eudrConforme}
+                nonConformeLabel={tp.eudrNonConforme}
                 risqueLabel={tp.eudrRisque}
                 enAttenteLabel={tp.eudrEnAttente}
+              />
+              <EudrOverrideControl
+                parcelleId={parcelle.id}
+                currentStatus={parcelle.status_eudr}
+                overrideActive={!!parcelle.eudr_admin_override}
+                overrideReason={parcelle.eudr_admin_override_reason ?? null}
+                overrideAt={parcelle.eudr_admin_override_at ?? null}
+                overrideByName={overrideByName}
+                isAdmin={isAdmin}
               />
             </div>
             <p className="text-sm text-gray-500">
               {tp.fieldProducteur} : {producteur?.code_producteur} – {producteur?.nom}{(producteur as any)?.prenom ? ` ${(producteur as any).prenom}` : ""}
             </p>
           </div>
-          <Link href={`/parcelles/${parcelle.id}/edit`} className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] transition">
+          <Link href={`/parcelles/${parcelle.id}/edit`} className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] transition shrink-0">
             {tp.btnEdit}
           </Link>
         </div>

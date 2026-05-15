@@ -3,7 +3,7 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 import { useEffect, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
+import { EUDR_STATUS, normalizeEudrStatus, eudrBucket } from "@/lib/eudr"
 import { translateGeoName } from "@/lib/i18n/geo"
 
 const CarteMapbox = dynamic(() => import("@/app/(admin)/dashboard/CarteMapbox"), {
@@ -130,18 +130,15 @@ export default function ProducteurDetailClient({
     (sum, pc) => sum + (parseFloat(String(pc.surface_ha)) || 0),
     0
   )
-  const conformesCount = parcelles.filter(
-    (pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.CONFORME
-  ).length
-  const risquesCount = parcelles.filter(
-    (pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.RISQUE
-  ).length
-  const enAttenteCount = parcelles.filter(
-    (pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.EN_ATTENTE
-  ).length
-  const notVerifiedCount = parcelles.filter(
-    (pc) => normalizeEudrStatus(pc.status_eudr) === null
-  ).length
+  // 4 separate display counts. NON CONFORME and RISQUE NON NÉGLIGEABLE
+  // each get their own badge.
+  const conformesCount = parcelles.filter((pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.CONFORME).length
+  const nonConformesCount = parcelles.filter((pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.NON_CONFORME).length
+  const risquesCount = parcelles.filter((pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.RISQUE).length
+  const enAttenteCount = parcelles.filter((pc) => eudrBucket(pc.status_eudr) === "pending_review").length
+  // notVerifiedCount kept for legend back-compat — always 0 in the 3-bucket
+  // model because null status now falls through to pending_review.
+  const notVerifiedCount = 0
 
   const displayName = [producteur.nom, producteur.prenom].filter(Boolean).join(" ").trim()
 
@@ -218,11 +215,13 @@ export default function ProducteurDetailClient({
           </p>
           <div className="mt-2">
             {(() => {
-              // Dominant status: alert wins over pending, pending over compliant,
-              // compliant over not-verified. Mirrors the priority used in the
-              // parcel list filters.
+              // Dominant status priority: NON CONFORME > RISQUE > pending > compliant.
+              // Mirrors the order used in the parcel list filters.
               const tParc = t.parcelles
               const cls = "inline-block px-3 py-1.5 rounded-lg text-[11px] sm:text-[12px] font-bold uppercase tracking-wide"
+              if (nonConformesCount > 0) {
+                return <span className={`${cls} bg-red-100 text-red-700`}>{tParc.eudrNonConforme}</span>
+              }
               if (risquesCount > 0) {
                 return <span className={`${cls} bg-yellow-100 text-yellow-700`}>{tParc.eudrRisque}</span>
               }
@@ -372,17 +371,17 @@ export default function ProducteurDetailClient({
                       <td className="px-4 sm:px-6 py-4">
                         {(() => {
                           const norm = normalizeEudrStatus(pc.status_eudr)
-                          let cls = "bg-gray-100 text-gray-500"
-                          let label: string = t.parcelles.notVerified
+                          let cls = "bg-amber-50 text-amber-700"
+                          let label: string = t.parcelles.eudrEnAttente
                           if (norm === EUDR_STATUS.CONFORME) {
                             cls = "bg-[#D4F1E7] text-[#2AC1A3]"
                             label = t.parcelles.eudrConforme
+                          } else if (norm === EUDR_STATUS.NON_CONFORME) {
+                            cls = "bg-red-100 text-red-700"
+                            label = t.parcelles.eudrNonConforme
                           } else if (norm === EUDR_STATUS.RISQUE) {
                             cls = "bg-[#FBE9C8] text-[#8B6914]"
                             label = t.parcelles.eudrRisque
-                          } else if (norm === EUDR_STATUS.EN_ATTENTE) {
-                            cls = "bg-amber-50 text-amber-700"
-                            label = t.parcelles.eudrEnAttente
                           }
                           return (
                             <span className={`inline-block px-2 sm:px-3 py-1 rounded-full font-numbers text-[10px] sm:text-[11px] font-bold tracking-[0.1em] uppercase whitespace-nowrap ${cls}`}>

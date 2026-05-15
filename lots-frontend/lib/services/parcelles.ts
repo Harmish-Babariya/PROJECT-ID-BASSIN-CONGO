@@ -30,16 +30,30 @@ export async function getParcelles(filters?: {
     query = query.eq("culture", filters.culture)
   }
   if (filters?.status_eudr) {
-    // Sentinel: "__not_verified__" means status_eudr IS NULL or empty string.
-    // The DB stores French status strings; the URL value carries the canonical
-    // French form so the equality match works regardless of UI locale.
-    if (filters.status_eudr === "__not_verified__") {
-      query = query.or("status_eudr.is.null,status_eudr.eq.")
-    } else if (filters.status_eudr === "RISQUE NON NÉGLIGEABLE") {
-      // Accept both diacritic and non-diacritic spellings written historically.
-      query = query.in("status_eudr", ["RISQUE NON NÉGLIGEABLE", "RISQUE NON NEGLIGEABLE"])
+    // Per spec, 4 separate filter values:
+    //   "CONFORME"                 → compliant
+    //   "NON CONFORME"             → deforestation alert (own filter)
+    //   "RISQUE NON NÉGLIGEABLE"   → protected-area alert (own filter)
+    //   "__pending_review__"       → EN ATTENTE ∪ null
+    // Legacy aliases ("__alert__", "__not_verified__") kept for back-compat.
+    const v = filters.status_eudr
+    if (v === "__pending_review__" || v === "__not_verified__" || v === "EN ATTENTE") {
+      query = query.or(
+        "status_eudr.is.null,status_eudr.eq.,status_eudr.eq.EN ATTENTE,status_eudr.eq.PENDING,status_eudr.eq.PENDING_REVIEW"
+      )
+    } else if (v === "__alert__") {
+      query = query.in("status_eudr", [
+        "NON CONFORME", "NON-CONFORME",
+        "RISQUE NON NÉGLIGEABLE", "RISQUE NON NEGLIGEABLE",
+      ])
+    } else if (v === "NON CONFORME") {
+      query = query.in("status_eudr", ["NON CONFORME", "NON-CONFORME"])
+    } else if (v === "RISQUE NON NÉGLIGEABLE") {
+      query = query.in("status_eudr", ["RISQUE NON NÉGLIGEABLE", "RISQUE NON NEGLIGEABLE", "ALERT"])
+    } else if (v === "CONFORME") {
+      query = query.in("status_eudr", ["CONFORME", "COMPLIANT"])
     } else {
-      query = query.eq("status_eudr", filters.status_eudr)
+      query = query.eq("status_eudr", v)
     }
   }
   if (filters?.producteur_id) {

@@ -123,8 +123,8 @@ export async function runEudrVerification(parcelle_id: number | string) {
   let final_justification = analysis.justification
   let final_sources = analysis.sources
 
-  if (dans_zone_protegee && final_statut === "CONFORME") {
-    final_statut = "RISQUE NON NÉGLIGEABLE"
+  if (dans_zone_protegee && final_statut === EUDR_STATUS.CONFORME) {
+    final_statut = EUDR_STATUS.RISQUE
     final_justification +=
       ` La parcelle est située partiellement ou totalement dans la zone protégée` +
       ` '${zone_protegee_nom}' (${zone_protegee_type}) selon la base WDPA.` +
@@ -138,7 +138,7 @@ export async function runEudrVerification(parcelle_id: number | string) {
     final_sources += ", WDPA 2024"
   }
 
-  if (final_statut === "CONFORME") {
+  if (final_statut === EUDR_STATUS.CONFORME) {
     final_justification +=
       " Aucun élément ne permet d'identifier un risque non négligeable" +
       " au sens du règlement (UE) 2023/1115."
@@ -507,10 +507,12 @@ async function analyzeDeforestationPolygon(
   let statut: string
 
   if (deforestationPercent > DEFORESTATION_ALERT) {
-    // 1. BLOCAGE IMMÉDIAT — même logique Python ligne 342
+    // Deforestation post-2020 → stored as NON CONFORME (distinct DB value
+    // from RISQUE NON NÉGLIGEABLE, which is reserved for protected-area
+    // overlays). Both map to the "alert" UI bucket via eudrBucket().
     conforme = false
     risque = "Non négligeable"
-    statut = "NON CONFORME"
+    statut = EUDR_STATUS.NON_CONFORME
     parts.push(
       `Déforestation de ${deforestationPercent.toFixed(1)}% détectée après le 31 décembre 2020.`
     )
@@ -518,7 +520,7 @@ async function analyzeDeforestationPolygon(
   } else {
     conforme = true
     risque = "Négligeable"
-    statut = "CONFORME"
+    statut = EUDR_STATUS.CONFORME
 
     if (forestPercent2000 < 5) {
       // Pas de forêt en 2000 = déjà agricole — Python ligne 354

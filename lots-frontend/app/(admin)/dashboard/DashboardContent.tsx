@@ -18,6 +18,7 @@ type Stats = {
   parcelles: {
     total: number
     conformes: number
+    nonConformes: number
     risques: number
     enAttente: number
     nonVerifies: number
@@ -168,6 +169,10 @@ export default function DashboardContent({
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#2AC1A3"/><path d="M3.5 6L5.5 8L8.5 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 {stats.parcelles.conformes} {d.verified}
               </span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] bg-red-100 text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#DC2626"/><path d="M4 4L8 8M8 4L4 8" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {stats.parcelles.nonConformes} {d.nonCompliant}
+              </span>
               <span className="inline-flex items-center gap-1.5 text-[10px] bg-yellow-100 text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#EAB308"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
                 {stats.parcelles.risques} {d.atRisk}
@@ -175,10 +180,6 @@ export default function DashboardContent({
               <span className="inline-flex items-center gap-1.5 text-[10px] bg-amber-50 text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#F59E0B"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
                 {stats.parcelles.enAttente} {d.pending}
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] bg-gray-100 text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#94A3B8"/><path d="M4 6H8" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                {stats.parcelles.nonVerifies} {d.notVerified}
               </span>
             </div>
           </div>

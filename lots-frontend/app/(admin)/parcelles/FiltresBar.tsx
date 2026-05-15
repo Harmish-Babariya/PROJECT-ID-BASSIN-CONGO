@@ -69,9 +69,9 @@ export default function FiltresBar({ zones, producteurs }: any) {
         >
           <option value="">{tp.filterAllStatusesEudr}</option>
           <option value="CONFORME">{tp.eudrConforme}</option>
+          <option value="NON CONFORME">{tp.eudrNonConforme}</option>
           <option value="RISQUE NON NÉGLIGEABLE">{tp.eudrRisque}</option>
-          <option value="EN ATTENTE">{tp.eudrEnAttente}</option>
-          <option value="__not_verified__">{tp.notVerified}</option>
+          <option value="__pending_review__">{tp.eudrEnAttente}</option>
         </select>
 
         <select

@@ -20,16 +20,19 @@ type Parcelle = {
 
 type Producteur = { id: number; code_producteur: string; nom: string; prenom?: string | null }
 
+// Renders one of four status badges. NON CONFORME and RISQUE NON NÉGLIGEABLE
+// are both alert-class statuses but get distinct colors/labels per spec.
+// Rows with null status_eudr collapse into pending_review.
 function EudrBadge({
   status,
-  notVerifiedLabel,
   conformeLabel,
+  nonConformeLabel,
   risqueLabel,
   enAttenteLabel,
 }: {
   status: string | null
-  notVerifiedLabel: string
   conformeLabel: string
+  nonConformeLabel: string
   risqueLabel: string
   enAttenteLabel: string
 }) {
@@ -37,13 +40,13 @@ function EudrBadge({
   if (norm === EUDR_STATUS.CONFORME) {
     return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-[#2ac1a3]/10 text-[#2ac1a3] border border-[#2ac1a3]/20">{conformeLabel}</span>
   }
+  if (norm === EUDR_STATUS.NON_CONFORME) {
+    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-red-100 text-red-700 border border-red-200">{nonConformeLabel}</span>
+  }
   if (norm === EUDR_STATUS.RISQUE) {
     return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700 border border-yellow-200">{risqueLabel}</span>
   }
-  if (norm === EUDR_STATUS.EN_ATTENTE) {
-    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-50 text-amber-700 border border-amber-200">{enAttenteLabel}</span>
-  }
-  return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500 border border-gray-200">{notVerifiedLabel}</span>
+  return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-50 text-amber-700 border border-amber-200">{enAttenteLabel}</span>
 }
 
 export default function ParcellesContent({
@@ -139,12 +142,15 @@ export default function ParcellesContent({
             {showFilter && (
               <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[180px] p-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{tp.colEudr}</p>
+                {/* 4 filter options matching the spec. NON CONFORME and
+                    RISQUE NON NÉGLIGEABLE are both alert-class but filtered
+                    separately. Pending review covers EN ATTENTE plus null. */}
                 {[
                   { value: "", label: tp.filterAll },
-                  { value: "CONFORME", label: tp.eudrConforme },
-                  { value: "RISQUE NON NÉGLIGEABLE", label: tp.eudrRisque },
-                  { value: "EN ATTENTE", label: tp.eudrEnAttente },
-                  { value: "__not_verified__", label: tp.notVerified.toUpperCase() },
+                  { value: EUDR_STATUS.CONFORME, label: tp.eudrConforme },
+                  { value: EUDR_STATUS.NON_CONFORME, label: tp.eudrNonConforme },
+                  { value: EUDR_STATUS.RISQUE, label: tp.eudrRisque },
+                  { value: "__pending_review__", label: tp.eudrEnAttente },
                 ].map(({ value, label }) => (
                   <label key={value} className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-gray-50 px-1 rounded">
                     <input type="radio" name="status_eudr" value={value} checked={filterStatus === value} onChange={() => { handleFilterChange(value); setShowFilter(false) }} className="accent-[#2ac1a3]" />
@@ -189,8 +195,8 @@ export default function ParcellesContent({
                   <td className="px-6 py-4">
                     <EudrBadge
                       status={parc.status_eudr}
-                      notVerifiedLabel={tp.notVerified}
                       conformeLabel={tp.eudrConforme}
+                      nonConformeLabel={tp.eudrNonConforme}
                       risqueLabel={tp.eudrRisque}
                       enAttenteLabel={tp.eudrEnAttente}
                     />
