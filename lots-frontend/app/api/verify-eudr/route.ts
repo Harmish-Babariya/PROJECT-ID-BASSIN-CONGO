@@ -48,6 +48,145 @@ interface DeforestationResult {
 
 // ─── POST handler ─────────────────────────────────────────────────────────────
 
+/**
+ * Run the full Hansen + WDPA verification pipeline for one parcel and persist
+ * the result. Exported so server actions can call it directly without a
+ * self-HTTP round-trip (which would require knowing the app's own origin).
+ */
+export async function runEudrVerification(parcelle_id: number | string) {
+  // 1. Fetch parcel from Supabase
+  const { data: parcelle, error: fetchError } = await supabaseAdmin
+    .from("parcelles")
+    .select("id, code_parcelle, latitude, longitude, gpx_file_url, annee_plantation, eudr_admin_override")
+    .eq("id", parcelle_id)
+    .single()
+
+  if (fetchError || !parcelle) {
+    return { success: false as const, error: `Parcelle ${parcelle_id} non trouvée` }
+  }
+
+  if (parcelle.eudr_admin_override) {
+    return {
+      success: true as const,
+      parcelle_id,
+      code_parcelle: parcelle.code_parcelle,
+      skipped: true,
+      reason: "admin_override",
+    }
+  }
+
+  // 2. Parse GPX → polygon
+  const polygon = parcelle.gpx_file_url
+    ? await getGpxPolygon(parcelle.gpx_file_url)
+    : null
+
+  // 3. Protected area check (WDPA via GFW)
+  let dans_zone_protegee: boolean | null = null
+  let zone_protegee_nom: string | null = null
+  let zone_protegee_type: string | null = null
+
+  if (polygon && polygon.length >= 3) {
+    ;[dans_zone_protegee, zone_protegee_nom, zone_protegee_type] =
+      await checkProtectedAreaPolygon(polygon)
+  }
+
+  // 4. Hansen deforestation analysis
+  let lat = parcelle.latitude ? parseFloat(parcelle.latitude) : null
+  let lon = parcelle.longitude ? parseFloat(parcelle.longitude) : null
+
+  // Derive lat/lon from the polygon centroid when the DB row doesn't carry
+  // them — older parcels created before the centroid was persisted will still
+  // have a usable GPX. This is the same fallback Python uses.
+  if ((lat === null || lon === null) && polygon && polygon.length > 0) {
+    lat = polygon.reduce((s, c) => s + c.lat, 0) / polygon.length
+    lon = polygon.reduce((s, c) => s + c.lon, 0) / polygon.length
+  }
+
+  let analysis: DeforestationResult
+
+  if (polygon && polygon.length >= 3 && lat !== null && lon !== null) {
+    analysis = await analyzeDeforestationPolygon(polygon, lat, lon)
+  } else {
+    // Be explicit about which input is missing so we can debug.
+    const reasons: string[] = []
+    if (!parcelle.gpx_file_url) reasons.push("aucun fichier GPX lié à la parcelle")
+    else if (!polygon || polygon.length === 0) reasons.push("fichier GPX introuvable ou illisible")
+    else if (polygon.length < 3) reasons.push(`GPX ne contient que ${polygon.length} point(s), 3 minimum requis`)
+    if (lat === null || lon === null) reasons.push("coordonnées GPS manquantes sur la parcelle")
+    analysis = makeIndeterminate(
+      `Vérification impossible : ${reasons.join(" ; ") || "données incomplètes"}.`
+    )
+  }
+
+  // 5. Overlay protected-area result — mirrors Python verify_parcelle_eudr()
+  let final_statut = analysis.statut
+  let final_justification = analysis.justification
+  let final_sources = analysis.sources
+
+  if (dans_zone_protegee && final_statut === "CONFORME") {
+    final_statut = "RISQUE NON NÉGLIGEABLE"
+    final_justification +=
+      ` La parcelle est située partiellement ou totalement dans la zone protégée` +
+      ` '${zone_protegee_nom}' (${zone_protegee_type}) selon la base WDPA.` +
+      ` Une vérification de la conformité aux lois du pays de production est requise` +
+      ` conformément au règlement (UE) 2023/1115.`
+    final_sources += ", WDPA 2024"
+  } else if (dans_zone_protegee === false) {
+    final_justification +=
+      " L'analyse par intersection géométrique confirme que la parcelle n'est pas" +
+      " située dans une zone protégée selon la base WDPA."
+    final_sources += ", WDPA 2024"
+  }
+
+  if (final_statut === "CONFORME") {
+    final_justification +=
+      " Aucun élément ne permet d'identifier un risque non négligeable" +
+      " au sens du règlement (UE) 2023/1115."
+  }
+
+  const eudr_date_verification = new Date().toISOString()
+
+  await supabaseAdmin
+    .from("parcelles")
+    .update({
+      eudr_conforme: analysis.conforme,
+      eudr_risque: analysis.risque,
+      eudr_statut: final_statut,
+      status_eudr: final_statut,
+      eudr_justification: final_justification,
+      justification_eudr: final_justification,
+      eudr_sources: final_sources,
+      eudr_date_verification,
+      dans_zone_protegee: dans_zone_protegee ?? false,
+      zone_protegee_nom,
+      zone_protegee_type,
+    })
+    .eq("id", parcelle_id)
+
+  return {
+    success: true as const,
+    parcelle_id,
+    code_parcelle: parcelle.code_parcelle,
+    eudr_statut: final_statut,
+    eudr_risque: analysis.risque,
+    eudr_conforme: analysis.conforme,
+    eudr_justification: final_justification,
+    eudr_sources: final_sources,
+    eudr_date_verification,
+    dans_zone_protegee,
+    zone_protegee_nom,
+    zone_protegee_type,
+    stats: {
+      total_pixels: analysis.total_pixels,
+      forest_pixels_2000: analysis.forest_pixels_2000,
+      deforestation_pixels: analysis.deforestation_pixels,
+      tree_cover_2000_percent: analysis.tree_cover_2000_percent,
+      avg_tree_cover_2000: analysis.avg_tree_cover_2000,
+      deforestation_after_2020_percent: analysis.deforestation_after_2020_percent,
+    },
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -60,127 +199,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 1. Fetch parcel from Supabase
-    const { data: parcelle, error: fetchError } = await supabaseAdmin
-      .from("parcelles")
-      .select("id, code_parcelle, latitude, longitude, gpx_file_url, annee_plantation, eudr_admin_override")
-      .eq("id", parcelle_id)
-      .single()
-
-    if (fetchError || !parcelle) {
-      return NextResponse.json(
-        { success: false, error: `Parcelle ${parcelle_id} non trouvée` },
-        { status: 404 }
-      )
+    const result = await runEudrVerification(parcelle_id)
+    if (!("success" in result) || !result.success) {
+      return NextResponse.json(result, { status: 404 })
     }
-
-    // Admin override — when set, an admin has manually corrected the EUDR
-    // status. Skip automated re-verification so the admin's decision is not
-    // overwritten on Hansen data refreshes.
-    if (parcelle.eudr_admin_override) {
-      return NextResponse.json({
-        success: true,
-        parcelle_id,
-        code_parcelle: parcelle.code_parcelle,
-        skipped: true,
-        reason: "admin_override",
-      })
-    }
-
-    // 2. Parse GPX → polygon
-    const polygon = parcelle.gpx_file_url
-      ? await getGpxPolygon(parcelle.gpx_file_url)
-      : null
-
-    // 3. Protected area check (WDPA via GFW)
-    let dans_zone_protegee: boolean | null = null
-    let zone_protegee_nom: string | null = null
-    let zone_protegee_type: string | null = null
-
-    if (polygon && polygon.length >= 3) {
-      ;[dans_zone_protegee, zone_protegee_nom, zone_protegee_type] =
-        await checkProtectedAreaPolygon(polygon)
-    }
-
-    // 4. Hansen deforestation analysis
-    const lat = parcelle.latitude ? parseFloat(parcelle.latitude) : null
-    const lon = parcelle.longitude ? parseFloat(parcelle.longitude) : null
-
-    let analysis: DeforestationResult
-
-    if (polygon && polygon.length >= 3 && lat !== null && lon !== null) {
-      analysis = await analyzeDeforestationPolygon(polygon, lat, lon)
-    } else {
-      analysis = makeIndeterminate("GPS manquant ou fichier GPX invalide")
-    }
-
-    // 5. Overlay protected-area result — mirrors Python verify_parcelle_eudr()
-    let final_statut = analysis.statut
-    let final_justification = analysis.justification
-    let final_sources = analysis.sources
-
-    if (dans_zone_protegee && final_statut === "CONFORME") {
-      final_statut = "RISQUE NON NÉGLIGEABLE"
-      final_justification +=
-        ` La parcelle est située partiellement ou totalement dans la zone protégée` +
-        ` '${zone_protegee_nom}' (${zone_protegee_type}) selon la base WDPA.` +
-        ` Une vérification de la conformité aux lois du pays de production est requise` +
-        ` conformément au règlement (UE) 2023/1115.`
-      final_sources += ", WDPA 2024"
-    } else if (dans_zone_protegee === false) {
-      final_justification +=
-        " L'analyse par intersection géométrique confirme que la parcelle n'est pas" +
-        " située dans une zone protégée selon la base WDPA."
-      final_sources += ", WDPA 2024"
-    }
-
-    if (final_statut === "CONFORME") {
-      final_justification +=
-        " Aucun élément ne permet d'identifier un risque non négligeable" +
-        " au sens du règlement (UE) 2023/1115."
-    }
-
-    // 6. Persist to Supabase (same fields as Python update_data)
-    const eudr_date_verification = new Date().toISOString()
-
-    await supabaseAdmin
-      .from("parcelles")
-      .update({
-        eudr_conforme: analysis.conforme,
-        eudr_risque: analysis.risque,
-        eudr_statut: final_statut,
-        status_eudr: final_statut,
-        eudr_justification: final_justification,
-        eudr_sources: final_sources,
-        eudr_date_verification,
-        dans_zone_protegee: dans_zone_protegee ?? false,
-        zone_protegee_nom,
-        zone_protegee_type,
-      })
-      .eq("id", parcelle_id)
-
-    return NextResponse.json({
-      success: true,
-      parcelle_id,
-      code_parcelle: parcelle.code_parcelle,
-      eudr_statut: final_statut,
-      eudr_risque: analysis.risque,
-      eudr_conforme: analysis.conforme,
-      eudr_justification: final_justification,
-      eudr_sources: final_sources,
-      eudr_date_verification,
-      dans_zone_protegee,
-      zone_protegee_nom,
-      zone_protegee_type,
-      stats: {
-        total_pixels: analysis.total_pixels,
-        forest_pixels_2000: analysis.forest_pixels_2000,
-        deforestation_pixels: analysis.deforestation_pixels,
-        tree_cover_2000_percent: analysis.tree_cover_2000_percent,
-        avg_tree_cover_2000: analysis.avg_tree_cover_2000,
-        deforestation_after_2020_percent: analysis.deforestation_after_2020_percent,
-      },
-    })
+    return NextResponse.json(result)
   } catch (error: any) {
     console.error("verify-eudr error:", error)
     return NextResponse.json(

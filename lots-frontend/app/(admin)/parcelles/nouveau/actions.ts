@@ -3,6 +3,7 @@
 import { insertParcelle, updateParcelleById } from "@/lib/services/parcelles"
 import { getCurrentUser } from "@/lib/services/auth"
 import { insertAuditLog } from "@/lib/services/audit"
+import { runEudrVerification } from "@/app/api/verify-eudr/route"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
@@ -118,17 +119,13 @@ export async function createParcelle(formData: any, returnTo?: string) {
     }
 
     // Trigger satellite verification (Hansen + WDPA) for parcels with a GPX.
-    // Fire-and-forget — the parcel stays EN ATTENTE until the call completes
-    // and overwrites status_eudr / justification_eudr.
+    // Awaited so the redirect target page shows the verified status immediately
+    // instead of a stale "EN ATTENTE" until the next refresh.
     if (data?.id && dataToInsert.gpx_file_url) {
-      const base = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-      const origin = base?.startsWith("http") ? base : base ? `https://${base}` : ""
-      if (origin) {
-        fetch(`${origin}/api/verify-eudr`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ parcelle_id: data.id }),
-        }).catch(() => {})
+      try {
+        await runEudrVerification(data.id)
+      } catch (e) {
+        console.error("EUDR verification failed for parcel", data.id, e)
       }
     }
 
@@ -250,6 +247,16 @@ export async function updateParcelle(id: string, formData: any) {
         culture: dataToUpdate.culture,
         surface_ha: dataToUpdate.surface_ha,
       })
+    }
+
+    // Re-run satellite verification if the GPX is set on this parcel.
+    // runEudrVerification respects eudr_admin_override and skips when set.
+    if (dataToUpdate.gpx_file_url) {
+      try {
+        await runEudrVerification(id)
+      } catch (e) {
+        console.error("EUDR verification failed for parcel", id, e)
+      }
     }
 
     revalidatePath('/parcelles')

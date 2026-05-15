@@ -2,6 +2,7 @@
 import { updateParcelleById } from "@/lib/services/parcelles"
 import { getCurrentUser } from "@/lib/services/auth"
 import { insertAuditLog } from "@/lib/services/audit"
+import { runEudrVerification } from "@/app/api/verify-eudr/route"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
@@ -70,6 +71,16 @@ export async function updateParcelle(id: number, formData: any) {
         culture: dataToUpdate.culture,
         surface_ha: dataToUpdate.surface_ha,
       })
+    }
+
+    // Re-run satellite verification (Hansen + WDPA) for parcels with a GPX.
+    // runEudrVerification respects eudr_admin_override and skips when set.
+    if (dataToUpdate.gpx_file_url) {
+      try {
+        await runEudrVerification(id)
+      } catch (e) {
+        console.error("EUDR verification failed for parcel", id, e)
+      }
     }
 
     revalidatePath(`/parcelles/${id}`)
