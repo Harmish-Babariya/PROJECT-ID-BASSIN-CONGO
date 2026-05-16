@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-server"
+import { DataScope, applyScope } from "@/lib/services/scope"
 
 // Query helpers for producteurs
 
@@ -8,16 +9,15 @@ export async function getProducteurs(filters?: {
   sexe?: string
   statut?: string
   avec_parcelles?: string
-  pays_id?: number | null
+  scope?: DataScope
 }) {
   let query = supabaseAdmin
     .from("producteurs")
     .select("*, zones(nom)")
 
-  // Scope to assigned country for point_focal
-  if (filters?.pays_id) {
-    query = query.eq("pays_id", Number(filters.pays_id))
-  }
+  // Scope to the focal point's countries + their own records (Issue #1).
+  // Admins pass scope = null and see everything.
+  query = applyScope(query, filters?.scope ?? null)
 
   if (filters?.recherche) {
     query = query.or(`code_producteur.ilike.%${filters.recherche}%,nom.ilike.%${filters.recherche}%`)
@@ -72,11 +72,11 @@ export async function getProducteurSimple(id: string) {
   return data
 }
 
-export async function getProducteursForSelect(paysId?: number | null) {
+export async function getProducteursForSelect(scope?: DataScope) {
   let query = supabaseAdmin
     .from("producteurs")
     .select("id, code_producteur, nom, prenom, pays_id, zone_id, village")
-  if (paysId) query = query.eq("pays_id", Number(paysId))
+  query = applyScope(query, scope ?? null)
   const { data } = await query.order("code_producteur")
   return data || []
 }
@@ -189,9 +189,9 @@ export async function updateProducteurById(id: number, formData: Record<string, 
 }
 
 // Stats for dashboard
-export async function getProducteursStats(paysId?: number | null) {
+export async function getProducteursStats(scope?: DataScope) {
   let query = supabaseAdmin.from("producteurs").select("id, sexe, annee_naissance")
-  if (paysId) query = query.eq("pays_id", Number(paysId))
+  query = applyScope(query, scope ?? null)
   const { data } = await query
   return data || []
 }

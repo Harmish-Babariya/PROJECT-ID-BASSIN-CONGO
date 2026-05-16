@@ -93,6 +93,7 @@ export async function getCurrentUser() {
       user_code: bootstrapCode,
       country: null,
       country_id: null,
+      pays_ids: [] as number[],
       created_at: user.created_at,
       last_sign_in_at: user.last_sign_in_at || null,
     }
@@ -121,6 +122,11 @@ export async function getCurrentUser() {
     user_code,
     country: profile.pays?.nom || null,
     country_id: profile.pays_id || null,
+    // Multi-country set (Issue #1). Falls back to the single assigned country
+    // for users created before the pays_ids column existed.
+    pays_ids: Array.isArray(profile.pays_ids) && profile.pays_ids.length > 0
+      ? (profile.pays_ids as number[])
+      : (profile.pays_id ? [profile.pays_id as number] : []),
     created_at: user.created_at,
     last_sign_in_at: user.last_sign_in_at || null,
   }

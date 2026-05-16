@@ -36,6 +36,11 @@ export default async function ModifierUtilisateurPage({
     nom_complet: profile.nom_complet ?? "",
     role,
     pays_id: profile.pays_id != null ? String(profile.pays_id) : "",
+    // Multi-country set (Issue #1); fall back to the single country.
+    pays_ids: (Array.isArray(profile.pays_ids) && profile.pays_ids.length > 0
+      ? profile.pays_ids
+      : (profile.pays_id != null ? [profile.pays_id] : [])
+    ).map((n: number) => String(n)),
     pays_nom: profile.pays?.nom ?? null,
     statut: profile.statut ?? "actif",
     user_code: profile.user_code ?? null,

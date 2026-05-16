@@ -104,6 +104,8 @@ export async function createProducteur(
       date_enregistrement:
         formData.date_enregistrement ||
         new Date().toISOString().split("T")[0],
+      // Ownership: focal points only ever see records they registered (Issue #1).
+      created_by: me?.id ?? null,
     }
 
     const { data, error } = await insertProducteur(dataToInsert)

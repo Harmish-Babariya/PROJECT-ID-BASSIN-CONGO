@@ -4,6 +4,7 @@ import { getParcellesStats, getParcellesForMap } from "@/lib/services/parcelles"
 import { getLotsStats, getRecentLots } from "@/lib/services/lots"
 import { getCollectesStats, getRecentCollectes } from "@/lib/services/collectes"
 import { getCurrentUser } from "@/lib/services/auth"
+import { buildScope, type DataScope } from "@/lib/services/scope"
 import { eudrBucket, normalizeEudrStatus, EUDR_STATUS } from "@/lib/eudr"
 
 export const dynamic = "force-dynamic"
@@ -27,13 +28,13 @@ function resolvePeriodRange(period: PeriodKey): { from: string | null; to: strin
 
 type Range = { from: string | null; to: string | null }
 
-async function getStats(paysId: number | null, range: Range) {
-  // Producteurs/parcelles stats aren't time-scoped — keep them global (by country only)
+async function getStats(scope: DataScope, range: Range) {
+  // Producteurs/parcelles stats aren't time-scoped — keep them global (by scope only)
   const [producteurs, parcelles, lots, collectes] = await Promise.all([
-    getProducteursStats(paysId),
-    getParcellesStats(paysId),
-    getLotsStats(paysId, range),
-    getCollectesStats(paysId, range),
+    getProducteursStats(scope),
+    getParcellesStats(scope),
+    getLotsStats(scope, range),
+    getCollectesStats(scope, range),
   ])
 
   const totalProducteurs = producteurs.length
@@ -98,15 +99,14 @@ export default async function Dashboard({
   const range = resolvePeriodRange(period)
 
   const currentUser = await getCurrentUser()
-  const isAdmin = currentUser?.role === "admin"
-  // point_focal without a country sees nothing (-1 matches nothing); admins see everything
-  const paysId = isAdmin ? null : (currentUser?.country_id ?? -1)
+  // null = admin (everything); else scoped to focal point's countries + own records
+  const scope = buildScope(currentUser)
 
   const [stats, recentCollectes, recentLots, mapParcelles] = await Promise.all([
-    getStats(paysId, range),
-    getRecentCollectes(3, paysId, range),
-    getRecentLots(3, paysId, range),
-    getParcellesForMap(paysId),
+    getStats(scope, range),
+    getRecentCollectes(3, scope, range),
+    getRecentLots(3, scope, range),
+    getParcellesForMap(scope),
   ])
 
   return (

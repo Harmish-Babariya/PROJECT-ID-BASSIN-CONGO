@@ -168,7 +168,7 @@ export default function CollecteForm({ producteurs, parcelles, pays, zones, vill
 
             <div>
               <label className={lbl}>{c.labelProducteurField}</label>
-              <div className="grid grid-cols-3 gap-2 mb-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                 <select
                   value={filterPays}
                   onChange={(e) => {

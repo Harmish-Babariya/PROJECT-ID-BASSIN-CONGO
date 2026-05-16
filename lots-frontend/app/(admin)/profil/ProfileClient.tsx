@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Shield, TriangleAlert, Monitor, Trash2 } from "lucide-react"
 import type { AuditLogEntry } from "@/lib/services/audit"
@@ -69,7 +69,11 @@ export default function ProfileClient({
     }
   }, [])
 
-
+  // Load the session count on mount so the row shows the real number
+  // immediately, instead of "0 active" until the user opens the modal.
+  useEffect(() => {
+    fetchSessions()
+  }, [fetchSessions])
 
   async function handleDeleteSession(id: string) {
     setDeletingId(id)
@@ -360,7 +364,7 @@ export default function ProfileClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((s) => (
           <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-6 py-5">
             <p className="text-[9px] text-gray-400 tracking-[0.15em] uppercase font-medium">{s.label}</p>

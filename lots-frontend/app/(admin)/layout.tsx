@@ -4,19 +4,20 @@ import { getParcellesStats } from "@/lib/services/parcelles"
 import { getLotsStats } from "@/lib/services/lots"
 import { getCollectesStats } from "@/lib/services/collectes"
 import { getCurrentUser } from "@/lib/services/auth"
+import { buildScope } from "@/lib/services/scope"
 
 export default async function AdminGroupLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser()
 
-  const isAdmin = user?.role === "admin"
-  // point_focal with no country assigned sees nothing (-1 matches nothing in DB)
-  const paysId = isAdmin ? null : (user?.country_id ?? -1)
+  // null = admin (sees all); otherwise scoped to the focal point's
+  // countries + the records they personally registered (Issue #1).
+  const scope = buildScope(user)
 
   const [producteurs, parcelles, lots, collectes] = await Promise.all([
-    getProducteursStats(paysId),
-    getParcellesStats(paysId),
-    getLotsStats(paysId),
-    getCollectesStats(paysId),
+    getProducteursStats(scope),
+    getParcellesStats(scope),
+    getLotsStats(scope),
+    getCollectesStats(scope),
   ])
 
   const counts = {

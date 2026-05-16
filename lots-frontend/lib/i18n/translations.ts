@@ -516,6 +516,8 @@ export const translations = {
       overrideSavedBy: (name: string, when: string) =>
         `Verrouillé par ${name} le ${when}`,
       overrideReasonLabel: "Raison du verrou",
+      eudrJustifAdminOverride: (reason: string) =>
+        `Statut défini manuellement par un administrateur. Motif : ${reason}`,
       overrideSaveError: "Impossible d'enregistrer la modification",
       // Stat cards
       cardCulture: "CULTURE",
@@ -1802,6 +1804,8 @@ export const translations = {
       overrideSavedBy: (name: string, when: string) =>
         `Locked by ${name} on ${when}`,
       overrideReasonLabel: "Override reason",
+      eudrJustifAdminOverride: (reason: string) =>
+        `Status set manually by an administrator. Reason: ${reason}`,
       overrideSaveError: "Could not save the override change",
       // Stat cards
       cardCulture: "CROP",

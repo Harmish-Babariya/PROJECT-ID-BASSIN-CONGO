@@ -167,7 +167,7 @@ export default function ParcelleDetailClient({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left: detail table */}
           <div>
             <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">{tp.sectionOtherInfo}</h2>

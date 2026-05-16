@@ -21,6 +21,7 @@ type InitialUser = {
   nom_complet: string
   role: "admin" | "point_focal"
   pays_id: string
+  pays_ids: string[]
   pays_nom: string | null
   statut: string
   user_code: string | null
@@ -78,7 +79,8 @@ export default function ModifierUtilisateurClient({
     nom_complet: user.nom_complet,
     email: user.email,
     role: user.role,
-    pays_id: user.pays_id,
+    // Multi-country (Issue #1).
+    pays_ids: user.pays_ids ?? [],
   })
   const [submitting, setSubmitting] = useState(false)
   const [actionPending, setActionPending] = useState<string | null>(null)
@@ -116,7 +118,7 @@ export default function ModifierUtilisateurClient({
       showFeedback("err", t.errors.INVALID_EMAIL)
       return
     }
-    if (!isAdmin && !form.pays_id) {
+    if (!isAdmin && form.pays_ids.length === 0) {
       showFeedback("err", t.errors.COUNTRY_REQUIRED)
       return
     }
@@ -130,7 +132,7 @@ export default function ModifierUtilisateurClient({
           nom_complet: form.nom_complet.trim(),
           email: form.email.trim(),
           role: form.role,
-          pays_id: isAdmin ? null : form.pays_id,
+          pays_ids: isAdmin ? [] : form.pays_ids,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -141,7 +143,10 @@ export default function ModifierUtilisateurClient({
         )
         return
       }
-      const countryChanged = !isAdmin && form.pays_id !== user.pays_id
+      const countryChanged =
+        !isAdmin &&
+        [...form.pays_ids].sort().join(",") !==
+          [...(user.pays_ids ?? [])].sort().join(",")
       showFeedback(
         "ok",
         m.saveSuccess,
@@ -418,19 +423,33 @@ export default function ModifierUtilisateurClient({
                 <label className="block text-[10px] sm:text-[11px] text-[#2AC1A3] tracking-[0.2em] font-mono uppercase mb-2.5 font-semibold">
                   {m.country} <span className="text-[#2AC1A3]">*</span>
                 </label>
-                <select
-                  value={form.pays_id}
-                  onChange={(e) => update("pays_id", e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 text-[14px] text-gray-900 focus:outline-none focus:border-[#2AC1A3]"
-                  style={{ borderRadius: 8 }}
-                >
-                  <option value="">{m.countrySelectPlaceholder}</option>
-                  {pays.map((p) => (
-                    <option key={p.id} value={String(p.id)}>
-                      {translateGeoName(p.nom, locale)}
-                    </option>
-                  ))}
-                </select>
+                <div className="bg-white border border-gray-200 divide-y divide-gray-100 max-h-56 overflow-y-auto" style={{ borderRadius: 8 }}>
+                  {pays.map((p) => {
+                    const idStr = String(p.id)
+                    const checked = form.pays_ids.includes(idStr)
+                    return (
+                      <label
+                        key={p.id}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-[14px] text-gray-900 cursor-pointer hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            update(
+                              "pays_ids",
+                              checked
+                                ? form.pays_ids.filter((x) => x !== idStr)
+                                : [...form.pays_ids, idStr]
+                            )
+                          }
+                          className="accent-[#2AC1A3]"
+                        />
+                        {translateGeoName(p.nom, locale)}
+                      </label>
+                    )
+                  })}
+                </div>
                 <p className="mt-2.5 text-[11px] text-[#2AC1A3] font-mono">
                   {m.countryRlsNote}
                 </p>

@@ -3,6 +3,7 @@ import ProducteursContent from "./ProducteursContent"
 import { getProducteurs } from "@/lib/services/producteurs"
 import { getZones } from "@/lib/services/common"
 import { getCurrentUser } from "@/lib/services/auth"
+import { buildScope } from "@/lib/services/scope"
 
 export default async function ProducteursPage({
   searchParams,
@@ -20,14 +21,12 @@ export default async function ProducteursPage({
 
   const params = await searchParams
   const isAdmin = user.role === "admin"
-
-  // point_focal with no country assigned sees nothing
-  const scopedPaysId = isAdmin ? null : (user.country_id ?? -1)
+  const scope = buildScope(user)
 
   const [producteurs, zones] = await Promise.all([
     getProducteurs({
       ...params,
-      pays_id: isAdmin ? null : scopedPaysId,
+      scope,
     }),
     getZones(),
   ])

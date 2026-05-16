@@ -1,8 +1,9 @@
 import { supabaseAdmin } from "@/lib/supabase-server"
+import { DataScope, applyScope } from "@/lib/services/scope"
 
-export async function getLots(paysId?: number | null) {
+export async function getLots(scope?: DataScope) {
   let query = supabaseAdmin.from("lots").select("*, zones(nom), pays(nom)")
-  if (paysId) query = query.eq("pays_id", Number(paysId))
+  query = applyScope(query, scope ?? null)
   const { data } = await query.order("date_creation", { ascending: false })
   return data || []
 }
@@ -88,14 +89,14 @@ export async function insertLotCollectes(associations: { lot_id: number; collect
 
 export async function getRecentLots(
   limit = 3,
-  paysId?: number | null,
+  scope?: DataScope,
   range?: { from?: string | null; to?: string | null }
 ) {
   let query = supabaseAdmin
     .from("lots")
     .select("id, code_lot, statut, poids_total_kg, date_creation, zones(nom)")
 
-  if (paysId) query = query.eq("pays_id", Number(paysId))
+  query = applyScope(query, scope ?? null)
   if (range?.from) query = query.gte("date_creation", range.from)
   if (range?.to) query = query.lte("date_creation", range.to)
 
@@ -107,11 +108,11 @@ export async function getRecentLots(
 
 // Stats for dashboard
 export async function getLotsStats(
-  paysId?: number | null,
+  scope?: DataScope,
   range?: { from?: string | null; to?: string | null }
 ) {
   let query = supabaseAdmin.from("lots").select("id, statut, poids_total_kg")
-  if (paysId) query = query.eq("pays_id", paysId)
+  query = applyScope(query, scope ?? null)
   if (range?.from) query = query.gte("date_creation", range.from)
   if (range?.to) query = query.lte("date_creation", range.to)
   const { data } = await query

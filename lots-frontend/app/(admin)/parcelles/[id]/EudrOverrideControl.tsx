@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Lock, ShieldCheck, X } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
@@ -27,6 +28,7 @@ export default function EudrOverrideControl({
   isAdmin,
 }: Props) {
   const { t, locale } = useLanguage()
+  const router = useRouter()
   const tp = t.parcelles
   const [setOpen, setSetOpen] = useState(false)
   const [clearOpen, setClearOpen] = useState(false)
@@ -56,6 +58,7 @@ export default function EudrOverrideControl({
       }
       setSetOpen(false)
       setReason("")
+      router.refresh()
     })
   }
 
@@ -68,6 +71,7 @@ export default function EudrOverrideControl({
         return
       }
       setClearOpen(false)
+      router.refresh()
     })
   }
 

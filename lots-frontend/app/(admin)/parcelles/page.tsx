@@ -3,6 +3,7 @@ import ParcellesContent from "./ParcellesContent"
 import { getParcelles } from "@/lib/services/parcelles"
 import { getProducteursForSelect } from "@/lib/services/producteurs"
 import { getCurrentUser } from "@/lib/services/auth"
+import { buildScope } from "@/lib/services/scope"
 
 export default async function ParcellesPage({
   searchParams,
@@ -19,16 +20,14 @@ export default async function ParcellesPage({
   if (!user) redirect("/login")
 
   const params = await searchParams
-  const isAdmin = user.role === "admin"
-  // point_focal with no country assigned sees nothing (-1 matches nothing)
-  const scopedPaysId = isAdmin ? null : (user.country_id ?? -1)
+  const scope = buildScope(user)
 
   const [parcelles, producteurs] = await Promise.all([
     getParcelles({
       ...params,
-      pays_id: scopedPaysId,
+      scope,
     }),
-    getProducteursForSelect(scopedPaysId),
+    getProducteursForSelect(scope),
   ])
 
   const producteursMap = new Map(producteurs.map(p => [p.id, p]))

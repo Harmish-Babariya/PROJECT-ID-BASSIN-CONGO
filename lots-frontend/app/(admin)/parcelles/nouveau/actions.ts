@@ -101,7 +101,9 @@ export async function createParcelle(formData: any, returnTo?: string) {
       estimations_data: {
         age_estimatif_plantation: formData.age_estimatif_plantation ? parseInt(formData.age_estimatif_plantation) : null,
         niveau_maitrise_bpa: formData.niveau_maitrise_bpa || null
-      }
+      },
+      // Ownership: focal points only see plots they registered (Issue #1).
+      created_by: me?.id ?? null,
     }
 
     const { data, error } = await insertParcelle(dataToInsert)

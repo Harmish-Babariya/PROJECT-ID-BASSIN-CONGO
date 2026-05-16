@@ -23,6 +23,8 @@ export async function createLot(
       date_expedition: formData.date_expedition || null,
       statut: formData.statut,
       pays_id: me?.country_id ?? null,
+      // Ownership: focal points only see lots they created (Issue #1).
+      created_by: me?.id ?? null,
     })
 
     if (lotError) {

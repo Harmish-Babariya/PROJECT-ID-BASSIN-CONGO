@@ -133,7 +133,6 @@ export default function ProducteurDetailClient({
   // 4 separate display counts. NON CONFORME and RISQUE NON NÉGLIGEABLE
   // each get their own badge.
   const conformesCount = parcelles.filter((pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.CONFORME).length
-  const nonConformesCount = parcelles.filter((pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.NON_CONFORME).length
   const risquesCount = parcelles.filter((pc) => normalizeEudrStatus(pc.status_eudr) === EUDR_STATUS.RISQUE).length
   const enAttenteCount = parcelles.filter((pc) => eudrBucket(pc.status_eudr) === "pending_review").length
   // notVerifiedCount kept for legend back-compat — always 0 in the 3-bucket
@@ -192,7 +191,7 @@ export default function ProducteurDetailClient({
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <div className="bg-white rounded-xl border border-gray-200 px-4 sm:px-6 py-4 sm:py-5">
           <p className="text-[9px] text-[#AAAAAA] tracking-[0.18em] uppercase font-medium leading-tight">
             {p.kpiParcelles}
@@ -208,32 +207,6 @@ export default function ProducteurDetailClient({
           <p className="text-[18px] sm:text-[28px] font-bold text-[#1A1A1A] mt-1 font-numbers">
             {totalSurface.toFixed(2)} <span className="text-[13px]">ha</span>
           </p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 px-4 sm:px-6 py-4 sm:py-5">
-          <p className="text-[9px] text-[#AAAAAA] tracking-[0.18em] uppercase font-medium leading-tight">
-            {p.kpiEudr}
-          </p>
-          <div className="mt-2">
-            {(() => {
-              // Dominant status priority: NON CONFORME > RISQUE > pending > compliant.
-              // Mirrors the order used in the parcel list filters.
-              const tParc = t.parcelles
-              const cls = "inline-block px-3 py-1.5 rounded-lg text-[11px] sm:text-[12px] font-bold uppercase tracking-wide"
-              if (nonConformesCount > 0) {
-                return <span className={`${cls} bg-red-100 text-red-700`}>{tParc.eudrNonConforme}</span>
-              }
-              if (risquesCount > 0) {
-                return <span className={`${cls} bg-yellow-100 text-yellow-700`}>{tParc.eudrRisque}</span>
-              }
-              if (enAttenteCount > 0) {
-                return <span className={`${cls} bg-amber-50 text-amber-700`}>{tParc.eudrEnAttente}</span>
-              }
-              if (conformesCount > 0) {
-                return <span className={`${cls} bg-[#2ac1a3]/15 text-[#2ac1a3]`}>{tParc.eudrConforme}</span>
-              }
-              return <span className={`${cls} bg-gray-100 text-gray-500`}>{tParc.notVerified}</span>
-            })()}
-          </div>
         </div>
       </div>
 

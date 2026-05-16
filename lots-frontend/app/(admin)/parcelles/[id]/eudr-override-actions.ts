@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase-server"
 import { getCurrentUser } from "@/lib/services/auth"
 import { insertAuditLog } from "@/lib/services/audit"
 import { EUDR_STATUS } from "@/lib/eudr"
+import { runEudrVerification } from "@/app/api/verify-eudr/route"
 
 const ALLOWED_STATUSES = [
   EUDR_STATUS.CONFORME,
@@ -92,6 +93,18 @@ export async function clearEudrOverride(parcelleId: number | string) {
   if (error) return { error: error.message }
 
   await insertAuditLog(me.id, "eudr_override_clear", "parcelles", String(parcelleId), {})
+
+  // Re-run the satellite analysis so the admin-pinned status/justification is
+  // replaced by the real Hansen + WDPA result. Without this the parcel would
+  // keep showing the "[ADMIN OVERRIDE] ..." justification and pinned status
+  // even though the override has been removed.
+  try {
+    await runEudrVerification(parcelleId)
+  } catch (e: any) {
+    // Verification failure shouldn't block the clear itself; the parcel will
+    // simply keep its last status until the next /api/verify-eudr run.
+    console.warn("re-verify after override clear failed:", e?.message)
+  }
 
   revalidatePath(`/parcelles/${parcelleId}`)
   revalidatePath("/parcelles")

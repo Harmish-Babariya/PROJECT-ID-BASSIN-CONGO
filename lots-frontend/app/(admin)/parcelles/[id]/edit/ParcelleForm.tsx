@@ -242,7 +242,7 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays, isAdm
           {/* SECTION 1: IDENTIFICATION */}
           <div className="pb-10 border-b border-gray-200">
             <SectionTitle num="1" title={tp.section1} />
-            <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
               <div>
                 <label className={labelClass}>{tp.labelPays}</label>
                 <select value={formData.pays_id} onChange={e => handlePaysChange(e.target.value)} className={selectClass} disabled={paysLocked} required>
@@ -272,7 +272,7 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays, isAdm
           {/* SECTION 2: ACQUISITION ET ACCÈS À LA TERRE */}
           <div className="pb-10 border-b border-gray-200">
             <SectionTitle num="2" title={tp.section2} />
-            <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
               <div>
                 <label className={labelClass}>{tp.labelModeAcces}</label>
                 <select value={formData.mode_acces_terre} onChange={e => setFormData({ ...formData, mode_acces_terre: e.target.value })} className={selectClass}>
@@ -327,7 +327,7 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays, isAdm
           {/* SECTION 3: SEMENCES ET SYSTÈME AGRICOLE */}
           <div className="pb-10 border-b border-gray-200">
             <SectionTitle num="3" title={tp.section3} />
-            <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
               <div>
                 <label className={labelClass}>{tp.labelProvenance}</label>
                 <select value={formData.provenance_semences} onChange={e => setFormData({ ...formData, provenance_semences: e.target.value })} className={selectClass}>
@@ -380,7 +380,7 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays, isAdm
           {/* SECTION 4: SANTÉ ET PRODUCTION */}
           <div className="pb-10 border-b border-gray-200">
             <SectionTitle num="4" title={tp.section4} />
-            <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
               <div>
                 <label className={labelClass}>{tp.labelSignesMaladies}</label>
                 <select value={formData.signes_maladies} onChange={e => setFormData({ ...formData, signes_maladies: e.target.value })} className={selectClass}>
@@ -424,7 +424,7 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays, isAdm
           {/* SECTION 5: FORMATION ET ENTRETIEN */}
           <div className="pb-10 border-b border-gray-200">
             <SectionTitle num="5" title={tp.section5} />
-            <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
               <div>
                 <label className={labelClass}>{tp.labelFormations}</label>
                 <select value={formData.formations_recues} onChange={e => setFormData({ ...formData, formations_recues: e.target.value })} className={selectClass}>

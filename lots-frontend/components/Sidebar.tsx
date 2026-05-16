@@ -113,7 +113,7 @@ export default function Sidebar({
           </button>
         </div>
 
-        <nav className="flex-1 px-3 space-y-5 overflow-y-auto min-h-0">
+        <nav className="flex-1 px-3 space-y-5 overflow-y-auto min-h-0 sidebar-scroll">
           <div>
             <Link
               href="/dashboard"

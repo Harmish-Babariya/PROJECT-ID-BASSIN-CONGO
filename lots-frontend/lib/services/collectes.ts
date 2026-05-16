@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase-server"
+import { DataScope, applyOwnerScope } from "@/lib/services/scope"
 
-export async function getCollectes(paysId?: number | null) {
+export async function getCollectes(scope?: DataScope) {
   let query = supabaseAdmin
     .from("collectes")
     .select(`
@@ -10,16 +11,9 @@ export async function getCollectes(paysId?: number | null) {
       zones (nom)
     `)
 
-  if (paysId) {
-    const { data: scopedProducteurs } = await supabaseAdmin
-      .from("producteurs")
-      .select("id")
-      .eq("pays_id", Number(paysId))
-    const ids = (scopedProducteurs ?? []).map((p: { id: number }) => p.id)
-    query = ids.length > 0
-      ? query.in("producteur_id", ids)
-      : query.in("producteur_id", [-1])
-  }
+  // collectes has no pays_id; a focal point only sees collectes they
+  // registered (ownership already implies the correct country). Issue #1.
+  query = applyOwnerScope(query, scope ?? null)
 
   const { data } = await query.order("date_collecte", { ascending: false })
   return data || []
@@ -111,7 +105,7 @@ export async function updateCollecteById(id: number, dataToUpdate: Record<string
 
 export async function getRecentCollectes(
   limit = 3,
-  paysId?: number | null,
+  scope?: DataScope,
   range?: { from?: string | null; to?: string | null }
 ) {
   let query = supabaseAdmin
@@ -122,16 +116,7 @@ export async function getRecentCollectes(
       zones (nom)
     `)
 
-  if (paysId) {
-    const { data: prods } = await supabaseAdmin
-      .from("producteurs")
-      .select("id")
-      .eq("pays_id", Number(paysId))
-    const ids = (prods ?? []).map((p: { id: number }) => p.id)
-    query = ids.length > 0
-      ? query.in("producteur_id", ids)
-      : query.in("producteur_id", [-1])
-  }
+  query = applyOwnerScope(query, scope ?? null)
 
   if (range?.from) query = query.gte("date_collecte", range.from)
   if (range?.to) query = query.lte("date_collecte", range.to)
@@ -144,15 +129,11 @@ export async function getRecentCollectes(
 
 // Stats for dashboard
 export async function getCollectesStats(
-  paysId?: number | null,
+  scope?: DataScope,
   range?: { from?: string | null; to?: string | null }
 ) {
   let query = supabaseAdmin.from("collectes").select("id, poids_net_kg")
-  if (paysId) {
-    const { data: prods } = await supabaseAdmin.from("producteurs").select("id").eq("pays_id", paysId)
-    const ids = (prods ?? []).map((p: { id: number }) => p.id)
-    query = ids.length > 0 ? query.in("producteur_id", ids) : query.in("producteur_id", [-1])
-  }
+  query = applyOwnerScope(query, scope ?? null)
   if (range?.from) query = query.gte("date_collecte", range.from)
   if (range?.to) query = query.lte("date_collecte", range.to)
   const { data } = await query

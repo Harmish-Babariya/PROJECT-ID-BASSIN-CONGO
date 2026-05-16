@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     email?: string
     organisation?: string | null
     pays_id?: string | null
+    pays_ids?: (string | number)[] | null
     role?: "admin" | "focal" | "point_focal"
   }
   try {
@@ -36,13 +37,27 @@ export async function POST(request: NextRequest) {
   const nom = (body.nom || "").trim()
   const organisation = (body.organisation || "").trim() || null
   const rawRole = body.role === "admin" ? "admin" : "point_focal"
-  const pays_id = rawRole === "admin" ? null : body.pays_id || null
+
+  // Multi-country (Issue #1): a focal point may be assigned several countries.
+  // pays_ids is the full set; pays_id stays as the primary (first) country for
+  // back-compat with code that still reads the single column. Admins get none.
+  const paysIds: number[] =
+    rawRole === "admin"
+      ? []
+      : Array.from(
+          new Set(
+            (body.pays_ids ?? (body.pays_id ? [body.pays_id] : []))
+              .map((v) => parseInt(String(v), 10))
+              .filter((n) => Number.isFinite(n))
+          )
+        )
+  const pays_id = rawRole === "admin" ? null : (paysIds[0] ?? null)
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return apiError("INVALID_EMAIL", 400)
   }
   if (!nom) return apiError("NAME_REQUIRED", 400)
-  if (rawRole === "point_focal" && !pays_id) {
+  if (rawRole === "point_focal" && paysIds.length === 0) {
     return apiError("COUNTRY_REQUIRED", 400)
   }
 
@@ -105,6 +120,7 @@ export async function POST(request: NextRequest) {
       nom_complet: nom,
       role: rawRole,
       pays_id,
+      pays_ids: paysIds,
       statut: "en_attente",
       user_code,
       organisation,

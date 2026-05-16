@@ -158,6 +158,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: m.notEnoughPoints }, { status: 400 })
     }
 
+    // NOTE: Per milestone spec the required GPX polygon validation is:
+    //   - .gpx extension + max size (checked above)
+    //   - well-formed XML with coordinates present (checked above)
+    //   - reject zero-area / self-intersecting polygons (checked below)
+    // Duplicate-upload detection (same polygon uploaded twice) is intentionally
+    // NOT done here: a reliable equality check needs a persisted gpx hash
+    // column, which requires a DB migration. Deferred by product decision.
+
     // Preserve the surveyor's actual trace. The shoelace area below works for
     // any simple polygon, concave or convex, so we do NOT replace coords with a
     // convex hull — that would discard the parcel's real shape.

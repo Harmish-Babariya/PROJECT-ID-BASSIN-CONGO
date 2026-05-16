@@ -19,7 +19,8 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
     nom: "",
     email: "",
     organisation: "",
-    pays_id: "",
+    // Multi-country (Issue #1): a focal point can be assigned several countries.
+    pays_ids: [] as string[],
   })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +45,7 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
       setError(t.errors.INVALID_EMAIL)
       return
     }
-    if (!isAdmin && !form.pays_id) {
+    if (!isAdmin && form.pays_ids.length === 0) {
       setError(t.errors.COUNTRY_REQUIRED)
       return
     }
@@ -58,7 +59,7 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
           nom: form.nom.trim(),
           email: form.email.trim(),
           organisation: form.organisation.trim() || null,
-          pays_id: isAdmin ? null : form.pays_id,
+          pays_ids: isAdmin ? [] : form.pays_ids,
           role: isAdmin ? "admin" : "point_focal",
         }),
       })
@@ -294,19 +295,33 @@ export default function InviterForm({ pays, nextCode }: { pays: Pays[]; nextCode
                 <label className="block text-[10px] sm:text-[11px] text-[#2AC1A3] tracking-[0.2em] font-mono uppercase mb-2.5 font-semibold">
                   {i.country}
                 </label>
-                <select
-                  value={form.pays_id}
-                  onChange={(e) => update("pays_id", e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 text-[14px] text-gray-900 focus:outline-none focus:border-[#2AC1A3]"
-                  style={{ borderRadius: 8 }}
-                >
-                  <option value="">{i.countrySelectPlaceholder}</option>
-                  {pays.map((p) => (
-                    <option key={p.id} value={String(p.id)}>
-                      {translateGeoName(p.nom, locale)}
-                    </option>
-                  ))}
-                </select>
+                <div className="bg-white border border-gray-200 divide-y divide-gray-100 max-h-56 overflow-y-auto" style={{ borderRadius: 8 }}>
+                  {pays.map((p) => {
+                    const idStr = String(p.id)
+                    const checked = form.pays_ids.includes(idStr)
+                    return (
+                      <label
+                        key={p.id}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-[14px] text-gray-900 cursor-pointer hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            update(
+                              "pays_ids",
+                              checked
+                                ? form.pays_ids.filter((x) => x !== idStr)
+                                : [...form.pays_ids, idStr]
+                            )
+                          }
+                          className="accent-[#2AC1A3]"
+                        />
+                        {translateGeoName(p.nom, locale)}
+                      </label>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           )}

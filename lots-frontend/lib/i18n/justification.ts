@@ -150,6 +150,14 @@ function translateReason(reason: string, tp: JustifTr): string {
 export function translateJustification(raw: string | null | undefined, locale: Locale): string {
   if (!raw) return ""
   const tp = getTranslations(locale).parcelles
+
+  // Admin-pinned status: the DB stores "[ADMIN OVERRIDE] <reason>". Render it
+  // as a clean human sentence instead of leaking the internal marker to users.
+  const overrideMatch = raw.match(/^\s*\[ADMIN OVERRIDE\]\s*(.*)$/i)
+  if (overrideMatch) {
+    return tp.eudrJustifAdminOverride(overrideMatch[1].trim())
+  }
+
   const parts = raw
     .split(/(?<=[.!?])\s+/)
     .map((s) => tSentence(s, tp))

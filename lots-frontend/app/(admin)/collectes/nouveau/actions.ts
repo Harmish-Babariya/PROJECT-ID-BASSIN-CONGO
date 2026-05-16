@@ -17,7 +17,9 @@ export async function createCollecte(formData: any) {
     poids_net_kg: formData.poids_net_kg ? parseFloat(formData.poids_net_kg) : null,
     nombre_sacs: formData.nombre_sacs ? parseInt(formData.nombre_sacs) : null,
     humidite_pct: formData.taux_humidite ? parseFloat(formData.taux_humidite) : null,
-    qualite: formData.qualite || null
+    qualite: formData.qualite || null,
+    // Ownership: focal points only see collectes they registered (Issue #1).
+    created_by: me?.id ?? null,
   }
 
   const { data, error } = await insertCollecte(dataToInsert)

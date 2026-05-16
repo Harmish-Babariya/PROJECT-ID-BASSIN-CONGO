@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-server"
+import { DataScope, applyScope } from "@/lib/services/scope"
 
 export async function getParcelles(filters?: {
   recherche?: string
@@ -6,19 +7,12 @@ export async function getParcelles(filters?: {
   culture?: string
   status_eudr?: string
   producteur_id?: string
-  pays_id?: number | null
+  scope?: DataScope
 }) {
   let query = supabaseAdmin.from("parcelles").select("*")
 
-  // Scope to country for point_focal via producteur relationship
-  if (filters?.pays_id) {
-    const { data: scopedProducteurs } = await supabaseAdmin
-      .from("producteurs")
-      .select("id")
-      .eq("pays_id", Number(filters.pays_id))
-    const ids = (scopedProducteurs ?? []).map((p: { id: number }) => p.id)
-    query = ids.length > 0 ? query.in("producteur_id", ids) : query.in("producteur_id", [-1])
-  }
+  // Parcelles carry both pays_id and created_by, so scope directly (Issue #1).
+  query = applyScope(query, filters?.scope ?? null)
 
   if (filters?.recherche) {
     query = query.ilike("code_parcelle", `%${filters.recherche}%`)
@@ -82,19 +76,12 @@ export async function getParcellesByProducteur(producteurId: string) {
   return data || []
 }
 
-export async function getParcellesForSelect(paysId?: number | null) {
+export async function getParcellesForSelect(scope?: DataScope) {
   let query = supabaseAdmin
     .from("parcelles")
     .select("id, code_parcelle, producteur_id")
 
-  if (paysId) {
-    const { data: scopedProducteurs } = await supabaseAdmin
-      .from("producteurs")
-      .select("id")
-      .eq("pays_id", Number(paysId))
-    const ids = (scopedProducteurs ?? []).map((p: { id: number }) => p.id)
-    query = ids.length > 0 ? query.in("producteur_id", ids) : query.in("producteur_id", [-1])
-  }
+  query = applyScope(query, scope ?? null)
 
   const { data } = await query.order("code_parcelle")
   return data || []
@@ -127,33 +114,22 @@ export async function updateParcelleById(id: number | string, dataToUpdate: Reco
   return { data, error }
 }
 
-// Lightweight fetch for maps (only location + identity fields), country-scoped
-export async function getParcellesForMap(paysId?: number | null) {
+// Lightweight fetch for maps (only location + identity fields), scoped
+export async function getParcellesForMap(scope?: DataScope) {
   let query = supabaseAdmin
     .from("parcelles")
     .select("id, code_parcelle, surface_ha, status_eudr, latitude, longitude, geojson, producteur_id")
 
-  if (paysId) {
-    const { data: prods } = await supabaseAdmin
-      .from("producteurs")
-      .select("id")
-      .eq("pays_id", paysId)
-    const ids = (prods ?? []).map((p: { id: number }) => p.id)
-    query = ids.length > 0 ? query.in("producteur_id", ids) : query.in("producteur_id", [-1])
-  }
+  query = applyScope(query, scope ?? null)
 
   const { data } = await query
   return data || []
 }
 
 // Stats for dashboard
-export async function getParcellesStats(paysId?: number | null) {
+export async function getParcellesStats(scope?: DataScope) {
   let query = supabaseAdmin.from("parcelles").select("id, producteur_id, status_eudr, surface_ha")
-  if (paysId) {
-    const { data: prods } = await supabaseAdmin.from("producteurs").select("id").eq("pays_id", paysId)
-    const ids = (prods ?? []).map((p: { id: number }) => p.id)
-    query = ids.length > 0 ? query.in("producteur_id", ids) : query.in("producteur_id", [-1])
-  }
+  query = applyScope(query, scope ?? null)
   const { data } = await query
   return data || []
 }

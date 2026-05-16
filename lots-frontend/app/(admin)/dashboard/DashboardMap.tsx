@@ -197,8 +197,10 @@ export default function DashboardMap({ parcelles }: { parcelles: MapParcelle[] }
       attributionControl: false,
     })
 
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right")
-    map.addControl(new mapboxgl.ScaleControl({ unit: "metric" }), "bottom-right")
+    // Zoom controls go bottom-right so they don't sit under the expand
+    // button overlaid at top-right; scale moves to bottom-left to not stack.
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right")
+    map.addControl(new mapboxgl.ScaleControl({ unit: "metric" }), "bottom-left")
     mapRef.current = map
 
     map.on("load", () => {

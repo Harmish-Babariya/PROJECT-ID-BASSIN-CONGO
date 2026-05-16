@@ -61,7 +61,9 @@ export default function CarteMapbox({ parcelles }: { parcelles: Parcelle[] }) {
       zoom: 6
     })
 
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
+    // Keep zoom controls bottom-right so they never sit under the close /
+    // expand buttons that overlays place at top-right.
+    map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right')
 
     map.current.on('load', () => {
       if (!map.current) return

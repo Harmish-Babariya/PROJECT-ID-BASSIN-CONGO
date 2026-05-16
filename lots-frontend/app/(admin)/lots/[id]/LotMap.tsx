@@ -7,6 +7,18 @@ import { Maximize2, X } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { normalizeEudrStatus, EUDR_STATUS, eudrBucket } from "@/lib/eudr"
 
+const MAP_STYLES: Record<string, string> = {
+  satellite: "mapbox://styles/mapbox/satellite-streets-v12",
+  streets: "mapbox://styles/mapbox/streets-v12",
+  terrain: "mapbox://styles/mapbox/outdoors-v12",
+}
+
+const STYLE_OPTIONS = [
+  { key: "satellite", label: "SAT" },
+  { key: "streets", label: "PLAN" },
+  { key: "terrain", label: "TERRAIN" },
+]
+
 type ParcelPoint = {
   code: string
   lat: number
@@ -75,7 +87,9 @@ export default function LotMap({
   const mapContainer = useRef<HTMLDivElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
+  const markersRef = useRef<mapboxgl.Marker[]>([])
   const [expanded, setExpanded] = useState(false)
+  const [activeStyle, setActiveStyle] = useState("satellite")
 
   const resolved = points
     .map((p) => {
@@ -88,6 +102,38 @@ export default function LotMap({
     })
     .filter(Boolean) as ParcelPoint[]
 
+  // Re-creating markers is needed both on first load and after a style
+  // change (setStyle clears all custom markers/layers).
+  function addMarkers(map: mapboxgl.Map, fit: boolean) {
+    markersRef.current.forEach((mk) => mk.remove())
+    markersRef.current = []
+    const bounds = new mapboxgl.LngLatBounds()
+    resolved.forEach((p) => {
+      const el = document.createElement("div")
+      el.style.width = "14px"
+      el.style.height = "14px"
+      el.style.borderRadius = "50%"
+      el.style.border = "2px solid #fff"
+      el.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.3)"
+      el.style.background = statusColor(p.status_eudr)
+      el.title = p.code
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([p.lon, p.lat])
+        .addTo(map)
+      markersRef.current.push(marker)
+      bounds.extend([p.lon, p.lat])
+    })
+
+    if (!fit) return
+    if (resolved.length === 1) {
+      map.setCenter([resolved[0].lon, resolved[0].lat])
+      map.setZoom(13)
+    } else {
+      map.fitBounds(bounds, { padding: 60, duration: 0, maxZoom: 14 })
+    }
+  }
+
   useEffect(() => {
     if (!mapContainer.current || mapRef.current || resolved.length === 0) return
 
@@ -97,7 +143,7 @@ export default function LotMap({
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
-      style: "mapbox://styles/mapbox/satellite-streets-v12",
+      style: MAP_STYLES.satellite,
       center: [resolved[0].lon, resolved[0].lat],
       zoom: 6,
       attributionControl: false,
@@ -106,30 +152,7 @@ export default function LotMap({
     mapRef.current = map
 
     map.on("load", () => {
-      const bounds = new mapboxgl.LngLatBounds()
-      resolved.forEach((p) => {
-        const el = document.createElement("div")
-        el.style.width = "14px"
-        el.style.height = "14px"
-        el.style.borderRadius = "50%"
-        el.style.border = "2px solid #fff"
-        el.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.3)"
-        el.style.background = statusColor(p.status_eudr)
-        el.title = p.code
-
-        new mapboxgl.Marker({ element: el })
-          .setLngLat([p.lon, p.lat])
-          .addTo(map)
-
-        bounds.extend([p.lon, p.lat])
-      })
-
-      if (resolved.length === 1) {
-        map.setCenter([resolved[0].lon, resolved[0].lat])
-        map.setZoom(13)
-      } else {
-        map.fitBounds(bounds, { padding: 60, duration: 0, maxZoom: 14 })
-      }
+      addMarkers(map, true)
     })
 
     const ro = new ResizeObserver(() => map.resize())
@@ -137,11 +160,23 @@ export default function LotMap({
 
     return () => {
       ro.disconnect()
+      markersRef.current.forEach((mk) => mk.remove())
+      markersRef.current = []
       map.remove()
       mapRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  function changeStyle(key: string) {
+    const map = mapRef.current
+    if (!map || key === activeStyle) return
+    map.setStyle(MAP_STYLES[key])
+    // setStyle wipes markers; re-add them once the new style is ready.
+    // Don't refit the viewport so the user keeps their current pan/zoom.
+    map.once("style.load", () => addMarkers(map, false))
+    setActiveStyle(key)
+  }
 
   useEffect(() => {
     if (!expanded) return
@@ -187,6 +222,23 @@ export default function LotMap({
         style={expanded ? undefined : { height }}
       >
         <div ref={mapContainer} className="w-full h-full" />
+
+        <div className="absolute top-3 left-3 z-10 flex gap-1.5 bg-black/40 backdrop-blur-sm rounded-md p-1">
+          {STYLE_OPTIONS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => changeStyle(key)}
+              className={`px-2.5 py-1 rounded text-[9px] font-bold tracking-widest transition ${
+                activeStyle === key
+                  ? "bg-[#2AC1A3] text-white"
+                  : "text-white/70 hover:text-white"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         <button
           type="button"

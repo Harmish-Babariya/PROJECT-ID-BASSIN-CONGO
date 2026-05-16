@@ -164,6 +164,7 @@ export default function ParcellesContent({
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-200">
@@ -221,6 +222,7 @@ export default function ParcellesContent({
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <Pagination

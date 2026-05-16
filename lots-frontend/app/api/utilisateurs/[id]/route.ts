@@ -56,6 +56,7 @@ export async function PATCH(
     email?: string
     role?: "admin" | "point_focal" | "focal"
     pays_id?: string | number | null
+    pays_ids?: (string | number)[] | null
   }
   try {
     body = await request.json()
@@ -79,14 +80,38 @@ export async function PATCH(
       : body.role === "point_focal" || body.role === "focal"
       ? "point_focal"
       : undefined
+  // Multi-country (Issue #1). When the client sends pays_ids we treat that as
+  // the authoritative set; pays_id mirrors the primary (first) for back-compat.
+  // Admins are always cleared to no countries.
+  let paysIds: number[] | undefined
+  if (role === "admin") {
+    paysIds = []
+  } else if (body.pays_ids !== undefined && body.pays_ids !== null) {
+    paysIds = Array.from(
+      new Set(
+        body.pays_ids
+          .map((v) => parseInt(String(v), 10))
+          .filter((n) => Number.isFinite(n))
+      )
+    )
+  } else if (body.pays_id != null) {
+    const n = parseInt(String(body.pays_id), 10)
+    paysIds = Number.isFinite(n) ? [n] : []
+  } else {
+    paysIds = undefined // field not provided → leave unchanged
+  }
   const pays_id =
-    role === "admin" ? null : body.pays_id != null ? String(body.pays_id) : undefined
+    role === "admin"
+      ? null
+      : paysIds !== undefined
+        ? (paysIds[0] ?? null)
+        : undefined
 
   if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return apiError("INVALID_EMAIL", 400)
   }
   if (nom !== undefined && !nom) return apiError("NAME_REQUIRED", 400)
-  if (role === "point_focal" && pays_id === undefined) {
+  if (role === "point_focal" && (paysIds === undefined || paysIds.length === 0)) {
     return apiError("COUNTRY_REQUIRED", 400)
   }
 
@@ -111,6 +136,7 @@ export async function PATCH(
   if (email !== undefined) update.email = email
   if (role !== undefined) update.role = role
   if (pays_id !== undefined) update.pays_id = pays_id
+  if (paysIds !== undefined) update.pays_ids = paysIds
 
   if (Object.keys(update).length > 0) {
     const { error: profileUpdateError } = await supabaseAdmin

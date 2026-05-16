@@ -98,6 +98,7 @@ export default function CollectesContent({
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-100">
@@ -209,6 +210,7 @@ export default function CollectesContent({
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <Pagination
