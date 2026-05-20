@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
-import { X } from "lucide-react"
+import { X, Menu, Layers } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { normalizeEudrStatus, EUDR_STATUS } from "@/lib/eudr"
 
@@ -198,6 +198,8 @@ export default function ExpandedMapModal({
   const [activeStyle, setActiveStyle] = useState("satellite")
   const [activeId, setActiveId] = useState<number | string | null>(null)
   const [search, setSearch] = useState("")
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [styleOpen, setStyleOpen] = useState(false)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -281,8 +283,11 @@ export default function ExpandedMapModal({
         }
       })
       if (!bounds.isEmpty()) {
+        const isMobile = typeof window !== "undefined" && window.innerWidth < 768
         map.fitBounds(bounds, {
-          padding: { top: 60, bottom: 60, left: 360, right: 80 },
+          padding: isMobile
+            ? { top: 80, bottom: 80, left: 20, right: 20 }
+            : { top: 60, bottom: 60, left: 360, right: 80 },
           duration: 1500,
           maxZoom: 14,
         })
@@ -370,6 +375,9 @@ export default function ExpandedMapModal({
       }
     })
     setActiveStyle(styleKey)
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setStyleOpen(false)
+    }
   }, [])
 
   const zoomToParcel = useCallback((item: ParcelListItem) => {
@@ -377,6 +385,9 @@ export default function ExpandedMapModal({
     const map = mapRef.current
     const feature = item.feature
     if (!map || !feature) return
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setSidebarOpen(false)
+    }
     if (feature.geometry.type === "Polygon") {
       const bounds = new mapboxgl.LngLatBounds()
       feature.geometry.coordinates[0].forEach((c) => bounds.extend(c as [number, number]))
@@ -399,10 +410,9 @@ export default function ExpandedMapModal({
   }, [])
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-0 sm:p-4">
       <div
-        className="relative bg-slate-50 rounded-2xl shadow-2xl overflow-hidden"
-        style={{ width: "min(1600px, calc(100vw - 32px))", height: "calc(100vh - 32px)" }}
+        className="relative bg-slate-50 sm:rounded-2xl shadow-2xl overflow-hidden w-full h-full sm:w-[min(1600px,calc(100vw-32px))] sm:h-[calc(100vh-32px)]"
       >
         <div ref={mapContainer} className="absolute inset-0" style={{ width: "100%", height: "100%" }} />
 
@@ -423,22 +433,42 @@ export default function ExpandedMapModal({
           </div>
         )}
 
-        <header className="absolute top-0 left-0 right-0 h-[64px] bg-gradient-to-r from-slate-900 to-slate-800 shadow-lg z-30 flex items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-[#2AC1A3] to-[#1E8876] rounded-lg flex items-center justify-center text-xl">
+        <header className="absolute top-0 left-0 right-0 h-[64px] bg-gradient-to-r from-slate-900 to-slate-800 shadow-lg z-30 flex items-center justify-between px-3 sm:px-6 gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              onClick={() => {
+                setSidebarOpen((v) => !v)
+                if (!sidebarOpen) setStyleOpen(false)
+              }}
+              className="md:hidden w-9 h-9 shrink-0 rounded-lg text-white bg-white/10 border border-white/20 hover:bg-white/20 transition flex items-center justify-center"
+              aria-label={t.dashboard.mapExpandedDashboardTitle}
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+            <div className="w-9 h-9 shrink-0 bg-gradient-to-br from-[#2AC1A3] to-[#1E8876] rounded-lg flex items-center justify-center text-xl">
               🌍
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-white tracking-tight">ID Bassin Congo</h1>
-              <p className="text-[10px] text-slate-300 font-medium uppercase tracking-widest">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">ID Bassin Congo</h1>
+              <p className="hidden sm:block text-[10px] text-slate-300 font-medium uppercase tracking-widest">
                 {t.dashboard.mapExpandedSubtitle}
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => {
+                setStyleOpen((v) => !v)
+                if (!styleOpen) setSidebarOpen(false)
+              }}
+              className="md:hidden w-9 h-9 rounded-lg text-white bg-white/10 border border-white/20 hover:bg-white/20 transition flex items-center justify-center"
+              aria-label={t.dashboard.mapExpandedStyleHeading}
+            >
+              <Layers className="w-4 h-4" />
+            </button>
             <button
               onClick={exportData}
-              className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-white/10 border border-white/20 hover:bg-white/20 transition"
+              className="hidden sm:inline-flex px-4 py-2 rounded-lg text-xs font-semibold text-white bg-white/10 border border-white/20 hover:bg-white/20 transition"
             >
               {t.common.export}
             </button>
@@ -452,7 +482,11 @@ export default function ExpandedMapModal({
           </div>
         </header>
 
-        <aside className="absolute top-[80px] left-4 bottom-4 w-[340px] bg-white rounded-2xl shadow-xl z-20 flex flex-col overflow-hidden">
+        <aside
+          className={`absolute top-[72px] md:top-[80px] left-2 right-2 md:left-4 md:right-auto bottom-2 md:bottom-4 md:w-[340px] bg-white rounded-2xl shadow-xl z-20 flex-col overflow-hidden ${
+            sidebarOpen ? "flex" : "hidden"
+          } md:flex`}
+        >
           <div className="px-4 py-3 border-b border-slate-200">
             <h2 className="text-sm font-bold text-slate-900 leading-tight">{t.dashboard.mapExpandedDashboardTitle}</h2>
             <p className="text-[11px] text-slate-500 mt-0.5">{t.dashboard.mapExpandedStatsSubtitle}</p>
@@ -583,7 +617,11 @@ export default function ExpandedMapModal({
           </div>
         </aside>
 
-        <div className="absolute top-[80px] right-4 z-20 bg-white rounded-xl shadow-lg overflow-hidden">
+        <div
+          className={`absolute top-[72px] md:top-[80px] right-2 md:right-4 z-20 bg-white rounded-xl shadow-lg overflow-hidden ${
+            styleOpen ? "block" : "hidden"
+          } md:block`}
+        >
           <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 text-[10px] font-semibold text-slate-600 uppercase tracking-wider">
             {t.dashboard.mapExpandedStyleHeading}
           </div>
@@ -610,7 +648,7 @@ export default function ExpandedMapModal({
           </div>
         </div>
 
-        <div className="absolute bottom-6 right-4 bg-white/95 backdrop-blur-sm px-4 py-2.5 rounded-xl shadow-lg z-20 flex flex-wrap items-center gap-x-4 gap-y-1.5 max-w-[calc(100%-2rem)]">
+        <div className="hidden md:flex absolute bottom-6 right-4 bg-white/95 backdrop-blur-sm px-4 py-2.5 rounded-xl shadow-lg z-20 flex-wrap items-center gap-x-4 gap-y-1.5 max-w-[calc(100%-2rem)]">
           <span className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">
             {t.dashboard.mapExpandedLegendTitle}
           </span>

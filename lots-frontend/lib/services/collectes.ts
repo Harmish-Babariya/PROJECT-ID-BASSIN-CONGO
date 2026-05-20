@@ -61,7 +61,7 @@ export async function getCollectesForLot() {
       qualite,
       nombre_sacs,
       producteurs (code_producteur, nom, prenom),
-      parcelles (code_parcelle)
+      parcelles (code_parcelle, status_eudr)
     `)
     .order("date_collecte", { ascending: false })
   return data || []

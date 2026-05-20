@@ -7,6 +7,7 @@ import {
   getOtherLotCollecteIds,
 } from "@/lib/services/lots"
 import { getCollectesForLot } from "@/lib/services/collectes"
+import { isConforme } from "@/lib/eudr"
 
 export default async function EditLot({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -20,9 +21,14 @@ export default async function EditLot({ params }: { params: Promise<{ id: string
 
   if (!lot) notFound()
 
-  const collectesDisponibles = collectes.filter(
-    (c) => !collectesAutresLots.includes(c.id) || collectesAssignees.includes(c.id)
-  )
+  // Only CONFORME collectes are addable. An already-attached collecte stays
+  // visible even if non-CONFORME so legacy data isn't silently dropped.
+  const collectesDisponibles = collectes.filter((c) => {
+    if (collectesAutresLots.includes(c.id) && !collectesAssignees.includes(c.id)) return false
+    if (collectesAssignees.includes(c.id)) return true
+    const parcelle = Array.isArray(c.parcelles) ? c.parcelles[0] : c.parcelles
+    return isConforme(parcelle?.status_eudr ?? null)
+  })
 
   return (
     <div className="space-y-6">

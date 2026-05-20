@@ -2,6 +2,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
+import { Filter, Search } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
@@ -47,19 +48,72 @@ export default function LotsContent({
 }) {
   const { t } = useLanguage()
   const l = t.lots
-  const tr = t.referentiel
   const router = useRouter()
   const [search, setSearch] = useState("")
+  const [showFilters, setShowFilters] = useState(false)
+  const [produit, setProduit] = useState("")
+  const [statut, setStatut] = useState("")
+  const [avecCollectes, setAvecCollectes] = useState("")
+  const [poidsMin, setPoidsMin] = useState("")
+  const [poidsMax, setPoidsMax] = useState("")
+
+  const produitOptions = useMemo(() => {
+    const set = new Set<string>()
+    lots.forEach((lot) => {
+      if (lot.produit) set.add(lot.produit)
+    })
+    return Array.from(set).sort()
+  }, [lots])
+
+  const statutOptions = useMemo(() => {
+    const set = new Set<string>()
+    lots.forEach((lot) => {
+      if (lot.statut) set.add(lot.statut)
+    })
+    return Array.from(set).sort()
+  }, [lots])
+
+  const statutLabel = (s: string) => {
+    if (s === "En préparation") return l.statutEnPreparation
+    if (s === "Prêt") return l.statutPret
+    if (s === "Exporté") return l.statutExporte
+    return s
+  }
+
+  const hasActiveFilters = useMemo(
+    () => Boolean(produit || statut || avecCollectes || poidsMin || poidsMax),
+    [produit, statut, avecCollectes, poidsMin, poidsMax]
+  )
+
+  function resetFilters() {
+    setProduit("")
+    setStatut("")
+    setAvecCollectes("")
+    setPoidsMin("")
+    setPoidsMax("")
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return lots
-    return lots.filter((lot) =>
-      lot.code_lot.toLowerCase().includes(q) ||
-      (lot.produit ?? "").toLowerCase().includes(q) ||
-      (lot.statut ?? "").toLowerCase().includes(q)
-    )
-  }, [lots, search])
+    const min = poidsMin ? parseFloat(poidsMin) : null
+    const max = poidsMax ? parseFloat(poidsMax) : null
+    return lots.filter((lot) => {
+      if (q && !(
+        lot.code_lot.toLowerCase().includes(q) ||
+        (lot.produit ?? "").toLowerCase().includes(q) ||
+        (lot.statut ?? "").toLowerCase().includes(q)
+      )) return false
+      if (produit && lot.produit !== produit) return false
+      if (statut && lot.statut !== statut) return false
+      const count = collectesParLot[lot.id] || 0
+      if (avecCollectes === "oui" && count === 0) return false
+      if (avecCollectes === "non" && count > 0) return false
+      const poids = parseFloat(lot.poids_total_kg) || 0
+      if (min !== null && !Number.isNaN(min) && poids < min) return false
+      if (max !== null && !Number.isNaN(max) && poids > max) return false
+      return true
+    })
+  }, [lots, search, produit, statut, avecCollectes, poidsMin, poidsMax, collectesParLot])
 
   const { sorted, sortKey, sortDirection, toggle } = useTableSort<Lot>(filtered, {
     code: (r) => r.code_lot,
@@ -97,15 +151,95 @@ export default function LotsContent({
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-4">
-        <input
-          type="text"
-          placeholder={tr.searchPlaceholder}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3]"
-        />
+      {/* Search + Filter bar */}
+      <div className="bg-white rounded-xl border border-gray-200 px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Search className="w-4 h-4 text-gray-400 shrink-0" />
+          <input
+            type="text"
+            placeholder={l.searchPlaceholder}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-transparent text-[13px] text-[#1A1A1A] placeholder:text-gray-400 focus:outline-none"
+          />
+        </div>
+        <div className="w-px h-6 bg-gray-200 shrink-0" />
+        <button
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-md text-[11px] sm:text-[12px] font-medium transition shrink-0 ${
+            showFilters || hasActiveFilters
+              ? "bg-[#2AC1A3]/10 text-[#2AC1A3]"
+              : "text-gray-400 hover:text-[#1A1A1A]"
+          }`}
+        >
+          <Filter className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">{l.chooseFilter}</span>
+          <span className="sm:hidden">Filtres</span>
+        </button>
       </div>
+
+      {/* Filter panel */}
+      {showFilters && (
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <select
+            value={produit}
+            onChange={(e) => setProduit(e.target.value)}
+            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-[13px] text-[#1A1A1A]"
+          >
+            <option value="">{l.filterAllProducts}</option>
+            {produitOptions.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          <select
+            value={statut}
+            onChange={(e) => setStatut(e.target.value)}
+            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-[13px] text-[#1A1A1A]"
+          >
+            <option value="">{l.filterAllStatuts}</option>
+            {statutOptions.map((s) => (
+              <option key={s} value={s}>{statutLabel(s)}</option>
+            ))}
+          </select>
+          <select
+            value={avecCollectes}
+            onChange={(e) => setAvecCollectes(e.target.value)}
+            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-[13px] text-[#1A1A1A]"
+          >
+            <option value="">{l.filterAnyCollectes}</option>
+            <option value="oui">{l.filterWithCollectes}</option>
+            <option value="non">{l.filterWithoutCollectes}</option>
+          </select>
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            placeholder={l.filterMinWeight}
+            value={poidsMin}
+            onChange={(e) => setPoidsMin(e.target.value)}
+            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-[13px] text-[#1A1A1A] placeholder:text-gray-400"
+          />
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            placeholder={l.filterMaxWeight}
+            value={poidsMax}
+            onChange={(e) => setPoidsMax(e.target.value)}
+            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-[13px] text-[#1A1A1A] placeholder:text-gray-400"
+          />
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="col-span-full text-[11px] text-[#2AC1A3] hover:underline text-left"
+            >
+              {l.resetFilters}
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
@@ -155,7 +289,7 @@ export default function LotsContent({
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-gray-400 text-sm">
-                  —
+                  {l.empty}
                 </td>
               </tr>
             )}

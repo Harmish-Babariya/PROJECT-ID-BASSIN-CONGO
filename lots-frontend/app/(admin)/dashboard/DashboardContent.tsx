@@ -118,7 +118,7 @@ export default function DashboardContent({
             </div>
           </div>
           <Link
-            href="/parcelles?status_eudr="
+            href="/parcelles?status_eudr=__pending_review__"
             className="self-start sm:self-auto text-[11px] font-medium text-[#8B7355] border border-[#D4C4A8] rounded-md px-4 py-2 hover:bg-[#F5EEE0] transition tracking-wider whitespace-nowrap"
           >
             {d.alertBtn}
@@ -312,13 +312,20 @@ export default function DashboardContent({
                   const prod = Array.isArray(c.producteurs) ? c.producteurs[0] : c.producteurs
                   const zone = Array.isArray(c.zones) ? c.zones[0] : c.zones
                   return (
-                    <div key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-[#F8F8F5] rounded-lg px-4 sm:px-5 py-3.5 sm:py-4 border-l-[3px] border-l-[#8B7355]">
-                      <span className="font-mono text-[12px] sm:text-[13px] font-bold text-[#8B7355]">{prod?.code_producteur}</span>
-                      <span className="text-[12px] sm:text-[13px] text-[#555]">{prod?.nom} {prod?.prenom}</span>
-                      <span className="text-[12px] sm:text-[13px] text-[#AAAAAA]">{translateGeoName(zone?.nom, locale)}</span>
-                      <span className="text-[12px] sm:text-[13px] text-[#AAAAAA]">{c.produit || d.defaultProduit}</span>
-                      <span className="text-[12px] sm:text-[13px] text-[#1A1A1A] font-semibold">{c.poids_net_kg ? Math.round(Number(c.poids_net_kg)) + " kg" : "-"}</span>
-                      <span className="text-[12px] sm:text-[13px] text-[#BBBBBB] ml-auto">{c.date_collecte ? new Date(c.date_collecte).toLocaleDateString(localeCode) : "-"}</span>
+                    <div key={c.id} className="bg-[#F8F8F5] rounded-lg px-4 sm:px-5 py-3.5 sm:py-4 border-l-[3px] border-l-[#8B7355]">
+                      <div className="flex items-center gap-x-3 gap-y-1 sm:flex-wrap">
+                        <span className="font-mono text-[12px] sm:text-[13px] font-bold text-[#8B7355] shrink-0">{prod?.code_producteur}</span>
+                        <span className="text-[12px] sm:text-[13px] text-[#555] truncate flex-1 min-w-0 sm:flex-none">{prod?.nom} {prod?.prenom}</span>
+                        <span className="hidden sm:inline text-[13px] text-[#AAAAAA]">{translateGeoName(zone?.nom, locale)}</span>
+                        <span className="hidden sm:inline text-[13px] text-[#AAAAAA]">{c.produit || d.defaultProduit}</span>
+                        <span className="text-[12px] sm:text-[13px] text-[#1A1A1A] font-semibold shrink-0">{c.poids_net_kg ? Math.round(Number(c.poids_net_kg)) + " kg" : "-"}</span>
+                        <span className="hidden sm:inline text-[13px] text-[#BBBBBB] ml-auto">{c.date_collecte ? new Date(c.date_collecte).toLocaleDateString(localeCode) : "-"}</span>
+                      </div>
+                      <div className="flex items-center gap-x-3 mt-1 sm:hidden">
+                        <span className="text-[12px] text-[#AAAAAA] truncate">{translateGeoName(zone?.nom, locale)}</span>
+                        <span className="text-[12px] text-[#AAAAAA] truncate">{c.produit || d.defaultProduit}</span>
+                        <span className="text-[12px] text-[#BBBBBB] ml-auto shrink-0">{c.date_collecte ? new Date(c.date_collecte).toLocaleDateString(localeCode) : "-"}</span>
+                      </div>
                     </div>
                   )
                 })}

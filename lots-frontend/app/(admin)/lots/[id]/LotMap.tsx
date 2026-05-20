@@ -5,7 +5,7 @@ import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { Maximize2, X } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { normalizeEudrStatus, EUDR_STATUS, eudrBucket } from "@/lib/eudr"
+import { normalizeEudrStatus, EUDR_STATUS } from "@/lib/eudr"
 
 const MAP_STYLES: Record<string, string> = {
   satellite: "mapbox://styles/mapbox/satellite-streets-v12",
@@ -27,12 +27,21 @@ type ParcelPoint = {
   geojson?: unknown
 }
 
-function statusColor(status: string | null): string {
+type StatusKey = "compliant" | "non_compliant" | "alert" | "pending_review"
+
+function statusKey(status: string | null): StatusKey {
   const norm = normalizeEudrStatus(status)
-  if (norm === EUDR_STATUS.CONFORME) return "#2AC1A3"
-  if (norm === EUDR_STATUS.NON_CONFORME) return "#DC2626"
-  if (norm === EUDR_STATUS.RISQUE) return "#EAB308"
-  return "#F59E0B"
+  if (norm === EUDR_STATUS.CONFORME) return "compliant"
+  if (norm === EUDR_STATUS.NON_CONFORME) return "non_compliant"
+  if (norm === EUDR_STATUS.RISQUE) return "alert"
+  return "pending_review"
+}
+
+const STATUS_COLOR: Record<StatusKey, string> = {
+  compliant: "#2AC1A3",
+  non_compliant: "#DC2626",
+  alert: "#EAB308",
+  pending_review: "#F59E0B",
 }
 
 type PolygonGeo = { type: "Polygon"; coordinates: number[][][] }
@@ -71,6 +80,7 @@ export default function LotMap({
   height = 320,
   emptyLabel,
   legendConformeLabel,
+  legendNonConformeLabel,
   legendRisqueLabel,
   legendEnAttenteLabel,
   legendNotVerifiedLabel,
@@ -79,6 +89,7 @@ export default function LotMap({
   height?: number
   emptyLabel: string
   legendConformeLabel: (count: number) => string
+  legendNonConformeLabel: (count: number) => string
   legendRisqueLabel: (count: number) => string
   legendEnAttenteLabel: (count: number) => string
   legendNotVerifiedLabel: (count: number) => string
@@ -115,7 +126,7 @@ export default function LotMap({
       el.style.borderRadius = "50%"
       el.style.border = "2px solid #fff"
       el.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.3)"
-      el.style.background = statusColor(p.status_eudr)
+      el.style.background = STATUS_COLOR[statusKey(p.status_eudr)]
       el.title = p.code
 
       const marker = new mapboxgl.Marker({ element: el })
@@ -191,11 +202,12 @@ export default function LotMap({
     }
   }, [expanded])
 
-  const conformeCount = resolved.filter((p) => eudrBucket(p.status_eudr) === "compliant").length
-  const risqueCount = resolved.filter((p) => eudrBucket(p.status_eudr) === "alert").length
-  const enAttenteCount = resolved.filter((p) => eudrBucket(p.status_eudr) === "pending_review").length
-  // Folded into pending_review in the 3-bucket model — kept at 0 for legend
-  // back-compat (some callers still reference the symbol).
+  const conformeCount = resolved.filter((p) => statusKey(p.status_eudr) === "compliant").length
+  const nonConformeCount = resolved.filter((p) => statusKey(p.status_eudr) === "non_compliant").length
+  const risqueCount = resolved.filter((p) => statusKey(p.status_eudr) === "alert").length
+  const enAttenteCount = resolved.filter((p) => statusKey(p.status_eudr) === "pending_review").length
+  // pending_review covers both EN ATTENTE and never-verified rows — kept at 0
+  // for legend back-compat (some callers still reference the symbol).
   const notVerifiedCount = 0
 
   if (resolved.length === 0) {
@@ -253,6 +265,10 @@ export default function LotMap({
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#2AC1A3]" />
             {legendConformeLabel(conformeCount)}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]" />
+            {legendNonConformeLabel(nonConformeCount)}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308]" />
