@@ -31,6 +31,7 @@ export default function ExportContent({
   function translateStatut(statut: string | null): string {
     if (!statut) return ""
     if (statut === "En préparation") return tl.statutEnPreparation
+    if (statut === "En constitution") return tl.statutEnConstitution
     if (statut === "Prêt") return tl.statutPret
     if (statut === "Exporté") return tl.statutExporte
     return statut

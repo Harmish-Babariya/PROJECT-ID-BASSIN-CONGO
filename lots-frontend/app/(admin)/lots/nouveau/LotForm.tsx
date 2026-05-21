@@ -9,16 +9,17 @@ interface LotFormProps {
   collectesDisponibles: any[]
 }
 
-function formatDate(d: string | null | undefined) {
-  if (!d) return "—"
-  const date = new Date(d)
-  if (Number.isNaN(date.getTime())) return "—"
-  return date.toLocaleDateString("fr-FR")
-}
-
 export default function LotForm({ collectesDisponibles }: LotFormProps) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const l = t.lots
+  const dateLocale = locale === "en" ? "en-GB" : "fr-FR"
+
+  function formatDate(d: string | null | undefined) {
+    if (!d) return "—"
+    const date = new Date(d)
+    if (Number.isNaN(date.getTime())) return "—"
+    return date.toLocaleDateString(dateLocale)
+  }
   const [loading, setLoading] = useState(false)
   const { toast, showError, hideToast } = useToast()
 

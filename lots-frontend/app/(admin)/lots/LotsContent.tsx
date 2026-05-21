@@ -19,19 +19,21 @@ type Lot = {
 
 function StatutBadge({ statut }: { statut: string | null }) {
   const { t } = useLanguage()
-  const s = (statut || "").toLowerCase()
   let cls = "bg-gray-100 text-gray-500"
-  if (s.includes("exporté") || s.includes("exporte")) {
-    cls = "bg-[#d7efe5] text-[#2f7a5c]"
-  } else if (s.includes("prêt") || s.includes("pret")) {
-    cls = "bg-[#e8e4f6] text-[#3b2a7a]"
-  } else if (s.includes("constitution") || s.includes("préparation") || s.includes("preparation")) {
-    cls = "bg-[#faecc2] text-[#6b3a12]"
-  }
   let label: string = statut || "—"
-  if (statut === "En préparation") label = t.lots.statutEnPreparation
-  else if (statut === "Prêt") label = t.lots.statutPret
-  else if (statut === "Exporté") label = t.lots.statutExporte
+  if (statut === "Exporté") {
+    cls = "bg-[#d7efe5] text-[#2f7a5c]"
+    label = t.lots.statutExporte
+  } else if (statut === "Prêt") {
+    cls = "bg-[#e8e4f6] text-[#3b2a7a]"
+    label = t.lots.statutPret
+  } else if (statut === "En préparation") {
+    cls = "bg-[#faecc2] text-[#6b3a12]"
+    label = t.lots.statutEnPreparation
+  } else if (statut === "En constitution") {
+    cls = "bg-[#faecc2] text-[#6b3a12]"
+    label = t.lots.statutEnConstitution
+  }
   return (
     <span className={`inline-block px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] ${cls}`}>
       {label}
@@ -75,6 +77,7 @@ export default function LotsContent({
 
   const statutLabel = (s: string) => {
     if (s === "En préparation") return l.statutEnPreparation
+    if (s === "En constitution") return l.statutEnConstitution
     if (s === "Prêt") return l.statutPret
     if (s === "Exporté") return l.statutExporte
     return s

@@ -333,49 +333,53 @@ export default function ProfileClient({
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden relative">
         <div className="absolute left-0 top-0 bottom-0 w-0.75 bg-[#2AC1A3] rounded-l-xl" />
-        <div className="px-8 py-7">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 rounded-full bg-[#2AC1A3]/8 border-[2.5px] border-[#2AC1A3] flex items-center justify-center">
-              <span className="text-[24px] font-bold text-[#2AC1A3]">{initials}</span>
+        <div className="px-4 sm:px-8 py-5 sm:py-7">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#2AC1A3]/8 border-[2.5px] border-[#2AC1A3] flex items-center justify-center shrink-0">
+              <span className="text-[20px] sm:text-[24px] font-bold text-[#2AC1A3]">{initials}</span>
             </div>
-            <div>
-              <h2 className="text-[22px] font-bold text-gray-900">{displayName}</h2>
-              <p className="text-[13px] text-gray-400 mt-0.5">{displayEmail}</p>
-              <div className="flex gap-2.5 mt-3">
-                <span className="px-3.5 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.12em] rounded-full uppercase">
+            <div className="min-w-0">
+              <h2 className="text-[18px] sm:text-[22px] font-bold text-gray-900 truncate">{displayName}</h2>
+              <p className="text-[12px] sm:text-[13px] text-gray-400 mt-0.5 truncate">{displayEmail}</p>
+              <div className="flex flex-wrap gap-2 mt-2 sm:mt-3">
+                <span className="px-3 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.12em] rounded-full uppercase">
                   {displayRole}
                 </span>
                 {user?.organisation && (
-                  <span className="px-3.5 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.12em] rounded-full uppercase">
+                  <span className="px-3 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.12em] rounded-full uppercase">
                     {displayOrg}
                   </span>
                 )}
               </div>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-[9px] text-gray-400 tracking-[0.12em] uppercase font-medium">{p.lastLogin}</p>
-            <p className="text-[13px] font-semibold text-gray-900 mt-0.5">{formatDate(user?.last_sign_in_at ?? null)}</p>
-            <p className="text-[9px] text-gray-400 tracking-[0.12em] uppercase font-medium mt-3">{p.identifier}</p>
-            <p className="text-[13px] font-semibold text-[#2AC1A3] mt-0.5">{identifier}</p>
+          <div className="flex sm:flex-col sm:text-right flex-row justify-between sm:justify-start items-start sm:items-end gap-4 sm:gap-0 pl-0 sm:pl-4 border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
+            <div>
+              <p className="text-[9px] text-gray-400 tracking-[0.12em] uppercase font-medium">{p.lastLogin}</p>
+              <p className="text-[12px] sm:text-[13px] font-semibold text-gray-900 mt-0.5">{formatDate(user?.last_sign_in_at ?? null)}</p>
+            </div>
+            <div className="sm:mt-3">
+              <p className="text-[9px] text-gray-400 tracking-[0.12em] uppercase font-medium">{p.identifier}</p>
+              <p className="text-[12px] sm:text-[13px] font-semibold text-[#2AC1A3] mt-0.5">{identifier}</p>
+            </div>
           </div>
         </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-6 py-5">
+          <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-4 sm:px-6 py-4 sm:py-5">
             <p className="text-[9px] text-gray-400 tracking-[0.15em] uppercase font-medium">{s.label}</p>
             <p className="text-[28px] font-bold text-gray-900 mt-1 font-numbers">{s.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 px-8 py-6">
-          <div className="flex items-center gap-2 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 px-5 sm:px-8 py-5 sm:py-6">
+          <div className="flex items-center gap-2 mb-5 sm:mb-6">
             <span className="w-2 h-2 rounded-full bg-[#2AC1A3]" />
             <h3 className="text-[11px] font-semibold text-gray-900 tracking-[0.12em] uppercase">
               {p.accountSection}
@@ -392,16 +396,16 @@ export default function ProfileClient({
             ].map((row) => (
               <div
                 key={row.label}
-                className="flex justify-between items-center py-3.5 border-b border-gray-100 last:border-b-0"
+                className="flex justify-between items-start gap-3 py-3 sm:py-3.5 border-b border-gray-100 last:border-b-0"
               >
-                <span className="text-[13px] text-gray-400">{row.label}</span>
-                <span className="text-[13px] font-medium text-gray-900">{row.value}</span>
+                <span className="text-[12px] sm:text-[13px] text-gray-400 shrink-0">{row.label}</span>
+                <span className="text-[12px] sm:text-[13px] font-medium text-gray-900 text-right break-all">{row.value}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 px-8 py-6">
+        <div className="bg-white rounded-xl border border-gray-200 px-5 sm:px-8 py-5 sm:py-6">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#2AC1A3]" />
@@ -414,24 +418,24 @@ export default function ProfileClient({
             </span>
           </div>
           {isAdmin && (
-            <p className="text-[11px] text-gray-400 mb-5 ml-4">
+            <p className="text-[11px] text-gray-400 mb-4 sm:mb-5 ml-4">
               {p.permAdminRoleDesc}
             </p>
           )}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             {permissions.map((item) => (
               <div
                 key={item.label}
-                className="flex items-center gap-3 bg-[#f5f7fa] rounded-lg px-4 py-3.5"
+                className="flex items-center gap-3 bg-[#f5f7fa] rounded-lg px-3 sm:px-4 py-3 sm:py-3.5"
               >
                 <div className="w-5 h-5 rounded-full bg-[#2AC1A3]/15 flex items-center justify-center shrink-0">
                   <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                     <path d="M1 4L3.5 6.5L9 1" stroke="#2AC1A3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-medium text-gray-900">{item.label}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     <p className="text-[9px] tracking-widest uppercase text-gray-400">{item.perm}</p>
                     <span className="text-gray-300">·</span>
                     <p className="text-[9px] tracking-widest uppercase font-medium text-[#2AC1A3]">{item.scope}</p>
@@ -443,9 +447,9 @@ export default function ProfileClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 px-8 py-6">
-          <div className="flex items-center gap-2 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 px-5 sm:px-8 py-5 sm:py-6">
+          <div className="flex items-center gap-2 mb-5 sm:mb-6">
             <span className="w-2 h-2 rounded-full bg-[#C4943A]" />
             <h3 className="text-[11px] font-semibold text-gray-900 tracking-[0.12em] uppercase">
               {p.securitySection}
@@ -454,25 +458,25 @@ export default function ProfileClient({
           <div className="space-y-3">
 
             {/* Password row */}
-            <div className="rounded-xl border border-gray-100 bg-gray-50/60 px-5 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3.5">
+            <div className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 sm:px-5 py-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 rounded-lg bg-[#2AC1A3]/12 flex items-center justify-center shrink-0">
                     <Shield className="w-4 h-4 text-[#2AC1A3]" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-gray-900">{p.secPassword}</p>
                     <p className="text-[11px] text-gray-400 mt-0.5">{p.secPasswordDesc}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.08em] rounded-full uppercase">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="hidden sm:inline px-3 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.08em] rounded-full uppercase">
                     {p.secActive}
                   </span>
                   {!showPwdForm && (
                     <button
                       onClick={openPwdForm}
-                      className="px-3.5 py-1.5 border border-gray-200 bg-white text-gray-600 text-[10px] font-semibold tracking-[0.08em] rounded-lg uppercase hover:bg-gray-50 transition"
+                      className="px-3 py-1.5 border border-gray-200 bg-white text-gray-600 text-[10px] font-semibold tracking-[0.08em] rounded-lg uppercase hover:bg-gray-50 transition"
                     >
                       {p.secEdit}
                     </button>
@@ -549,24 +553,24 @@ export default function ProfileClient({
             </div>
 
             {/* 2FA row */}
-            <div className="rounded-xl border border-gray-100 bg-gray-50/60 px-5 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3.5">
+            <div className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 sm:px-5 py-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 rounded-lg bg-[#C4943A]/10 flex items-center justify-center shrink-0">
                     <TriangleAlert className="w-4 h-4 text-[#C4943A]" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-gray-900">{p.sec2fa}</p>
                     <p className="text-[11px] text-gray-400 mt-0.5">{p.sec2faDesc}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-[#C4943A]/10 text-[#C4943A] text-[10px] font-semibold tracking-[0.08em] rounded-full uppercase">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="hidden sm:inline px-3 py-1 bg-[#C4943A]/10 text-[#C4943A] text-[10px] font-semibold tracking-[0.08em] rounded-full uppercase">
                     {p.secInactive}
                   </span>
                   <button
                     onClick={() => setShow2faModal(true)}
-                    className="px-3.5 py-1.5 border border-gray-200 bg-white text-gray-600 text-[10px] font-semibold tracking-[0.08em] rounded-lg uppercase hover:bg-gray-50 transition"
+                    className="px-3 py-1.5 border border-gray-200 bg-white text-gray-600 text-[10px] font-semibold tracking-[0.08em] rounded-lg uppercase hover:bg-gray-50 transition"
                   >
                     {p.secActivate}
                   </button>
@@ -575,26 +579,26 @@ export default function ProfileClient({
             </div>
 
             {/* Sessions row */}
-            <div className="rounded-xl border border-gray-100 bg-gray-50/60 px-5 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3.5">
+            <div className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 sm:px-5 py-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 rounded-lg bg-[#2AC1A3]/12 flex items-center justify-center shrink-0">
                     <Monitor className="w-4 h-4 text-[#2AC1A3]" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-gray-900">{p.secSessions}</p>
                     <p className="text-[11px] text-gray-400 mt-0.5">
                       {sessionsLoading ? "…" : `${sessions.length} ${p.secActive.toLowerCase()}`}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.08em] rounded-full uppercase">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="hidden sm:inline px-3 py-1 bg-[#2AC1A3]/10 text-[#2AC1A3] text-[10px] font-semibold tracking-[0.08em] rounded-full uppercase">
                     {sessionsLoading ? "…" : `${sessions.length} ${p.secActive}`}
                   </span>
                   <button
                     onClick={() => { setShowSessionsModal(true); fetchSessions() }}
-                    className="px-3.5 py-1.5 border border-gray-200 bg-white text-gray-600 text-[10px] font-semibold tracking-[0.08em] rounded-lg uppercase hover:bg-gray-50 transition"
+                    className="px-3 py-1.5 border border-gray-200 bg-white text-gray-600 text-[10px] font-semibold tracking-[0.08em] rounded-lg uppercase hover:bg-gray-50 transition"
                   >
                     {p.secManage}
                   </button>
@@ -605,8 +609,8 @@ export default function ProfileClient({
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 px-8 py-6">
-          <div className="flex items-center gap-2 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 px-5 sm:px-8 py-5 sm:py-6">
+          <div className="flex items-center gap-2 mb-5 sm:mb-6">
             <span className="w-2 h-2 rounded-full bg-[#2AC1A3]" />
             <h3 className="text-[11px] font-semibold text-gray-900 tracking-[0.12em] uppercase">
               {p.activitySection}
@@ -621,12 +625,12 @@ export default function ProfileClient({
               pagedActivity.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-start justify-between py-3.5 border-b border-gray-100 last:border-b-0"
+                  className="flex items-start justify-between gap-2 py-3 sm:py-3.5 border-b border-gray-100 last:border-b-0"
                 >
-                  <div className="flex items-start gap-3 min-w-0">
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
                     <span className="w-2 h-2 rounded-full shrink-0 bg-[#2AC1A3] mt-1.5" />
                     <div className="min-w-0">
-                      <span className="text-[13px] text-gray-900 block">{formatActivityLabel(entry)}</span>
+                      <span className="text-[12px] sm:text-[13px] text-gray-900 block wrap-break-word">{formatActivityLabel(entry)}</span>
                       {isAdmin && entry.user_name && (
                         <span className="text-[10px] text-gray-400 tracking-wide">
                           {p.activityBy(entry.user_name)}
@@ -634,7 +638,7 @@ export default function ProfileClient({
                       )}
                     </div>
                   </div>
-                  <span className="text-[11px] text-gray-400 font-mono whitespace-nowrap ml-4 mt-0.5">
+                  <span className="text-[10px] sm:text-[11px] text-gray-400 font-mono whitespace-nowrap shrink-0 mt-0.5">
                     {formatActivityTime(entry.created_at)}
                   </span>
                 </div>

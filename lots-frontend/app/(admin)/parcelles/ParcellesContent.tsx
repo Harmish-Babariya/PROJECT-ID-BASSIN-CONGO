@@ -58,8 +58,9 @@ export default function ParcellesContent({
   producteursMap: Map<number, Producteur>
   exportButton: React.ReactNode
 }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const tp = t.parcelles
+  const dateLocale = locale === "en" ? "en-GB" : "fr-FR"
   const router = useRouter()
   const searchParams = useSearchParams()
   const [search, setSearch] = useState(searchParams.get("recherche") || "")
@@ -191,7 +192,7 @@ export default function ParcellesContent({
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 font-medium">{parc.surface_ha || "—"}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    {parc.date_creation ? new Date(parc.date_creation).toLocaleDateString("fr-FR") : "—"}
+                    {parc.date_creation ? new Date(parc.date_creation).toLocaleDateString(dateLocale) : "—"}
                   </td>
                   <td className="px-6 py-4">
                     <EudrBadge
