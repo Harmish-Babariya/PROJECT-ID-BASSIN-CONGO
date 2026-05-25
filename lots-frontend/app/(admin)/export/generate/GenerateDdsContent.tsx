@@ -63,12 +63,14 @@ export default function GenerateDdsContent({
   collectesParLot,
   selectedLotDetails,
   selectedLotId,
+  eudrSummaryByLot = {},
 }: {
   readyLots: ReadyLot[]
   collectesParLot: Record<number, number>
   selectedLotDetails: SelectedDetails | null
   selectedLotId: number | null
   currentUserName: string
+  eudrSummaryByLot?: Record<number, { conformes: number; risques: number; total: number }>
 }) {
   const { t, locale } = useLanguage()
   const e = t.export
@@ -160,10 +162,11 @@ export default function GenerateDdsContent({
         <Link
           href="/export"
           className="text-xs text-gray-400 tracking-widest uppercase hover:text-[#2ac1a3] transition mb-3 inline-block"
+          style={{ fontFamily: "var(--font-courier-prime)" }}
         >
           {e.genBack}
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">{e.genTitle}</h1>
+        <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-archivo-narrow)" }}>{e.genTitle}</h1>
         <p className="text-gray-400 text-sm mt-1">{e.genSubtitle}</p>
       </div>
 
@@ -177,7 +180,7 @@ export default function GenerateDdsContent({
 
       {/* Lots list */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-sm font-bold text-gray-900 tracking-widest uppercase mb-1">
+        <h2 className="text-sm font-bold text-gray-900 tracking-widest uppercase mb-1" style={{ fontFamily: "var(--font-archivo-narrow)" }}>
           {e.genLotsTitle}
         </h2>
         <div className="w-10 h-0.5 bg-[#2ac1a3] mb-4" />
@@ -194,7 +197,7 @@ export default function GenerateDdsContent({
           </div>
         ) : (
           <>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-500 mb-4" style={{ fontFamily: "var(--font-archivo-narrow)" }}>
               {e.genLotsDesc(readyLots.length)}
             </p>
             <div className="space-y-3 max-h-[calc(3*112px)] overflow-y-auto pr-1">
@@ -207,11 +210,12 @@ export default function GenerateDdsContent({
                   <button
                     key={rl.id}
                     onClick={() => selectLot(rl.id)}
-                    className={`w-full text-left border rounded-xl px-5 py-4 transition ${
+                    className={`w-full text-left rounded-xl px-5 py-4 transition ${
                       isSelected
-                        ? "border-blue-400 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        ? "bg-blue-50"
+                        : "hover:bg-gray-50"
                     }`}
+                    style={{ backgroundColor: isSelected ? undefined : "#F5F7FA" }}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -223,21 +227,27 @@ export default function GenerateDdsContent({
                           <span className="px-2 py-0.5 bg-[#e8e4f6] text-[#3b2a7a] text-[10px] font-bold rounded tracking-wide">
                             {e.genTagPret}
                           </span>
-                          {/* EUDR tag — only shown when lot is selected and we have parcel data */}
-                          {isSelected && parcelles.length > 0 && (
-                            hasRisk(parcelles) > 0 ? (
-                              <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded tracking-wide">
-                                {e.genTagRisque(hasRisk(parcelles))}
-                              </span>
-                            ) : (
+                          {/* EUDR tag — always shown using pre-fetched summary */}
+                          {(() => {
+                            const summary = eudrSummaryByLot[rl.id]
+                            if (!summary || summary.total === 0) return null
+                            if (summary.risques > 0) {
+                              return (
+                                <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded tracking-wide">
+                                  {e.genTagRisque(summary.risques)}
+                                </span>
+                              )
+                            }
+                            const pct = Math.round((summary.conformes / summary.total) * 100)
+                            return (
                               <span className="px-2 py-0.5 bg-[#e8f7f3] text-[#2ac1a3] text-[10px] font-bold rounded tracking-wide">
-                                {e.genTagConforme(eudrPct(parcelles))}
+                                {e.genTagConforme(pct)}
                               </span>
                             )
-                          )}
+                          })()}
                         </div>
                         {/* Main info */}
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-gray-900" style={{ fontFamily: "var(--font-archivo-narrow)" }}>
                           {[rl.produit, rl.destination_pays, rl.acheteur]
                             .filter(Boolean)
                             .join(" · ")}
@@ -247,11 +257,13 @@ export default function GenerateDdsContent({
                           {isSelected && producteurs.length > 0
                             ? `${e.genProducteurs(producteurs.length)} · ${e.genParcelles(parcelles.length)} · `
                             : ""}
-                          {poids.toLocaleString(locale === "en" ? "en-GB" : "fr-FR", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}{" "}
-                          kg
+                          <span style={{ fontFamily: "var(--font-archivo-narrow)" }}>
+                            {poids.toLocaleString(locale === "en" ? "en-GB" : "fr-FR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}{" "}
+                            kg
+                          </span>
                         </p>
                       </div>
 
@@ -374,60 +386,48 @@ export default function GenerateDdsContent({
               {/* Producers + parcelles */}
               {producteurs.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 tracking-widest uppercase mb-3">
+                  <p className="text-[10px] font-semibold text-gray-400 tracking-widest uppercase mb-3" style={{ fontFamily: "var(--font-courier-prime)" }}>
                     {e.genProducersTitle(producteurs.length)}
                   </p>
-                  <div className="space-y-0 divide-y divide-gray-100">
-                    {producteurs.map((prod) => {
-                      const myParcelle = parcelles.find((_, idx) =>
-                        producteurs.indexOf(prod) === idx
-                      )
+                  <div className="rounded-xl overflow-hidden">
+                    {producteurs.map((prod, idx) => {
+                      const myParcelle = parcelles[idx] ?? null
 
                       return (
                         <div
                           key={prod.id}
-                          className="py-3 flex items-start justify-between gap-4"
+                          className="px-5 py-4 flex items-center justify-between gap-4 mb-2 last:mb-0 rounded-lg"
+                          style={{ backgroundColor: "#F5F7FA" }}
                         >
-                          <div>
-                            <p className="text-sm font-bold text-[#2ac1a3] font-mono">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-[#2ac1a3] tracking-wide" style={{ fontFamily: "var(--font-courier-prime)" }}>
                               {prod.code_producteur} — {prod.nom}{" "}
                               {prod.prenom ?? ""}
                             </p>
                             {myParcelle && (
                               <>
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  {myParcelle.code_parcelle} ·{" "}
-                                  {myParcelle.surface_ha != null
-                                    ? `${myParcelle.surface_ha} ha`
-                                    : "—"}
-                                  {myParcelle.zones?.nom
-                                    ? ` · ${myParcelle.zones.nom}`
-                                    : ""}
-                                  {myParcelle.pays?.nom
-                                    ? `, ${myParcelle.pays.nom}`
-                                    : ""}
+                                <p className="text-[14px] text-gray-400 mt-0" style={{ fontFamily: "var(--font-archivo-narrow)" }}>
+                                  {myParcelle.code_parcelle}
+                                  {myParcelle.surface_ha != null ? ` · ${myParcelle.surface_ha} ha` : ""}
+                                  {myParcelle.zones?.nom ? ` · ${myParcelle.zones.nom}` : ""}
+                                  {myParcelle.pays?.nom ? `, ${myParcelle.pays.nom}` : ""}
                                 </p>
-                                {myParcelle.latitude != null &&
-                                  myParcelle.longitude != null && (
-                                    <p className="text-xs text-gray-400 font-mono">
-                                      {Number(myParcelle.latitude).toFixed(6)}°N,{" "}
-                                      {Number(myParcelle.longitude).toFixed(6)}°W
-                                    </p>
-                                  )}
+                                {myParcelle.latitude != null && myParcelle.longitude != null && (
+                                  <p className="text-[11px] text-gray-400 mt-0.5" style={{ fontFamily: "var(--font-courier-prime)" }}>
+                                    {Number(myParcelle.latitude).toFixed(6)}°N,{" "}
+                                    {Number(myParcelle.longitude).toFixed(6)}°W
+                                  </p>
+                                )}
                               </>
                             )}
                           </div>
                           <div className="text-right shrink-0">
                             {myParcelle && (
                               <>
-                                <p className="text-sm font-bold text-gray-900">
-                                  {myParcelle.surface_ha != null
-                                    ? `${myParcelle.surface_ha} ha`
-                                    : "—"}
+                                <p className="text-sm font-bold text-gray-900" style={{ fontFamily: "var(--font-archivo-narrow)" }}>
+                                  {myParcelle.surface_ha != null ? `${myParcelle.surface_ha} ha` : "—"}
                                 </p>
-                                <p
-                                  className={`text-xs mt-0.5 ${eudrColor(myParcelle.status_eudr)}`}
-                                >
+                                <p className={`text-[10px] mt-1 tracking-widest uppercase font-bold ${eudrColor(myParcelle.status_eudr)}`} style={{ fontFamily: "var(--font-courier-prime)" }}>
                                   {eudrLabel(myParcelle.status_eudr)}
                                 </p>
                               </>
@@ -488,19 +488,19 @@ export default function GenerateDdsContent({
       <div className="flex items-end justify-between gap-4">
         <p className="text-xs text-gray-400 max-w-md">{e.genFooterNote}</p>
         <div className="flex items-center gap-4 shrink-0">
+          <button
+            onClick={handleGenerate}
+            disabled={!selectedLotId || generating || result?.ok === true}
+            className="px-6 py-2.5 text-white text-sm font-bold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed" style={{ backgroundColor: "#0EA5E9" }}
+          >
+            {generating ? "…" : e.genBtnGenerate}
+          </button>
           <Link
             href="/export"
             className="text-sm text-gray-500 hover:text-gray-700 transition font-medium"
           >
             {e.genBtnCancel}
           </Link>
-          <button
-            onClick={handleGenerate}
-            disabled={!selectedLotId || generating || result?.ok === true}
-            className="px-6 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {generating ? "…" : e.genBtnGenerate}
-          </button>
         </div>
       </div>
     </div>
@@ -515,7 +515,7 @@ function InfoCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-gray-50 rounded-lg px-4 py-3">
+    <div className="rounded-lg px-4 py-3" style={{ backgroundColor: "#F5F7FA" }}>
       <p className="text-[9px] font-semibold text-gray-400 tracking-widest uppercase mb-1">
         {label}
       </p>

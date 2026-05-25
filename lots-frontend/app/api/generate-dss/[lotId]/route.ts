@@ -10,6 +10,7 @@ const ML = 40          // margin left
 const MR = PAGE_W - 40 // margin right
 const MB = 55          // margin bottom
 const TEAL = rgb(0.165, 0.757, 0.639)   // #2ac1a3
+const BLUE = rgb(0.055, 0.647, 0.914)   // #0EA5E9
 const DARK = rgb(0.1,   0.1,   0.1)
 const GRAY = rgb(0.45,  0.45,  0.45)
 const LIGHT = rgb(0.96, 0.96, 0.96)
@@ -321,7 +322,7 @@ export async function GET(
     const CARD_W = (MR - ML - CARD_GAP * 2) / 3
 
     const row1 = [
-      { label: d.fieldLot, value: lot.code_lot ?? "-", color: TEAL },
+      { label: d.fieldLot, value: lot.code_lot ?? "-", color: BLUE },
       { label: d.fieldProduct, value: lot.produit ?? "-", color: DARK },
       { label: d.fieldWeight, value: `${parseFloat(lot.poids_total_kg || "0").toFixed(2)} kg`, color: DARK },
     ]

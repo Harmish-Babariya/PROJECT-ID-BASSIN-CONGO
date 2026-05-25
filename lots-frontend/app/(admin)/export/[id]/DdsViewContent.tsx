@@ -57,14 +57,14 @@ function eudrGlobal(parcelles: Parcelle[], e: any): { label: string; cls: string
   )
   if (hasRisk) return { label: e.viewEudrRisque, cls: "text-red-500" }
   const allOk = parcelles.every((p) => p.status_eudr === EUDR_STATUS.CONFORME)
-  if (allOk) return { label: e.viewEudrConforme, cls: "text-[#2ac1a3]" }
+  if (allOk) return { label: e.viewEudrConforme, cls: "text-[#0EA5E9]" }
   return { label: e.viewEudrEnAttente, cls: "text-yellow-600" }
 }
 
 function auditDot(action: string, table: string): string {
-  if (table === "dds") return "bg-[#2ac1a3]"
+  if (table === "dds") return "bg-[#0EA5E9]"
   if (action === "eudr" || table === "parcelles") return "bg-yellow-700"
-  return "bg-[#2ac1a3]"
+  return "bg-[#0EA5E9]"
 }
 
 function auditLabel(log: AuditLog, lot: Lot, dds: Dds, e: any): { main: string; sub: string } {
@@ -151,7 +151,7 @@ export default function DdsViewContent({
         <div>
           <Link
             href="/export"
-            className="text-[10px] text-gray-400 tracking-widest uppercase hover:text-[#2ac1a3] transition mb-2 inline-block"
+            className="text-[10px] text-gray-400 tracking-widest uppercase hover:text-[#0EA5E9] transition mb-2 inline-block"
           >
             {e.viewBack}
           </Link>
@@ -174,7 +174,7 @@ export default function DdsViewContent({
           <a
             href={`/api/generate-dss/${lot.id}?lang=${locale}`}
             download
-            className="flex items-center gap-2 px-4 py-2 bg-[#2ac1a3] text-white rounded-lg text-xs font-bold hover:bg-[#1fa88d] transition tracking-wide uppercase"
+            className="flex items-center gap-2 px-4 py-2 bg-[#0EA5E9] text-white rounded-lg text-xs font-bold hover:bg-[#0284c7] transition tracking-wide uppercase"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -196,10 +196,10 @@ export default function DdsViewContent({
             <div className="border-t border-gray-100 mb-5" />
             <div className="grid grid-cols-3 gap-3">
               <InfoCard label={e.viewFieldRef}>
-                <span className="text-[#2ac1a3] font-mono font-semibold">{dds.reference_dds}</span>
+                <span className="text-[#0EA5E9] font-mono font-semibold">{dds.reference_dds}</span>
               </InfoCard>
               <InfoCard label={e.viewFieldLot}>
-                <Link href={`/lots/${lot.id}`} className="text-[#2ac1a3] font-mono font-semibold hover:underline">
+                <Link href={`/lots/${lot.id}`} className="text-[#0EA5E9] font-mono font-semibold hover:underline">
                   {lot.code_lot}
                 </Link>
               </InfoCard>
@@ -239,11 +239,11 @@ export default function DdsViewContent({
               {auditLogs.length === 0 ? (
                 /* Fallback: synthesise the DDS creation event */
                 <div className="flex gap-3 py-3">
-                  <div className="mt-1.5 w-2.5 h-2.5 rounded-full bg-[#2ac1a3] shrink-0" />
+                  <div className="mt-1.5 w-2.5 h-2.5 rounded-full bg-[#0EA5E9] shrink-0" />
                   <div>
                     <p className="text-sm text-gray-900">
                       PDF généré&nbsp;·&nbsp;
-                      <span className="text-[#2ac1a3] font-mono text-xs">{dds.reference_dds}.pdf</span>
+                      <span className="text-[#0EA5E9] font-mono text-xs">{dds.reference_dds}.pdf</span>
                     </p>
                     <p className="text-[10px] text-gray-400 uppercase tracking-wide mt-0.5">
                       {dds.genere_par_nom}&nbsp;·&nbsp;{createdFull}&nbsp;·&nbsp;SCRIPT EUDR V2.3.1
@@ -287,7 +287,7 @@ export default function DdsViewContent({
                 <a
                   href={`/api/generate-dss/${lot.id}?lang=${locale}`}
                   download
-                  className="px-3 py-1.5 bg-[#2ac1a3] text-white text-[10px] font-bold tracking-widest rounded hover:bg-[#1fa88d] transition uppercase"
+                  className="px-3 py-1.5 bg-[#0EA5E9] text-white text-[10px] font-bold tracking-widest rounded hover:bg-[#0284c7] transition uppercase"
                 >
                   {e.viewBtnDownloadShort}
                 </a>
@@ -320,7 +320,7 @@ export default function DdsViewContent({
                 </p>
                 <div className="grid grid-cols-3 gap-2 mb-5">
                   <PreviewCell label={e.viewPreviewFieldLot}>
-                    <span className="text-[#2ac1a3] font-mono font-semibold text-xs">{lot.code_lot}</span>
+                    <span className="text-[#0EA5E9] font-mono font-semibold text-xs">{lot.code_lot}</span>
                   </PreviewCell>
                   <PreviewCell label={e.viewPreviewFieldProduit}>
                     <span className="text-xs font-semibold text-gray-900">{lot.produit}</span>
@@ -343,10 +343,10 @@ export default function DdsViewContent({
                 <p className="text-[10px] font-bold tracking-widest uppercase text-gray-700 mb-3">
                   {e.viewPreviewSection2}
                 </p>
-                <div className="rounded-lg overflow-hidden border border-gray-200">
-                  <table className="min-w-full text-xs">
+                <div className="border-t border-gray-200 overflow-hidden">
+                  <table className="w-full text-xs">
                     <thead>
-                      <tr className="bg-gray-900 text-white">
+                      <tr>
                         {[
                           e.viewPreviewColId,
                           e.viewPreviewColSurface,
@@ -354,8 +354,14 @@ export default function DdsViewContent({
                           e.viewPreviewColLat,
                           e.viewPreviewColLon,
                           e.viewPreviewColGeojson,
-                        ].map((h) => (
-                          <th key={h} className="px-3 py-2 text-left text-[9px] font-bold tracking-widest">
+                        ].map((h, i, arr) => (
+                          <th
+                            key={h}
+                            className={`px-3 py-2 text-left text-[9px] font-bold tracking-widest bg-gray-900 ${
+                              i === 0 ? "rounded-tl-lg" : i === arr.length - 1 ? "rounded-tr-lg" : ""
+                            }`}
+                            style={{ color: "rgba(255,255,255,0.5)" }}
+                          >
                             {h}
                           </th>
                         ))}
@@ -379,9 +385,13 @@ export default function DdsViewContent({
                             </td>
                             <td className="px-3 py-2 text-center">
                               {hasGeo || hasPoint ? (
-                                <span className="text-[#2ac1a3] font-bold">{e.viewGeojsonOui}</span>
+                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#2ac1a3]/15">
+                                  <svg className="w-3.5 h-3.5 text-[#2ac1a3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </span>
                               ) : (
-                                <span className="text-gray-300">{e.viewGeojsonNon}</span>
+                                <span className="text-gray-300">—</span>
                               )}
                             </td>
                           </tr>

@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/services/auth"
-import { getLots, getLotWithDetails } from "@/lib/services/lots"
-import { getAllLotCollectes } from "@/lib/services/lots"
+import { getLots, getLotWithDetails, getAllLotCollectes } from "@/lib/services/lots"
 import GenerateDdsContent from "./GenerateDdsContent"
-import { normalizeEudrStatus } from "@/lib/eudr"
+import { normalizeEudrStatus, EUDR_STATUS } from "@/lib/eudr"
+import { supabaseAdmin } from "@/lib/supabase-server"
 
 export default async function GenerateDdsPage({
   searchParams,
@@ -25,8 +25,30 @@ export default async function GenerateDdsPage({
     return acc
   }, {} as Record<number, number>)
 
-  // Only show lots with "Prêt" status on the list
   const readyLots = lots.filter((l: any) => l.statut === "Prêt")
+  const readyLotIds = readyLots.map((l: any) => l.id)
+
+  // Fetch EUDR summary for all ready lots upfront
+  const eudrSummaryByLot: Record<number, { conformes: number; risques: number; total: number }> = {}
+  if (readyLotIds.length > 0) {
+    const { data: lcRows } = await supabaseAdmin
+      .from("lot_collectes")
+      .select("lot_id, collectes(parcelles(status_eudr))")
+      .in("lot_id", readyLotIds)
+
+    const grouped: Record<number, { conformes: number; risques: number; total: number }> = {}
+    ;(lcRows ?? []).forEach((lc: any) => {
+      const p = lc.collectes?.parcelles
+      if (!p) return
+      const lotId = lc.lot_id
+      const status = normalizeEudrStatus(p.status_eudr)
+      if (!grouped[lotId]) grouped[lotId] = { conformes: 0, risques: 0, total: 0 }
+      grouped[lotId].total++
+      if (status === EUDR_STATUS.CONFORME) grouped[lotId].conformes++
+      if (status === EUDR_STATUS.RISQUE || status === EUDR_STATUS.NON_CONFORME) grouped[lotId].risques++
+    })
+    Object.assign(eudrSummaryByLot, grouped)
+  }
 
   // If a lot is selected, fetch its full details
   let selectedLotDetails: {
@@ -49,8 +71,7 @@ export default async function GenerateDdsPage({
     }
   }
 
-  const currentUserName =
-    user?.nom_complet || user?.email || "Admin"
+  const currentUserName = user?.nom_complet || user?.email || "Admin"
 
   return (
     <GenerateDdsContent
@@ -59,6 +80,7 @@ export default async function GenerateDdsPage({
       selectedLotDetails={selectedLotDetails}
       selectedLotId={lotId ? parseInt(lotId) : null}
       currentUserName={currentUserName}
+      eudrSummaryByLot={eudrSummaryByLot}
     />
   )
 }

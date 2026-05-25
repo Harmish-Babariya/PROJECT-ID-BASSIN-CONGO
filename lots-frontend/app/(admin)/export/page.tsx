@@ -11,7 +11,7 @@ export default async function ExportDDSPage() {
   const [lots, lotCollectes, ddsRows] = await Promise.all([
     getLots(),
     getAllLotCollectes(),
-    supabaseAdmin.from("dds").select("id, lot_id, reference_dds, statut, created_at, genere_par_nom"),
+    supabaseAdmin.from("dds").select("id, lot_id, reference_dds, statut, created_at, genere_par_nom").order("created_at", { ascending: false }),
   ])
 
   const collectesParLot = lotCollectes.reduce((acc, lc) => {
