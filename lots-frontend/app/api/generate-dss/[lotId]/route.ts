@@ -1,220 +1,173 @@
 import { NextRequest, NextResponse } from "next/server"
-import { PDFDocument, StandardFonts, rgb, PDFPage } from "pdf-lib"
+import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from "pdf-lib"
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { verifyToken } from "@/lib/auth/jwt"
-import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 
-const EUDR_SCRIPT_VERSION = "1.0.0"
-const PAGE_WIDTH = 595
-const PAGE_HEIGHT = 842
-const MARGIN_LEFT = 50
-const MARGIN_RIGHT = PAGE_WIDTH - 50
-const MARGIN_BOTTOM = 60
-const LINE_HEIGHT = 16
+const EUDR_SCRIPT_VERSION = "2.3.1"
+const PAGE_W = 595
+const PAGE_H = 842
+const ML = 40          // margin left
+const MR = PAGE_W - 40 // margin right
+const MB = 55          // margin bottom
+const TEAL = rgb(0.165, 0.757, 0.639)   // #2ac1a3
+const DARK = rgb(0.1,   0.1,   0.1)
+const GRAY = rgb(0.45,  0.45,  0.45)
+const LIGHT = rgb(0.96, 0.96, 0.96)
+const WHITE = rgb(1, 1, 1)
 
 type Lang = "fr" | "en"
 
-type Dict = {
+interface Dict {
+  dateLocale: string
+  orgName: string
+  ddsLabel: string
+  subtitle: string
+  emittedOn: string
+  filenamePrefix: string
+  // Section 1
+  section1: string
+  fieldLot: string
+  fieldProduct: string
+  fieldWeight: string
+  fieldOrigin: string
+  fieldDest: string
+  fieldBuyer: string
+  // Section 2
+  section2: string
+  colParcel: string
+  colSurface: string
+  colType: string
+  colLat: string
+  colLon: string
+  colGeojson: string
+  typePoint: string
+  typePolygon: string
+  geojsonOui: string
+  geojsonNon: string
+  // Footer
+  footerLeft: (adminName: string, adminCode: string, date: string) => string
+  footerRight: string
+  // Errors
   errNotAuthed: string
   errInvalidToken: string
   errAdminOnly: string
   errLotNotFound: string
   errInternal: string
-  pdfDateLocale: string
-  title: string
-  subtitle: string
-  sectionLot: string
-  sectionProducers: (n: number) => string
-  sectionParcelles: (n: number) => string
-  sectionEudrSummary: string
-  sectionAudit: string
-  sectionDeclaration: string
-  rowLotNumber: string
-  rowProduct: string
-  rowOriginCountry: string
-  rowTotalWeight: string
-  rowStatus: string
-  rowDestination: string
-  rowBuyer: string
-  rowGenerationDate: string
-  producerLabel: (i: number) => string
-  producerId: string
-  parcelleLabel: (i: number) => string
-  parcelleSurface: string
-  parcelleCentroid: string
-  parcelleNotAvailable: string
-  parcelleEudrStatus: string
-  parcelleEudrNotVerified: string
-  parcelleVerifiedDate: string
-  totalParcelles: string
-  countConforme: string
-  countAtRisk: string
-  countEnAttente: string
-  countNotVerified: string
-  auditTimestamp: string
-  auditScriptVersion: string
-  auditAdminId: string
-  auditAdminEmail: string
-  auditCollectesCount: string
-  auditParcelleVerifiedAt: (code: string) => string
-  auditParcelleScriptVersion: (code: string) => string
-  declarationLines: string[]
-  doneOn: string
-  signature: string
-  footerLeft: (lotCode: string, page: number, total: number) => string
-  footerRight: (iso: string) => string
-  filenamePrefix: string
-  // Statut translations (DB stores French)
-  statutEnPreparation: string
-  statutPret: string
-  statutExporte: string
 }
 
 const DICTS: Record<Lang, Dict> = {
   fr: {
-    errNotAuthed: "Non authentifie",
-    errInvalidToken: "Token invalide",
-    errAdminOnly: "Seuls les administrateurs peuvent generer un DDS",
-    errLotNotFound: "Lot non trouve",
-    errInternal: "Erreur interne",
-    pdfDateLocale: "fr-FR",
-    title: "DECLARATION DE DILIGENCE RAISONNEE (DDS)",
-    subtitle: "Reglement (UE) 2023/1115 — EUDR — Bassin du Congo",
-    sectionLot: "1. INFORMATIONS DU LOT",
-    sectionProducers: (n) => `2. PRODUCTEURS (${n})`,
-    sectionParcelles: (n) => `3. PARCELLES (${n})`,
-    sectionEudrSummary: "4. RESUME CONFORMITE EUDR",
-    sectionAudit: "5. AUDIT TRAIL",
-    sectionDeclaration: "6. DECLARATION DE CONFORMITE",
-    rowLotNumber: "Numero de lot :",
-    rowProduct: "Produit :",
-    rowOriginCountry: "Pays d'origine :",
-    rowTotalWeight: "Poids total :",
-    rowStatus: "Statut :",
-    rowDestination: "Destination :",
-    rowBuyer: "Acheteur :",
-    rowGenerationDate: "Date de generation :",
-    producerLabel: (i) => `Producteur ${i} :`,
-    producerId: "  Identifiant :",
-    parcelleLabel: (i) => `Parcelle ${i} :`,
-    parcelleSurface: "  Surface :",
-    parcelleCentroid: "  Coordonnees centroide :",
-    parcelleNotAvailable: "Non disponible",
-    parcelleEudrStatus: "  Statut EUDR :",
-    parcelleEudrNotVerified: "Non verifie",
-    parcelleVerifiedDate: "  Date verification :",
-    totalParcelles: "Total parcelles :",
-    countConforme: "Conformes :",
-    countAtRisk: "Risque non negligeable :",
-    countEnAttente: "En attente :",
-    countNotVerified: "Non verifiees :",
-    auditTimestamp: "Timestamp generation :",
-    auditScriptVersion: "Version script EUDR :",
-    auditAdminId: "Admin (user ID) :",
-    auditAdminEmail: "Admin (email) :",
-    auditCollectesCount: "Nombre de collectes :",
-    auditParcelleVerifiedAt: (code) => `  ${code} verifie le :`,
-    auditParcelleScriptVersion: (code) => `  ${code} script v :`,
-    declarationLines: [
-      "Le present document constitue la Declaration de Diligence Raisonnee (DDS) telle",
-      "que prevue par le Reglement (UE) 2023/1115 relatif a la mise a disposition sur le",
-      "marche de l'Union et a l'exportation a partir de l'Union de certains produits de",
-      "base et produits associes a la deforestation et a la degradation des forets.",
-      "",
-      "Il atteste que les informations relatives au lot ci-dessus ont ete collectees et",
-      "verifiees conformement aux exigences dudit reglement. Les parcelles referenciees",
-      "ont fait l'objet d'une verification automatisee de non-deforestation basee sur",
-      "les criteres de la reglementation europeenne (date de reference : 31/12/2020).",
-      "",
-      "L'operateur declare avoir exerce une diligence raisonnee et que, sur la base des",
-      "informations recueillies, les produits de base et/ou produits derives contenus dans",
-      "ce lot ne sont pas associes a de la deforestation ou a de la degradation des forets.",
-    ],
-    doneOn: "Fait le ",
-    signature: "Signature : ___________________________",
-    footerLeft: (lotCode, page, total) => `DDS — ${lotCode}  |  Page ${page}/${total}`,
-    footerRight: (iso) => `Genere le ${iso}`,
+    dateLocale: "fr-FR",
+    orgName: "ID BASSIN CONGO",
+    ddsLabel: "DUE DILIGENCE STATEMENT",
+    subtitle: "Pays de production et géolocalisation des parcelles",
+    emittedOn: "Émis le",
     filenamePrefix: "DDS",
-    statutEnPreparation: "En preparation",
-    statutPret: "Pret",
-    statutExporte: "Exporte",
+    section1: "1. INFORMATIONS SUR LE LOT",
+    fieldLot: "N° LOT",
+    fieldProduct: "PRODUIT",
+    fieldWeight: "POIDS TOTAL",
+    fieldOrigin: "PAYS D'ORIGINE",
+    fieldDest: "DESTINATION",
+    fieldBuyer: "ACHETEUR",
+    section2: "2. PARCELLES ET GÉOLOCALISATION",
+    colParcel: "ID PARCELLE",
+    colSurface: "SURFACE (HA)",
+    colType: "TYPE",
+    colLat: "LAT.",
+    colLon: "LONG.",
+    colGeojson: "GEOJSON",
+    typePoint: "Point",
+    typePolygon: "Polygone",
+    geojsonOui: "Oui",
+    geojsonNon: "—",
+    footerLeft: (name, code, date) =>
+      `GÉNÉRÉ PAR ID BASSIN CONGO · SCRIPT EUDR V${EUDR_SCRIPT_VERSION}\nADMIN : ${name} (${code}) · ${date}`,
+    footerRight: "DOCUMENT GÉNÉRÉ AUTOMATIQUEMENT — ID BASSIN CONGO",
+    errNotAuthed: "Non authentifié",
+    errInvalidToken: "Token invalide",
+    errAdminOnly: "Réservé aux administrateurs",
+    errLotNotFound: "Lot non trouvé",
+    errInternal: "Erreur interne",
   },
   en: {
+    dateLocale: "en-GB",
+    orgName: "ID BASSIN CONGO",
+    ddsLabel: "DUE DILIGENCE STATEMENT",
+    subtitle: "Production country and parcel geolocation",
+    emittedOn: "Issued on",
+    filenamePrefix: "DDS",
+    section1: "1. LOT INFORMATION",
+    fieldLot: "LOT N°",
+    fieldProduct: "PRODUCT",
+    fieldWeight: "TOTAL WEIGHT",
+    fieldOrigin: "COUNTRY OF ORIGIN",
+    fieldDest: "DESTINATION",
+    fieldBuyer: "BUYER",
+    section2: "2. PARCELS & GEOLOCATION",
+    colParcel: "PARCEL ID",
+    colSurface: "SURFACE (HA)",
+    colType: "TYPE",
+    colLat: "LAT.",
+    colLon: "LON.",
+    colGeojson: "GEOJSON",
+    typePoint: "Point",
+    typePolygon: "Polygon",
+    geojsonOui: "Yes",
+    geojsonNon: "—",
+    footerLeft: (name, code, date) =>
+      `GENERATED BY ID BASSIN CONGO · EUDR SCRIPT V${EUDR_SCRIPT_VERSION}\nADMIN : ${name} (${code}) · ${date}`,
+    footerRight: "AUTOMATICALLY GENERATED DOCUMENT — ID BASSIN CONGO",
     errNotAuthed: "Not authenticated",
     errInvalidToken: "Invalid token",
-    errAdminOnly: "Only administrators can generate a DDS",
+    errAdminOnly: "Administrators only",
     errLotNotFound: "Lot not found",
     errInternal: "Internal error",
-    pdfDateLocale: "en-GB",
-    title: "DUE DILIGENCE STATEMENT (DDS)",
-    subtitle: "Regulation (EU) 2023/1115 — EUDR — Congo Basin",
-    sectionLot: "1. LOT INFORMATION",
-    sectionProducers: (n) => `2. PRODUCERS (${n})`,
-    sectionParcelles: (n) => `3. PARCELS (${n})`,
-    sectionEudrSummary: "4. EUDR COMPLIANCE SUMMARY",
-    sectionAudit: "5. AUDIT TRAIL",
-    sectionDeclaration: "6. DECLARATION OF COMPLIANCE",
-    rowLotNumber: "Lot number:",
-    rowProduct: "Product:",
-    rowOriginCountry: "Country of origin:",
-    rowTotalWeight: "Total weight:",
-    rowStatus: "Status:",
-    rowDestination: "Destination:",
-    rowBuyer: "Buyer:",
-    rowGenerationDate: "Generated on:",
-    producerLabel: (i) => `Producer ${i}:`,
-    producerId: "  Identifier:",
-    parcelleLabel: (i) => `Parcel ${i}:`,
-    parcelleSurface: "  Area:",
-    parcelleCentroid: "  Centroid coordinates:",
-    parcelleNotAvailable: "Not available",
-    parcelleEudrStatus: "  EUDR status:",
-    parcelleEudrNotVerified: "Not verified",
-    parcelleVerifiedDate: "  Verified on:",
-    totalParcelles: "Total parcels:",
-    countConforme: "Compliant:",
-    countAtRisk: "Significant risk:",
-    countEnAttente: "Pending:",
-    countNotVerified: "Not verified:",
-    auditTimestamp: "Generation timestamp:",
-    auditScriptVersion: "EUDR script version:",
-    auditAdminId: "Admin (user ID):",
-    auditAdminEmail: "Admin (email):",
-    auditCollectesCount: "Number of collections:",
-    auditParcelleVerifiedAt: (code) => `  ${code} verified at:`,
-    auditParcelleScriptVersion: (code) => `  ${code} script v:`,
-    declarationLines: [
-      "This document constitutes the Due Diligence Statement (DDS) as required by",
-      "Regulation (EU) 2023/1115 on the making available on the Union market and the",
-      "export from the Union of certain commodities and products associated with",
-      "deforestation and forest degradation.",
-      "",
-      "It certifies that the information relating to the above lot has been collected",
-      "and verified in accordance with the requirements of that regulation. The listed",
-      "parcels have been subjected to an automated non-deforestation verification based",
-      "on the criteria of the European regulation (reference date: 31/12/2020).",
-      "",
-      "The operator declares that due diligence has been exercised and that, based on",
-      "the information gathered, the commodities and/or derived products contained in",
-      "this lot are not associated with deforestation or forest degradation.",
-    ],
-    doneOn: "Issued on ",
-    signature: "Signature: ___________________________",
-    footerLeft: (lotCode, page, total) => `DDS — ${lotCode}  |  Page ${page}/${total}`,
-    footerRight: (iso) => `Generated on ${iso}`,
-    filenamePrefix: "DDS",
-    statutEnPreparation: "In preparation",
-    statutPret: "Ready",
-    statutExporte: "Exported",
   },
 }
 
-function translateStatut(statut: string | null | undefined, d: Dict): string {
-  if (!statut) return "-"
-  if (statut === "En préparation") return d.statutEnPreparation
-  if (statut === "Prêt") return d.statutPret
-  if (statut === "Exporté") return d.statutExporte
-  return statut
+// ── PDF drawing helpers ────────────────────────────────────────────────────
+
+function drawText(
+  page: PDFPage,
+  text: string,
+  x: number,
+  y: number,
+  opts: { font: PDFFont; size: number; color?: ReturnType<typeof rgb> }
+) {
+  page.drawText(String(text ?? ""), {
+    x, y,
+    size: opts.size,
+    font: opts.font,
+    color: opts.color ?? DARK,
+  })
+}
+
+function drawRect(
+  page: PDFPage,
+  x: number, y: number, w: number, h: number,
+  fillColor: ReturnType<typeof rgb>,
+  borderColor?: ReturnType<typeof rgb>
+) {
+  page.drawRectangle({
+    x, y, width: w, height: h,
+    color: fillColor,
+    borderColor,
+    borderWidth: borderColor ? 0.5 : 0,
+  })
+}
+
+// Draw an info card (label + value) at given x,y with given width
+function drawInfoCard(
+  page: PDFPage,
+  x: number, y: number, w: number, h: number,
+  label: string, value: string,
+  fonts: { regular: PDFFont; bold: PDFFont },
+  valueColor: ReturnType<typeof rgb> = DARK
+) {
+  drawRect(page, x, y, w, h, LIGHT)
+  drawText(page, label, x + 8, y + h - 14, { font: fonts.regular, size: 7, color: GRAY })
+  drawText(page, value, x + 8, y + 8, { font: fonts.bold, size: 10, color: valueColor })
 }
 
 export async function GET(
@@ -227,267 +180,253 @@ export async function GET(
   try {
     const { lotId } = await params
 
-    // ── AUTH: verify JWT ──
+    // ── AUTH ──
     const token = request.cookies.get("auth-token")?.value
-    if (!token) {
-      return NextResponse.json({ error: d.errNotAuthed }, { status: 401 })
-    }
+    if (!token) return NextResponse.json({ error: d.errNotAuthed }, { status: 401 })
     const payload = verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: d.errInvalidToken }, { status: 401 })
-    }
+    if (!payload) return NextResponse.json({ error: d.errInvalidToken }, { status: 401 })
 
-    // ── AUTH: admin-only ──
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
-      .select("role")
+      .select("role, nom_complet, user_code")
       .eq("id", payload.userId)
       .single()
+    if (profile?.role !== "admin") return NextResponse.json({ error: d.errAdminOnly }, { status: 403 })
 
-    if (profile && profile.role !== "admin") {
-      return NextResponse.json({ error: d.errAdminOnly }, { status: 403 })
-    }
+    const adminName = profile?.nom_complet ?? payload.email ?? "Admin"
+    const adminCode = profile?.user_code ?? "USR-00001"
 
-    // ── DATA: lot ──
-    const { data: lot, error: lotError } = await supabaseAdmin
+    // ── DATA ──
+    const { data: lot, error: lotErr } = await supabaseAdmin
       .from("lots")
       .select("*, pays(nom)")
       .eq("id", lotId)
       .single()
+    if (lotErr || !lot) return NextResponse.json({ error: d.errLotNotFound }, { status: 404 })
 
-    if (lotError || !lot) {
-      return NextResponse.json({ error: d.errLotNotFound }, { status: 404 })
-    }
-
-    // ── DATA: collectes → producteurs + parcelles ──
     const { data: lotCollectes } = await supabaseAdmin
       .from("lot_collectes")
       .select(`
-        collecte_id,
         collectes (
-          id, date_collecte, poids_net_kg,
+          id,
           producteurs (id, code_producteur, nom, prenom),
           parcelles (
             id, code_parcelle, surface_ha, status_eudr,
-            latitude, longitude,
+            latitude, longitude, geojson,
             eudr_verification_timestamp, eudr_script_version
           )
         )
       `)
       .eq("lot_id", lotId)
 
-    const collectes = (lotCollectes ?? []).map(lc => lc.collectes).filter(Boolean) as any[]
-
-    // Deduplicate producers & parcelles
-    const producteursMap = new Map<string, any>()
+    const collectes = (lotCollectes ?? []).map((lc: any) => lc.collectes).filter(Boolean) as any[]
     const parcellesMap = new Map<string, any>()
     collectes.forEach((c: any) => {
-      if (c.producteurs) producteursMap.set(String(c.producteurs.id), c.producteurs)
       if (c.parcelles) parcellesMap.set(String(c.parcelles.id), c.parcelles)
     })
-    const producteurs = Array.from(producteursMap.values())
     const parcelles = Array.from(parcellesMap.values())
-
-    // EUDR stats — normalise status so legacy variants are folded.
-    const normStatuses = parcelles.map(p => normalizeEudrStatus(p.status_eudr))
-    const conformes = normStatuses.filter(s => s === EUDR_STATUS.CONFORME).length
-    const risques = normStatuses.filter(s => s === EUDR_STATUS.RISQUE).length
-    const enAttente = normStatuses.filter(s => s === EUDR_STATUS.EN_ATTENTE).length
-    const nonVerifies = parcelles.length - conformes - risques - enAttente
 
     // ── BUILD PDF ──
     const pdf = await PDFDocument.create()
-    const fontRegular = await pdf.embedFont(StandardFonts.Helvetica)
-    const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold)
-
-    let page: PDFPage = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT])
-    let y = PAGE_HEIGHT - 50
-
-    // ── helpers ──
-    function ensureSpace(needed: number) {
-      if (y - needed < MARGIN_BOTTOM) {
-        page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT])
-        y = PAGE_HEIGHT - 50
-      }
-    }
-
-    function title(text: string, size = 16) {
-      ensureSpace(size + 12)
-      page.drawText(text, {
-        x: MARGIN_LEFT, y, size, font: fontBold, color: rgb(0.1, 0.1, 0.1),
-      })
-      y -= size + 10
-    }
-
-    function sectionTitle(text: string) {
-      ensureSpace(30)
-      y -= 6
-      page.drawRectangle({
-        x: MARGIN_LEFT, y: y - 2, width: MARGIN_RIGHT - MARGIN_LEFT, height: 20,
-        color: rgb(0.95, 0.95, 0.95),
-      })
-      page.drawText(text, {
-        x: MARGIN_LEFT + 8, y: y + 3, size: 11, font: fontBold, color: rgb(0.15, 0.15, 0.15),
-      })
-      y -= 26
-    }
-
-    function row(label: string, value: string) {
-      ensureSpace(LINE_HEIGHT)
-      page.drawText(label, {
-        x: MARGIN_LEFT, y, size: 9, font: fontBold, color: rgb(0.35, 0.35, 0.35),
-      })
-      page.drawText(value, {
-        x: MARGIN_LEFT + 190, y, size: 9, font: fontRegular, color: rgb(0.05, 0.05, 0.05),
-      })
-      y -= LINE_HEIGHT
-    }
-
-    function separator() {
-      ensureSpace(14)
-      page.drawLine({
-        start: { x: MARGIN_LEFT, y },
-        end: { x: MARGIN_RIGHT, y },
-        thickness: 0.5,
-        color: rgb(0.82, 0.82, 0.82),
-      })
-      y -= 14
-    }
-
-    function paragraph(lines: string[]) {
-      lines.forEach(line => {
-        ensureSpace(14)
-        page.drawText(line, {
-          x: MARGIN_LEFT, y, size: 9, font: fontRegular, color: rgb(0.2, 0.2, 0.2),
-        })
-        y -= 14
-      })
-    }
+    const fontR = await pdf.embedFont(StandardFonts.Helvetica)
+    const fontB = await pdf.embedFont(StandardFonts.HelveticaBold)
 
     const generationDate = new Date()
-    const dateLocale = d.pdfDateLocale
-
-    // HEADER
-    title(d.title, 17)
-    page.drawText(d.subtitle, {
-      x: MARGIN_LEFT, y, size: 10, font: fontRegular, color: rgb(0.4, 0.4, 0.4),
+    const emittedDate = generationDate.toLocaleDateString(d.dateLocale, {
+      day: "2-digit", month: "2-digit", year: "numeric",
     })
-    y -= 20
-    separator()
+    const footerDate = `${generationDate.toLocaleDateString(d.dateLocale, { day: "2-digit", month: "2-digit", year: "numeric" })} ${generationDate.toLocaleTimeString(d.dateLocale, { hour: "2-digit", minute: "2-digit" })}`
 
-    // 1. LOT INFORMATION
-    sectionTitle(d.sectionLot)
-    row(d.rowLotNumber, lot.code_lot || `LOT-${lotId}`)
-    row(d.rowProduct, lot.produit || "-")
-    row(d.rowOriginCountry, lot.pays?.nom || "-")
-    row(d.rowTotalWeight, `${lot.poids_total_kg || 0} kg`)
-    row(d.rowStatus, translateStatut(lot.statut, d))
-    row(d.rowDestination, lot.destination_pays || "-")
-    row(d.rowBuyer, lot.acheteur || "-")
-    row(d.rowGenerationDate, generationDate.toLocaleDateString(dateLocale, {
-      year: "numeric", month: "long", day: "numeric",
-      hour: "2-digit", minute: "2-digit",
-    }))
-    separator()
+    let page = pdf.addPage([PAGE_W, PAGE_H])
+    let y = PAGE_H - 48
 
-    // 2. PRODUCERS
-    sectionTitle(d.sectionProducers(producteurs.length))
-    producteurs.forEach((p, i) => {
-      ensureSpace(LINE_HEIGHT * 2 + 4)
-      row(d.producerLabel(i + 1), `${p.code_producteur} — ${p.nom} ${p.prenom || ""}`)
-      row(d.producerId, String(p.id))
-    })
-    separator()
-
-    // 3. PARCELLES
-    sectionTitle(d.sectionParcelles(parcelles.length))
-    parcelles.forEach((p, i) => {
-      ensureSpace(LINE_HEIGHT * 4 + 8)
-      row(d.parcelleLabel(i + 1), p.code_parcelle)
-      row(d.parcelleSurface, `${p.surface_ha ?? "-"} ha`)
-      if (p.latitude && p.longitude) {
-        row(d.parcelleCentroid, `${Number(p.latitude).toFixed(6)}, ${Number(p.longitude).toFixed(6)}`)
-      } else {
-        row(d.parcelleCentroid, d.parcelleNotAvailable)
+    function newPageIfNeeded(needed: number) {
+      if (y - needed < MB) {
+        drawPageFooter(page)
+        page = pdf.addPage([PAGE_W, PAGE_H])
+        y = PAGE_H - 48
       }
-      row(d.parcelleEudrStatus, normalizeEudrStatus(p.status_eudr) || d.parcelleEudrNotVerified)
-      if (p.eudr_verification_timestamp) {
-        row(d.parcelleVerifiedDate, new Date(p.eudr_verification_timestamp).toLocaleDateString(dateLocale))
-      }
-      y -= 4
-    })
-    separator()
+    }
 
-    // 4. EUDR COMPLIANCE SUMMARY
-    sectionTitle(d.sectionEudrSummary)
-    row(d.totalParcelles, String(parcelles.length))
-    row(d.countConforme, String(conformes))
-    row(d.countAtRisk, String(risques))
-    row(d.countEnAttente, String(enAttente))
-    row(d.countNotVerified, String(nonVerifies))
-    separator()
-
-    // 5. AUDIT TRAIL
-    sectionTitle(d.sectionAudit)
-    row(d.auditTimestamp, generationDate.toISOString())
-    row(d.auditScriptVersion, EUDR_SCRIPT_VERSION)
-    row(d.auditAdminId, payload.userId)
-    row(d.auditAdminEmail, payload.email)
-    row(d.auditCollectesCount, String(collectes.length))
-
-    parcelles.forEach(p => {
-      if (p.eudr_verification_timestamp) {
-        row(d.auditParcelleVerifiedAt(p.code_parcelle), new Date(p.eudr_verification_timestamp).toISOString())
-        if (p.eudr_script_version) {
-          row(d.auditParcelleScriptVersion(p.code_parcelle), p.eudr_script_version)
-        }
-      }
-    })
-    separator()
-
-    // 6. COMPLIANCE DECLARATION
-    sectionTitle(d.sectionDeclaration)
-    y -= 4
-    paragraph(d.declarationLines)
-
-    y -= 20
-    ensureSpace(40)
-    page.drawText(d.doneOn + generationDate.toLocaleDateString(dateLocale, {
-      year: "numeric", month: "long", day: "numeric",
-    }), {
-      x: MARGIN_LEFT, y, size: 10, font: fontBold, color: rgb(0.1, 0.1, 0.1),
-    })
-    y -= 30
-    page.drawText(d.signature, {
-      x: MARGIN_LEFT, y, size: 10, font: fontRegular, color: rgb(0.3, 0.3, 0.3),
-    })
-
-    // ── Footer on every page ──
-    const pages = pdf.getPages()
-    pages.forEach((p, i) => {
-      p.drawText(d.footerLeft(lot.code_lot || lotId, i + 1, pages.length), {
-        x: MARGIN_LEFT, y: 30, size: 7, font: fontRegular, color: rgb(0.6, 0.6, 0.6),
+    function drawPageFooter(pg: PDFPage) {
+      // Footer separator line
+      pg.drawLine({
+        start: { x: ML, y: MB - 8 },
+        end: { x: MR, y: MB - 8 },
+        thickness: 0.5,
+        color: LIGHT,
       })
-      p.drawText(d.footerRight(generationDate.toISOString()), {
-        x: PAGE_WIDTH - 220, y: 30, size: 7, font: fontRegular, color: rgb(0.6, 0.6, 0.6),
+      const footerLeft = d.footerLeft(adminName, adminCode, footerDate)
+      const lines = footerLeft.split("\n")
+      lines.forEach((line, i) => {
+        pg.drawText(line, {
+          x: ML, y: MB - 22 - i * 10,
+          size: 6.5, font: fontR, color: GRAY,
+        })
       })
+      // Right-align footer right text
+      const rightText = d.footerRight
+      const rightW = fontR.widthOfTextAtSize(rightText, 6.5)
+      pg.drawText(rightText, {
+        x: MR - rightW, y: MB - 22,
+        size: 6.5, font: fontR, color: GRAY,
+      })
+    }
+
+    // ── PAGE 1: HEADER ──────────────────────────────────────────────────────
+
+    // Left: org name (teal) + subtitle
+    drawText(page, d.orgName, ML, y, { font: fontB, size: 14, color: TEAL })
+    y -= 16
+    drawText(page, d.subtitle, ML, y, { font: fontR, size: 9, color: GRAY })
+
+    // Right: DDS label (teal) + reference + date
+    const refText = lot.code_lot ? `DDS-${new Date().getFullYear()}-${lot.code_lot}` : `DDS-${new Date().getFullYear()}-${lotId}`
+    // Check if a real DDS ref exists
+    const { data: ddsRow } = await supabaseAdmin
+      .from("dds")
+      .select("reference_dds")
+      .eq("lot_id", lotId)
+      .single()
+    const ddsRef = ddsRow?.reference_dds ?? refText
+
+    const ddsLabelW = fontB.widthOfTextAtSize(d.ddsLabel, 8)
+    const refW = fontB.widthOfTextAtSize(ddsRef, 13)
+    const dateStr = `${d.emittedOn} ${emittedDate}`
+    const dateW = fontR.widthOfTextAtSize(dateStr, 9)
+
+    const headerY = PAGE_H - 48
+    drawText(page, d.ddsLabel, MR - ddsLabelW, headerY, { font: fontB, size: 8, color: TEAL })
+    drawText(page, ddsRef, MR - refW, headerY - 16, { font: fontB, size: 13, color: DARK })
+    drawText(page, dateStr, MR - dateW, headerY - 32, { font: fontR, size: 9, color: GRAY })
+
+    y = headerY - 50
+
+    // Thick separator line
+    page.drawLine({
+      start: { x: ML, y },
+      end: { x: MR, y },
+      thickness: 2,
+      color: DARK,
+    })
+    y -= 22
+
+    // ── SECTION 1: LOT INFO ─────────────────────────────────────────────────
+
+    drawText(page, d.section1, ML, y, { font: fontB, size: 8.5, color: DARK })
+    y -= 18
+
+    const CARD_H = 46
+    const CARD_GAP = 6
+    const CARD_W = (MR - ML - CARD_GAP * 2) / 3
+
+    const row1 = [
+      { label: d.fieldLot, value: lot.code_lot ?? "-", color: TEAL },
+      { label: d.fieldProduct, value: lot.produit ?? "-", color: DARK },
+      { label: d.fieldWeight, value: `${parseFloat(lot.poids_total_kg || "0").toFixed(2)} kg`, color: DARK },
+    ]
+    row1.forEach((card, i) => {
+      const cx = ML + i * (CARD_W + CARD_GAP)
+      drawInfoCard(page, cx, y - CARD_H, CARD_W, CARD_H, card.label, card.value, { regular: fontR, bold: fontB }, card.color)
+    })
+    y -= CARD_H + CARD_GAP
+
+    const row2 = [
+      { label: d.fieldOrigin, value: lot.pays?.nom ?? lot.pays_origine ?? "-", color: DARK },
+      { label: d.fieldDest, value: lot.destination_pays ?? "-", color: DARK },
+      { label: d.fieldBuyer, value: lot.acheteur ?? "-", color: DARK },
+    ]
+    row2.forEach((card, i) => {
+      const cx = ML + i * (CARD_W + CARD_GAP)
+      drawInfoCard(page, cx, y - CARD_H, CARD_W, CARD_H, card.label, card.value, { regular: fontR, bold: fontB }, card.color)
+    })
+    y -= CARD_H + 22
+
+    // ── SECTION 2: PARCELLES TABLE ──────────────────────────────────────────
+
+    newPageIfNeeded(30 + parcelles.length * 22 + 50)
+
+    drawText(page, d.section2, ML, y, { font: fontB, size: 8.5, color: DARK })
+    y -= 14
+
+    // Table column widths
+    const TABLE_W = MR - ML
+    const COL_WIDTHS = [110, 80, 65, 65, 65, 55]  // parcel, surface, type, lat, lon, geojson
+    const COL_HEADERS = [d.colParcel, d.colSurface, d.colType, d.colLat, d.colLon, d.colGeojson]
+    const ROW_H = 20
+    const HEADER_H = 22
+
+    // Header row (dark background)
+    drawRect(page, ML, y - HEADER_H, TABLE_W, HEADER_H, rgb(0.1, 0.1, 0.1))
+    let cx2 = ML
+    COL_HEADERS.forEach((h, i) => {
+      drawText(page, h, cx2 + 6, y - HEADER_H + 7, { font: fontB, size: 6.5, color: WHITE })
+      cx2 += COL_WIDTHS[i]
+    })
+    y -= HEADER_H
+
+    // Data rows
+    parcelles.forEach((p, idx) => {
+      newPageIfNeeded(ROW_H + 4)
+      const rowBg = idx % 2 === 0 ? WHITE : rgb(0.985, 0.985, 0.985)
+      drawRect(page, ML, y - ROW_H, TABLE_W, ROW_H, rowBg)
+
+      // Row separator
+      page.drawLine({
+        start: { x: ML, y: y - ROW_H },
+        end: { x: MR, y: y - ROW_H },
+        thickness: 0.3,
+        color: rgb(0.9, 0.9, 0.9),
+      })
+
+      const hasGeo = p.geojson != null
+      const hasPoint = p.latitude != null && p.longitude != null
+      const type = hasGeo ? d.typePolygon : (hasPoint ? d.typePoint : "—")
+      const geoText = (hasGeo || hasPoint) ? d.geojsonOui : d.geojsonNon
+
+      const values = [
+        { text: p.code_parcelle, color: TEAL },
+        { text: p.surface_ha != null ? String(p.surface_ha) : "—", color: DARK },
+        { text: type, color: DARK },
+        { text: p.latitude != null ? Number(p.latitude).toFixed(4) : "—", color: DARK },
+        { text: p.longitude != null ? Number(p.longitude).toFixed(4) : "—", color: DARK },
+        { text: geoText, color: geoText === d.geojsonOui ? TEAL : GRAY },
+      ]
+
+      let vx = ML
+      values.forEach((v, i) => {
+        drawText(page, v.text, vx + 6, y - ROW_H + 6, {
+          font: i === 0 ? fontB : fontR,
+          size: 8,
+          color: v.color,
+        })
+        vx += COL_WIDTHS[i]
+      })
+      y -= ROW_H
     })
 
-    // ── Return PDF ──
+    // Table bottom border
+    page.drawLine({
+      start: { x: ML, y },
+      end: { x: MR, y },
+      thickness: 0.5,
+      color: rgb(0.85, 0.85, 0.85),
+    })
+
+    // ── DRAW FOOTER ON LAST PAGE ──
+    drawPageFooter(page)
+
+    // ── RETURN PDF ──
     const pdfBytes = await pdf.save()
-
     return new NextResponse(Buffer.from(pdfBytes), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${d.filenamePrefix}_${lot.code_lot || lotId}_${lang}_${generationDate.toISOString().split("T")[0]}.pdf"`,
+        "Content-Disposition": `attachment; filename="${d.filenamePrefix}_${ddsRef}_${lang}_${generationDate.toISOString().split("T")[0]}.pdf"`,
         "Cache-Control": "no-store",
       },
     })
-  } catch (error: any) {
-    console.error("Erreur generation DDS:", error)
-    return NextResponse.json(
-      { error: error.message || d.errInternal },
-      { status: 500 }
-    )
+  } catch (err: any) {
+    console.error("[generate-dss]", err)
+    return NextResponse.json({ error: err.message ?? DICTS[lang].errInternal }, { status: 500 })
   }
 }

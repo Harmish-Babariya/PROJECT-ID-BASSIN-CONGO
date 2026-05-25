@@ -106,6 +106,52 @@ export async function getRecentLots(
   return data || []
 }
 
+// Full lot details for DDS generate page: lot info + producers + parcelles
+export async function getLotWithDetails(lotId: string) {
+  const [lotData, collectesData] = await Promise.all([
+    supabaseAdmin
+      .from("lots")
+      .select("*, pays(nom), zones(nom)")
+      .eq("id", lotId)
+      .single(),
+    supabaseAdmin
+      .from("lot_collectes")
+      .select(`
+        collecte_id,
+        collectes (
+          id,
+          producteurs (id, code_producteur, nom, prenom),
+          parcelles (
+            id, code_parcelle, surface_ha, status_eudr,
+            latitude, longitude,
+            zones(nom), pays(nom)
+          )
+        )
+      `)
+      .eq("lot_id", lotId),
+  ])
+
+  if (!lotData.data) return null
+
+  const collectes = (collectesData.data ?? [])
+    .map((lc: any) => lc.collectes)
+    .filter(Boolean) as any[]
+
+  const producteursMap = new Map<string, any>()
+  const parcellesMap = new Map<string, any>()
+  collectes.forEach((c: any) => {
+    if (c.producteurs) producteursMap.set(String(c.producteurs.id), c.producteurs)
+    if (c.parcelles) parcellesMap.set(String(c.parcelles.id), c.parcelles)
+  })
+
+  return {
+    lot: lotData.data,
+    producteurs: Array.from(producteursMap.values()),
+    parcelles: Array.from(parcellesMap.values()),
+    collectesCount: collectes.length,
+  }
+}
+
 // Stats for dashboard
 export async function getLotsStats(
   scope?: DataScope,
