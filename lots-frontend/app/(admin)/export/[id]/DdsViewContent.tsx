@@ -147,34 +147,34 @@ export default function DdsViewContent({
   return (
     <div className="space-y-0">
       {/* ── Header bar ── */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+        <div className="min-w-0">
           <Link
             href="/export"
             className="text-[10px] text-gray-400 tracking-widest uppercase hover:text-[#0EA5E9] transition mb-2 inline-block"
           >
             {e.viewBack}
           </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 font-mono">{dds.reference_dds}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 font-mono break-all">{dds.reference_dds}</h1>
             <span className={`px-2.5 py-1 rounded text-[10px] font-bold tracking-widest ${badge.cls}`}>
               {badge.label}
             </span>
           </div>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-400 mt-1 wrap-break-word">
             {e.viewGeneratedOn} {createdFull}&nbsp;·&nbsp;
             {locale === "en" ? "Lot" : "Lot"} {lot.code_lot}&nbsp;·&nbsp;
             {lot.produit}&nbsp;·&nbsp;{lot.destination_pays}
           </p>
         </div>
-        <div className="flex items-center gap-2 mt-1 shrink-0">
-          <button className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition tracking-wide uppercase">
+        <div className="flex items-center gap-2 shrink-0">
+          <button className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition tracking-wide uppercase whitespace-nowrap">
             {e.viewBtnSubmit}
           </button>
           <a
             href={`/api/generate-dss/${lot.id}?lang=${locale}`}
             download
-            className="flex items-center gap-2 px-4 py-2 bg-[#0EA5E9] text-white rounded-lg text-xs font-bold hover:bg-[#0284c7] transition tracking-wide uppercase"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#0EA5E9] text-white rounded-lg text-xs font-bold hover:bg-[#0284c7] transition tracking-wide uppercase whitespace-nowrap"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -194,9 +194,9 @@ export default function DdsViewContent({
               {e.viewSectionInfo}
             </h2>
             <div className="border-t border-gray-100 mb-5" />
-            <div className="grid grid-cols-3 gap-3">
-              <InfoCard label={e.viewFieldRef}>
-                <span className="text-[#0EA5E9] font-mono font-semibold">{dds.reference_dds}</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <InfoCard label={e.viewFieldRef} className="col-span-2 sm:col-span-1">
+                <span className="text-[#0EA5E9] font-mono font-semibold text-xs sm:text-sm break-all">{dds.reference_dds}</span>
               </InfoCard>
               <InfoCard label={e.viewFieldLot}>
                 <Link href={`/lots/${lot.id}`} className="text-[#0EA5E9] font-mono font-semibold hover:underline">
@@ -273,21 +273,21 @@ export default function DdsViewContent({
         <div className={`${fullscreen ? "fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" : ""}`}>
           <div className={`bg-[#1a1a1a] rounded-xl overflow-hidden flex flex-col ${fullscreen ? "w-full max-w-3xl max-h-full" : ""}`}>
             {/* Preview toolbar */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-[#111] shrink-0">
-              <span className="text-xs font-mono text-gray-400 tracking-wide">
+            <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 bg-[#111] shrink-0">
+              <span className="text-[10px] sm:text-xs font-mono text-gray-400 tracking-wide truncate">
                 {e.viewPreviewTitle(dds.reference_dds)}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => setFullscreen(!fullscreen)}
-                  className="px-3 py-1.5 border border-gray-600 text-gray-300 text-[10px] font-bold tracking-widest rounded hover:bg-gray-700 transition uppercase"
+                  className="px-2 sm:px-3 py-1.5 border border-gray-600 text-gray-300 text-[10px] font-bold tracking-widest rounded hover:bg-gray-700 transition uppercase whitespace-nowrap"
                 >
                   {fullscreen ? "✕" : e.viewBtnFullscreen}
                 </button>
                 <a
                   href={`/api/generate-dss/${lot.id}?lang=${locale}`}
                   download
-                  className="px-3 py-1.5 bg-[#0EA5E9] text-white text-[10px] font-bold tracking-widest rounded hover:bg-[#0284c7] transition uppercase"
+                  className="px-2 sm:px-3 py-1.5 bg-[#0EA5E9] text-white text-[10px] font-bold tracking-widest rounded hover:bg-[#0284c7] transition uppercase whitespace-nowrap"
                 >
                   {e.viewBtnDownloadShort}
                 </a>
@@ -296,19 +296,19 @@ export default function DdsViewContent({
 
             {/* PDF preview content */}
             <div className={`bg-white overflow-y-auto ${fullscreen ? "flex-1" : "max-h-[620px]"}`}>
-              <div className="p-8 min-h-[560px]">
+              <div className="p-4 sm:p-8 min-h-[560px]">
                 {/* PDF Header */}
-                <div className="flex items-start justify-between mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
                   <div>
-                    <p className="text-[#2ac1a3] font-bold text-base tracking-wide">{e.viewPreviewOrgName}</p>
+                    <p className="text-[#2ac1a3] font-bold text-sm sm:text-base tracking-wide">{e.viewPreviewOrgName}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{e.viewPreviewSubtitle}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-[#2ac1a3] tracking-widest uppercase">
+                  <div className="bg-gray-50 rounded-lg px-4 py-3 sm:text-right">
+                    <p className="text-[10px] font-bold text-[#2ac1a3] tracking-widest uppercase mb-1">
                       {e.viewPreviewDueDiligence}
                     </p>
-                    <p className="text-lg font-bold text-gray-900 font-mono mt-0.5">{dds.reference_dds}</p>
-                    <p className="text-xs text-gray-400">{e.viewPreviewEmis} {previewEmisDate}</p>
+                    <p className="text-sm font-bold text-gray-900 font-mono break-all">{dds.reference_dds}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{e.viewPreviewEmis} {previewEmisDate}</p>
                   </div>
                 </div>
 
@@ -318,7 +318,7 @@ export default function DdsViewContent({
                 <p className="text-[10px] font-bold tracking-widest uppercase text-gray-700 mb-3">
                   {e.viewPreviewSection1}
                 </p>
-                <div className="grid grid-cols-3 gap-2 mb-5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5">
                   <PreviewCell label={e.viewPreviewFieldLot}>
                     <span className="text-[#0EA5E9] font-mono font-semibold text-xs">{lot.code_lot}</span>
                   </PreviewCell>
@@ -343,8 +343,8 @@ export default function DdsViewContent({
                 <p className="text-[10px] font-bold tracking-widest uppercase text-gray-700 mb-3">
                   {e.viewPreviewSection2}
                 </p>
-                <div className="border-t border-gray-200 overflow-hidden">
-                  <table className="w-full text-xs">
+                <div className="border-t border-gray-200 overflow-x-auto">
+                  <table className="w-full text-xs" style={{ minWidth: 400 }}>
                     <thead>
                       <tr>
                         {[
@@ -357,7 +357,7 @@ export default function DdsViewContent({
                         ].map((h, i, arr) => (
                           <th
                             key={h}
-                            className={`px-3 py-2 text-left text-[9px] font-bold tracking-widest bg-gray-900 ${
+                            className={`px-2 sm:px-3 py-2 text-left text-[9px] font-bold tracking-widest bg-gray-900 ${
                               i === 0 ? "rounded-tl-lg" : i === arr.length - 1 ? "rounded-tr-lg" : ""
                             }`}
                             style={{ color: "rgba(255,255,255,0.5)" }}
@@ -374,16 +374,16 @@ export default function DdsViewContent({
                         const type = hasGeo ? e.viewTypePolygone : (hasPoint ? e.viewTypePoint : "—")
                         return (
                           <tr key={p.id} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 text-[#2ac1a3] font-mono font-semibold">{p.code_parcelle}</td>
-                            <td className="px-3 py-2 text-gray-700">{p.surface_ha ?? "—"}</td>
-                            <td className="px-3 py-2 text-gray-700">{type}</td>
-                            <td className="px-3 py-2 text-gray-700 font-mono">
+                            <td className="px-2 sm:px-3 py-2 text-[#2ac1a3] font-mono font-semibold">{p.code_parcelle}</td>
+                            <td className="px-2 sm:px-3 py-2 text-gray-700">{p.surface_ha ?? "—"}</td>
+                            <td className="px-2 sm:px-3 py-2 text-gray-700">{type}</td>
+                            <td className="px-2 sm:px-3 py-2 text-gray-700 font-mono">
                               {p.latitude != null ? Number(p.latitude).toFixed(4) : "—"}
                             </td>
-                            <td className="px-3 py-2 text-gray-700 font-mono">
+                            <td className="px-2 sm:px-3 py-2 text-gray-700 font-mono">
                               {p.longitude != null ? Number(p.longitude).toFixed(4) : "—"}
                             </td>
-                            <td className="px-3 py-2 text-center">
+                            <td className="px-2 sm:px-3 py-2 text-center">
                               {hasGeo || hasPoint ? (
                                 <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#2ac1a3]/15">
                                   <svg className="w-3.5 h-3.5 text-[#2ac1a3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -402,11 +402,11 @@ export default function DdsViewContent({
                 </div>
 
                 {/* PDF Footer */}
-                <div className="mt-6 pt-4 border-t border-gray-200 flex items-end justify-between gap-4">
+                <div className="mt-6 pt-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
                   <p className="text-[8px] text-gray-400 leading-relaxed whitespace-pre-line">
                     {e.viewPreviewFooterLeft(currentUserName, currentUserCode, `${previewEmisDate}`)}
                   </p>
-                  <p className="text-[8px] text-gray-400 text-right">{e.viewPreviewFooterRight}</p>
+                  <p className="text-[8px] text-gray-400 sm:text-right">{e.viewPreviewFooterRight}</p>
                 </div>
               </div>
             </div>

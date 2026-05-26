@@ -302,7 +302,7 @@ export default function GenerateDdsContent({
       {selectedLotId && (
         <div className="bg-white border-2 border-blue-400 rounded-xl p-6 space-y-5">
           {/* Preview header */}
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-bold text-gray-900 tracking-widest uppercase">
               {lot ? e.genPreviewTitle(lot.code_lot) : "…"}
             </h2>
@@ -371,7 +371,7 @@ export default function GenerateDdsContent({
                 <select
                   value={ddsStatut}
                   onChange={(ev) => setDdsStatut(ev.target.value as DdsStatut)}
-                  className="w-full sm:w-64 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3] transition"
+                  className="w-full sm:max-w-xs px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3] transition"
                 >
                   {ddsStatutOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -396,7 +396,7 @@ export default function GenerateDdsContent({
                       return (
                         <div
                           key={prod.id}
-                          className="px-5 py-4 flex items-center justify-between gap-4 mb-2 last:mb-0 rounded-lg"
+                          className="px-4 sm:px-5 py-4 flex items-start justify-between gap-3 mb-2 last:mb-0 rounded-lg"
                           style={{ backgroundColor: "#F5F7FA" }}
                         >
                           <div className="flex-1 min-w-0">
@@ -485,13 +485,13 @@ export default function GenerateDdsContent({
       )}
 
       {/* Footer: note + action buttons */}
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <p className="text-xs text-gray-400 max-w-md">{e.genFooterNote}</p>
         <div className="flex items-center gap-4 shrink-0">
           <button
             onClick={handleGenerate}
             disabled={!selectedLotId || generating || result?.ok === true}
-            className="px-6 py-2.5 text-white text-sm font-bold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed" style={{ backgroundColor: "#0EA5E9" }}
+            className="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 text-white text-sm font-bold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed" style={{ backgroundColor: "#0EA5E9" }}
           >
             {generating ? "…" : e.genBtnGenerate}
           </button>

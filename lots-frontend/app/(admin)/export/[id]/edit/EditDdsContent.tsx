@@ -259,7 +259,7 @@ export default function EditDdsContent({
             type="text"
             value={referenceDds}
             onChange={(ev) => setReferenceDds(ev.target.value)}
-            className="w-full sm:w-80 px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono text-gray-900 bg-white focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3] transition"
+            className="w-full sm:max-w-xs px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono text-gray-900 bg-white focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3] transition"
           />
         </div>
 
@@ -271,7 +271,7 @@ export default function EditDdsContent({
           <select
             value={ddsStatut}
             onChange={(ev) => setDdsStatut(ev.target.value as DdsStatut)}
-            className="w-full sm:w-64 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3] transition"
+            className="w-full sm:max-w-xs px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:border-[#2ac1a3] focus:ring-1 focus:ring-[#2ac1a3] transition"
           >
             {ddsStatutOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -298,7 +298,7 @@ export default function EditDdsContent({
                 return (
                   <div
                     key={prod.id}
-                    className="px-5 py-4 flex items-center justify-between gap-4 mb-2 last:mb-0 rounded-lg"
+                    className="px-4 sm:px-5 py-4 flex items-start justify-between gap-3 mb-2 last:mb-0 rounded-lg"
                     style={{ backgroundColor: "#F5F7FA" }}
                   >
                     <div className="flex-1 min-w-0">
@@ -384,13 +384,13 @@ export default function EditDdsContent({
       )}
 
       {/* Footer actions */}
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <p className="text-xs text-gray-400 max-w-md">{e.editFooterNote}</p>
         <div className="flex items-center gap-4 shrink-0">
           <button
             onClick={handleSave}
             disabled={saving || result?.ok === true}
-            className="px-6 py-2.5 text-white text-sm font-bold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 text-white text-sm font-bold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ backgroundColor: "#2AC1A3" }}
           >
             {saving ? "…" : e.editBtnSave}

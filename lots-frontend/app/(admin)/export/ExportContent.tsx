@@ -251,8 +251,70 @@ export default function ExportContent({
         </select>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* Mobile card list */}
+      {paginated.length > 0 && (
+        <div className="sm:hidden space-y-3">
+          {paginated.map((row) => (
+            <div key={row.refDds} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <Link
+                  href={row.ddsId ? `/export/${row.ddsId}` : `/lots/${row.lotId}`}
+                  className="text-[#2AC1A3] font-mono font-semibold text-[13px] hover:underline leading-tight"
+                >
+                  {row.refDds}
+                </Link>
+                <span className={`shrink-0 inline-block px-2.5 py-1 rounded-full text-[8px] font-semibold tracking-[0.12em] uppercase font-mono whitespace-nowrap ${statutColors(row.statut)}`}>
+                  {statutLabel(row.statut)}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div>
+                  <p className="text-gray-400 uppercase tracking-widest text-[9px] font-mono mb-0.5">{e.colLotLie}</p>
+                  <p className="text-gray-700 font-mono">{row.lotCode}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 uppercase tracking-widest text-[9px] font-mono mb-0.5">{e.colProduit}</p>
+                  <p className="text-gray-700">{row.produit}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 uppercase tracking-widest text-[9px] font-mono mb-0.5">{e.colPoids}</p>
+                  <p className="font-semibold text-gray-900">
+                    {row.poidsKg.toLocaleString(locale === "en" ? "en-GB" : "fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-400 uppercase tracking-widest text-[9px] font-mono mb-0.5">{e.colDateGen}</p>
+                  <p className="text-gray-500 font-mono">{row.dateGeneration}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 pt-1 border-t border-gray-100 text-[10px] tracking-[0.12em] font-semibold uppercase font-mono">
+                <Link
+                  href={row.ddsId ? `/export/${row.ddsId}` : `/lots/${row.lotId}`}
+                  className="text-gray-500 hover:text-gray-900 transition"
+                >
+                  {e.actionView}
+                </Link>
+                <Link
+                  href={row.ddsId ? `/export/${row.ddsId}/edit` : `/lots/${row.lotId}/edit`}
+                  className="text-gray-500 hover:text-gray-900 transition"
+                >
+                  {e.actionEdit}
+                </Link>
+                <a
+                  href={`/api/generate-dss/${row.lotId}?lang=${locale}`}
+                  download
+                  className="text-gray-500 hover:text-[#2AC1A3] transition"
+                >
+                  {e.actionDownload}
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Desktop table */}
+      <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full" style={{ fontFamily: "var(--font-courier-prime)" }}>
             <thead>
@@ -345,15 +407,24 @@ export default function ExportContent({
         )}
       </div>
 
+      {filtered.length === 0 && (
+        <div className="sm:hidden bg-white rounded-xl border border-gray-200 p-8 text-center">
+          <p className="text-gray-400 text-[13px] font-mono mb-3">{e.empty}</p>
+          <Link href="/lots/nouveau" className="text-[#2AC1A3] hover:underline text-[13px] font-semibold font-mono">
+            {e.createLot}
+          </Link>
+        </div>
+      )}
+
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-[10px] text-gray-400 font-mono tracking-[0.12em] uppercase">
+        <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-[10px] text-gray-400 font-mono tracking-[0.12em] uppercase text-center sm:text-left">
             {locale === "en"
               ? `${filtered.length} result${filtered.length !== 1 ? "s" : ""} · page ${page} of ${totalPages}`
               : `${filtered.length} résultat${filtered.length !== 1 ? "s" : ""} · page ${page} sur ${totalPages}`}
           </p>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-center gap-1 flex-wrap">
             <button
               onClick={() => setPage(1)}
               disabled={page === 1}
