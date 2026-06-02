@@ -116,14 +116,41 @@ export async function updateParcelleById(id: number | string, dataToUpdate: Reco
 
 // Lightweight fetch for maps (only location + identity fields), scoped
 export async function getParcellesForMap(scope?: DataScope) {
+  // Step 1: fetch parcelles
   let query = supabaseAdmin
     .from("parcelles")
     .select("id, code_parcelle, surface_ha, status_eudr, latitude, longitude, geojson, producteur_id")
 
   query = applyScope(query, scope ?? null)
 
-  const { data } = await query
-  return data || []
+  const { data: parcelles } = await query
+  if (!parcelles || parcelles.length === 0) return []
+
+  // Step 2: fetch producteur names + country separately (no FK in schema cache)
+  const producteurIds = [...new Set(parcelles.map(p => p.producteur_id).filter(Boolean))]
+  let producteursMap: Record<number, { nom: string; prenom: string | null; pays: { nom: string } | null }> = {}
+
+  if (producteurIds.length > 0) {
+    const { data: prods } = await supabaseAdmin
+      .from("producteurs")
+      .select("id, nom, prenom, pays(nom)")
+      .in("id", producteurIds)
+    if (prods) {
+      for (const p of prods) {
+        producteursMap[p.id] = {
+          nom: p.nom,
+          prenom: p.prenom ?? null,
+          pays: (p.pays as { nom: string } | null) ?? null,
+        }
+      }
+    }
+  }
+
+  // Step 3: merge
+  return parcelles.map(p => ({
+    ...p,
+    producteurs: p.producteur_id ? (producteursMap[p.producteur_id] ?? null) : null,
+  }))
 }
 
 // Stats for dashboard

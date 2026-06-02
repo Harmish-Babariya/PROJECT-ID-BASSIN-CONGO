@@ -24,6 +24,7 @@ export type MapParcelle = {
   latitude: number | string | null
   longitude: number | string | null
   geojson: unknown
+  producteurs?: { nom: string; prenom?: string | null; pays?: { nom: string } | null } | null
 }
 
 type ParcelGeometry =
@@ -49,6 +50,8 @@ interface ParcelListItem {
   area: number
   surface_ha: string | number | null
   feature: ParcelFeature | null
+  producer_name: string | null
+  country_name: string | null
 }
 
 interface Stats {
@@ -166,6 +169,9 @@ function buildItems(parcelles: MapParcelle[]): ParcelListItem[] {
           },
         }
       : null
+    const prod = row.producteurs
+    const producer_name = prod ? [prod.nom, prod.prenom].filter(Boolean).join(" ") : null
+    const country_name = prod?.pays?.nom ?? null
     return {
       id,
       filename,
@@ -174,6 +180,8 @@ function buildItems(parcelles: MapParcelle[]): ParcelListItem[] {
       area,
       surface_ha: row.surface_ha ?? null,
       feature,
+      producer_name,
+      country_name,
     }
   })
 }
@@ -199,6 +207,7 @@ export default function ExpandedMapModal({
   const [activeId, setActiveId] = useState<number | string | null>(null)
   const [search, setSearch] = useState("")
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
 
   useEffect(() => {
@@ -445,14 +454,11 @@ export default function ExpandedMapModal({
             >
               <Menu className="w-4 h-4" />
             </button>
-            <div className="w-9 h-9 shrink-0 bg-gradient-to-br from-[#2AC1A3] to-[#1E8876] rounded-lg flex items-center justify-center text-xl">
-              🌍
+            <div className="w-9 h-9 shrink-0 bg-gradient-to-br from-[#2AC1A3] to-[#1E8876] rounded-lg flex items-center justify-center font-bold text-white text-[10px] tracking-tight leading-none text-center px-1">
+              IBC
             </div>
             <div className="min-w-0">
-              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">ID Bassin Congo</h1>
-              <p className="hidden sm:block text-[10px] text-slate-300 font-medium uppercase tracking-widest">
-                {t.dashboard.mapExpandedSubtitle}
-              </p>
+              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">ID BASSIN CONGO</h1>
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
@@ -482,10 +488,21 @@ export default function ExpandedMapModal({
           </div>
         </header>
 
+        {/* Desktop collapse toggle — only visible md+ */}
+        <button
+          onClick={() => setSidebarCollapsed(v => !v)}
+          className={`hidden md:flex absolute top-[88px] z-30 w-6 h-12 items-center justify-center bg-white border border-slate-200 rounded-r-lg shadow-sm text-slate-500 hover:text-[#2AC1A3] hover:border-[#2AC1A3] transition ${
+            sidebarCollapsed ? "left-4" : "left-[356px]"
+          }`}
+          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {sidebarCollapsed ? "›" : "‹"}
+        </button>
+
         <aside
           className={`absolute top-[72px] md:top-[80px] left-2 right-2 md:left-4 md:right-auto bottom-2 md:bottom-4 md:w-[340px] bg-white rounded-2xl shadow-xl z-20 flex-col overflow-hidden ${
             sidebarOpen ? "flex" : "hidden"
-          } md:flex`}
+          } ${sidebarCollapsed ? "md:hidden" : "md:flex"}`}
         >
           <div className="px-4 py-3 border-b border-slate-200">
             <h2 className="text-sm font-bold text-slate-900 leading-tight">{t.dashboard.mapExpandedDashboardTitle}</h2>
@@ -602,8 +619,19 @@ export default function ExpandedMapModal({
                       {pillLabel}
                     </span>
                   </div>
+                  {(item.producer_name || item.country_name) && (
+                    <div className="flex items-center gap-1.5 pl-4 mb-1">
+                      {item.country_name && (
+                        <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded truncate max-w-[90px]">
+                          {item.country_name}
+                        </span>
+                      )}
+                      {item.producer_name && (
+                        <span className="text-[10px] text-slate-500 truncate">{item.producer_name}</span>
+                      )}
+                    </div>
+                  )}
                   <div className="flex gap-3 text-[11px] text-slate-500 pl-4">
-                    <span>ID: {item.id}</span>
                     <span>{surfaceHa.toFixed(2)} ha</span>
                     {!hasGeo && (
                       <span className="ml-auto text-[10px] font-semibold text-slate-400 uppercase tracking-wider">

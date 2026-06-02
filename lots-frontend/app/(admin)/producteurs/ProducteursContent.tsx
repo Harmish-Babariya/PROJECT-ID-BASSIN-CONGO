@@ -236,13 +236,13 @@ export default function ProducteursContent({
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex gap-3 text-[11px] tracking-[0.12em] uppercase font-medium">
-                      <Link href={`/producteurs/${prod.id}`} className="text-[#666] hover:text-[#2AC1A3] whitespace-nowrap">
+                      <Link href={`/producteurs/${prod.id}`} className="text-gray-400 hover:text-gray-600 whitespace-nowrap">
                         {p.actionView}
                       </Link>
-                      <Link href={`/producteurs/${prod.id}/modifier`} className="text-[#666] hover:text-[#2AC1A3] whitespace-nowrap">
+                      <Link href={`/producteurs/${prod.id}/modifier`} className="text-[#2AC1A3] hover:text-[#1da88e] whitespace-nowrap">
                         {p.actionEdit}
                       </Link>
-                      <Link href={`/parcelles/nouveau?producteur_id=${prod.id}`} className="text-[#2AC1A3] hover:underline whitespace-nowrap">
+                      <Link href={`/parcelles/nouveau?producteur_id=${prod.id}`} className="text-[#3b82f6] hover:text-[#2563eb] whitespace-nowrap">
                         {p.actionParcel}
                       </Link>
                     </div>
@@ -294,13 +294,13 @@ export default function ProducteursContent({
               <span>{prod.village ?? "—"}</span>
             </div>
             <div className="flex gap-4 pt-1 border-t border-gray-100 text-[11px] tracking-[0.12em] uppercase font-medium">
-              <Link href={`/producteurs/${prod.id}`} className="text-[#666] hover:text-[#2AC1A3]">
+              <Link href={`/producteurs/${prod.id}`} className="text-gray-400 hover:text-gray-600">
                 {p.actionView}
               </Link>
-              <Link href={`/producteurs/${prod.id}/modifier`} className="text-[#666] hover:text-[#2AC1A3]">
+              <Link href={`/producteurs/${prod.id}/modifier`} className="text-[#2AC1A3] hover:text-[#1da88e]">
                 {p.actionEdit}
               </Link>
-              <Link href={`/parcelles/nouveau?producteur_id=${prod.id}`} className="text-[#2AC1A3] hover:underline">
+              <Link href={`/parcelles/nouveau?producteur_id=${prod.id}`} className="text-[#3b82f6] hover:text-[#2563eb]">
                 {p.actionParcel}
               </Link>
             </div>

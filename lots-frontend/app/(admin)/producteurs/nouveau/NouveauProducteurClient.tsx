@@ -62,7 +62,7 @@ export default function NouveauProducteurClient({
     kilos_vendus: "",
     prix_kilo: "",
     lieu_vente: "",
-    acheteur: [],
+    acheteur: "",
     statut: "Actif",
   })
 

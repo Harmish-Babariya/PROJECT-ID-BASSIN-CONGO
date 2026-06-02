@@ -29,7 +29,7 @@ export type ProducteurFormState = {
   kilos_vendus: string
   prix_kilo: string
   lieu_vente: string
-  acheteur: string[]
+  acheteur: string
   statut: string
 }
 
@@ -223,7 +223,9 @@ export default function ProducteurFormFields({
                 <option value={form.nationalite}>{form.nationalite}</option>
               )}
               {nationalites.map((n) => (
-                <option key={n.id} value={n.nom}>{n.nom}</option>
+                <option key={n.id} value={n.nom}>
+                  {p.optionLabels[n.nom] ?? n.nom}
+                </option>
               ))}
             </Select>
           </div>
@@ -444,9 +446,11 @@ export default function ProducteurFormFields({
           </div>
           <div className="sm:col-span-2">
             <Label>{p.labelAcheteur}</Label>
-            <FieldsetBox>
-              <CheckboxGroupInline options={ACHETEUR_OPTIONS} values={form.acheteur} onChange={(next) => update("acheteur", next)} cols={3} labels={p.optionLabels} />
-            </FieldsetBox>
+            <Input
+              value={form.acheteur}
+              onChange={(e) => update("acheteur", e.target.value)}
+              placeholder={p.placeholderAcheteur}
+            />
           </div>
         </div>
       </section>

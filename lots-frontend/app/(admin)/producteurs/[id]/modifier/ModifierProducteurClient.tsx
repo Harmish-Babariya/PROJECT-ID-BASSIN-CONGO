@@ -100,7 +100,7 @@ export default function ModifierProducteurClient({
     kilos_vendus: toStr(producteur.kilos_vendus),
     prix_kilo: toStr(producteur.prix_kilo),
     lieu_vente: toStr(producteur.lieu_vente),
-    acheteur: toArr(producteur.acheteur),
+    acheteur: Array.isArray(producteur.acheteur) ? producteur.acheteur.join(", ") : toStr(producteur.acheteur),
     statut: toStr(producteur.statut) || "Actif",
   })
 

@@ -7,6 +7,7 @@ import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
 import SortableHeader from "@/components/SortableHeader"
 import { useTableSort } from "@/components/useTableSort"
+import * as XLSX from "xlsx"
 
 type Collecte = {
   id: number
@@ -59,6 +60,25 @@ export default function CollectesContent({
   })
   const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
+  function handleExportExcel() {
+    const isEn = locale === "en"
+    const headers = isEn
+      ? ["Date", "Producer", "Parcel", "Net Weight (kg)", "Quality", "Product"]
+      : ["Date", "Producteur", "Parcelle", "Poids net (kg)", "Qualité", "Produit"]
+    const rows = sorted.map((col) => [
+      col.date_collecte,
+      col.producteurs ? `${col.producteurs.code_producteur} ${col.producteurs.nom}` : "",
+      col.parcelles?.code_parcelle ?? "",
+      col.poids_net_kg ? parseFloat(col.poids_net_kg) : "",
+      col.qualite ?? "",
+      col.produit ?? "",
+    ])
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, isEn ? "Collections" : "Collectes")
+    XLSX.writeFile(wb, `collectes_${new Date().toISOString().split("T")[0]}.xlsx`)
+  }
+
   return (
     <div className="space-y-5">
 
@@ -68,13 +88,20 @@ export default function CollectesContent({
           <h1 className="font-archivo text-[28px] font-bold text-gray-900 tracking-tight uppercase">
             {c.title}
           </h1>
-          <div className="mt-3">
+          <div className="mt-3 flex gap-3 flex-wrap">
             <Link
               href="/collectes/nouveau"
               className="font-courier inline-block bg-[#2AC1A3] text-white px-5 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-[#24a88c] transition"
             >
               {c.newBtn}
             </Link>
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="font-courier inline-block border border-gray-300 text-gray-600 px-5 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-gray-50 transition"
+            >
+              {c.exportExcelBtn}
+            </button>
           </div>
         </div>
         <button
@@ -196,10 +223,10 @@ export default function CollectesContent({
                     {/* Actions */}
                     <td className="px-6 py-3.5">
                       <div className="flex gap-3 font-courier text-[10px] font-semibold tracking-widest uppercase">
-                        <Link href={`/collectes/${col.id}`} className="text-[#2AC1A3] hover:underline">
+                        <Link href={`/collectes/${col.id}`} className="text-gray-400 hover:text-gray-600">
                           {c.actionView}
                         </Link>
-                        <Link href={`/collectes/${col.id}/edit`} className="text-gray-400 hover:text-gray-600">
+                        <Link href={`/collectes/${col.id}/edit`} className="text-[#2AC1A3] hover:text-[#1da88e]">
                           {c.actionEdit}
                         </Link>
                       </div>

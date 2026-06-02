@@ -16,6 +16,8 @@ type Nationalite = { id: number; code: string; nom: string }
 export default function NationalitesContent({ nationalites }: { nationalites: Nationalite[] }) {
   const { t } = useLanguage()
   const tr = t.referentiel
+  const labels = (t.producteurs as { optionLabels?: Record<string, string> }).optionLabels ?? {}
+  const displayNom = (nom: string) => labels[nom] ?? nom
   const [list, setList] = useState<Nationalite[]>(nationalites)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Nationalite | null>(null)
@@ -204,7 +206,7 @@ export default function NationalitesContent({ nationalites }: { nationalites: Na
             {paged.map(n => (
               <tr key={n.id} className="hover:bg-gray-50 transition">
                 <td className="px-6 py-4 font-mono text-sm font-bold text-[#2ac1a3]">{n.code}</td>
-                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{n.nom}</td>
+                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{displayNom(n.nom)}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
                     <button

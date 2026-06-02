@@ -8,6 +8,7 @@ import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
 import SortableHeader from "@/components/SortableHeader"
 import { useTableSort } from "@/components/useTableSort"
+import * as XLSX from "xlsx"
 
 type Lot = {
   id: number
@@ -35,7 +36,7 @@ function StatutBadge({ statut }: { statut: string | null }) {
     label = t.lots.statutEnConstitution
   }
   return (
-    <span className={`inline-block px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] ${cls}`}>
+    <span className={`inline-block min-w-[140px] text-center px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] ${cls}`}>
       {label}
     </span>
   )
@@ -48,7 +49,7 @@ export default function LotsContent({
   lots: Lot[]
   collectesParLot: Record<number, number>
 }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const l = t.lots
   const router = useRouter()
   const [search, setSearch] = useState("")
@@ -127,6 +128,24 @@ export default function LotsContent({
   })
   const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
+  function handleExportExcel() {
+    const isEn = locale === "en"
+    const headers = isEn
+      ? ["Lot Code", "Product", "Collections", "Total Weight (kg)", "Status"]
+      : ["Code lot", "Produit", "Collectes", "Poids total (kg)", "Statut"]
+    const rows = sorted.map((lot) => [
+      lot.code_lot,
+      lot.produit ?? "",
+      collectesParLot[lot.id] ?? 0,
+      parseFloat(lot.poids_total_kg) || 0,
+      lot.statut ?? "",
+    ])
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Lots")
+    XLSX.writeFile(wb, `lots_${new Date().toISOString().split("T")[0]}.xlsx`)
+  }
+
   return (
     <div className="space-y-5">
 
@@ -136,13 +155,20 @@ export default function LotsContent({
           <h1 className="font-archivo text-[28px] font-bold text-gray-900 tracking-tight uppercase">
             {l.title}
           </h1>
-          <div className="mt-3">
+          <div className="mt-3 flex gap-3 flex-wrap">
             <Link
               href="/lots/nouveau"
               className="font-courier inline-block bg-[#2AC1A3] text-white px-5 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-[#24a88c] transition"
             >
               {l.newBtn}
             </Link>
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="font-courier inline-block border border-gray-300 text-gray-600 px-5 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-gray-50 transition"
+            >
+              {l.exportExcelBtn}
+            </button>
           </div>
         </div>
         <button
@@ -279,10 +305,10 @@ export default function LotsContent({
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
-                    <Link href={`/lots/${lot.id}`} className="text-xs font-semibold text-gray-500 hover:text-[#2ac1a3] uppercase tracking-wide transition">
+                    <Link href={`/lots/${lot.id}`} className="text-xs font-semibold text-gray-400 hover:text-gray-600 uppercase tracking-wide transition">
                       {l.actionView}
                     </Link>
-                    <Link href={`/lots/${lot.id}/edit`} className="text-xs font-semibold text-gray-500 hover:text-[#2ac1a3] uppercase tracking-wide transition">
+                    <Link href={`/lots/${lot.id}/edit`} className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition">
                       {l.actionEdit}
                     </Link>
                   </div>

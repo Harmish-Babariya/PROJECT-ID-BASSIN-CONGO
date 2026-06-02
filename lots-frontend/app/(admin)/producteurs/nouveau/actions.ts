@@ -33,7 +33,7 @@ type ProducteurFormPayload = {
   kilos_vendus?: string | number | null
   prix_kilo?: string | number | null
   lieu_vente?: string
-  acheteur?: string[]
+  acheteur?: string | string[]
   statut?: string
   date_enregistrement?: string
 }
@@ -99,7 +99,7 @@ export async function createProducteur(
         formData.prix_kilo ? String(formData.prix_kilo) : null
       ),
       lieu_vente: emptyToNull(formData.lieu_vente ?? null),
-      acheteur: arrOrNull(formData.acheteur),
+      acheteur: formData.acheteur && String(formData.acheteur).trim() ? [String(formData.acheteur).trim()] : null,
       statut: formData.statut || "Actif",
       date_enregistrement:
         formData.date_enregistrement ||

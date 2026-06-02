@@ -27,6 +27,21 @@ type ParcelPoint = {
   geojson?: unknown
 }
 
+function addPolygonLayersForLot(map: mapboxgl.Map, sourceId: string, color: string) {
+  map.addLayer({
+    id: `${sourceId}-fill`,
+    type: "fill",
+    source: sourceId,
+    paint: { "fill-color": color, "fill-opacity": 0.25 },
+  })
+  map.addLayer({
+    id: `${sourceId}-outline`,
+    type: "line",
+    source: sourceId,
+    paint: { "line-color": color, "line-width": 2 },
+  })
+}
+
 type StatusKey = "compliant" | "non_compliant" | "alert" | "pending_review"
 
 function statusKey(status: string | null): StatusKey {
@@ -113,31 +128,58 @@ export default function LotMap({
     })
     .filter(Boolean) as ParcelPoint[]
 
-  // Re-creating markers is needed both on first load and after a style
-  // change (setStyle clears all custom markers/layers).
+  // Re-creating markers/polygons is needed both on first load and after a
+  // style change (setStyle clears all custom markers/layers).
   function addMarkers(map: mapboxgl.Map, fit: boolean) {
     markersRef.current.forEach((mk) => mk.remove())
     markersRef.current = []
-    const bounds = new mapboxgl.LngLatBounds()
-    resolved.forEach((p) => {
-      const el = document.createElement("div")
-      el.style.width = "14px"
-      el.style.height = "14px"
-      el.style.borderRadius = "50%"
-      el.style.border = "2px solid #fff"
-      el.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.3)"
-      el.style.background = STATUS_COLOR[statusKey(p.status_eudr)]
-      el.title = p.code
 
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([p.lon, p.lat])
-        .addTo(map)
-      markersRef.current.push(marker)
-      bounds.extend([p.lon, p.lat])
+    // Remove any previously added polygon layers/sources
+    points.forEach((_, idx) => {
+      const sid = `lot-parcelle-${idx}`
+      if (map.getLayer(`${sid}-fill`)) map.removeLayer(`${sid}-fill`)
+      if (map.getLayer(`${sid}-outline`)) map.removeLayer(`${sid}-outline`)
+      if (map.getSource(sid)) map.removeSource(sid)
     })
 
-    if (!fit) return
-    if (resolved.length === 1) {
+    const bounds = new mapboxgl.LngLatBounds()
+
+    points.forEach((p, idx) => {
+      const color = STATUS_COLOR[statusKey(p.status_eudr)]
+      const polygon = parseGeojson(p.geojson)
+
+      if (polygon) {
+        // Draw polygon fill + outline
+        const sid = `lot-parcelle-${idx}`
+        map.addSource(sid, {
+          type: "geojson",
+          data: { type: "Feature", geometry: polygon, properties: {} } as GeoJSON.Feature,
+        })
+        addPolygonLayersForLot(map, sid, color)
+        polygon.coordinates[0].forEach((c) => bounds.extend(c as [number, number]))
+      } else {
+        // Fallback: point marker
+        const lat = p.lat
+        const lon = p.lon
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return
+        const el = document.createElement("div")
+        el.style.width = "14px"
+        el.style.height = "14px"
+        el.style.borderRadius = "50%"
+        el.style.border = "2px solid #fff"
+        el.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.3)"
+        el.style.background = color
+        el.title = p.code
+        const marker = new mapboxgl.Marker({ element: el })
+          .setLngLat([lon, lat])
+          .addTo(map)
+        markersRef.current.push(marker)
+        bounds.extend([lon, lat])
+      }
+    })
+
+    if (!fit || bounds.isEmpty()) return
+    if (resolved.length === 1 && !parseGeojson(points[0]?.geojson)) {
       map.setCenter([resolved[0].lon, resolved[0].lat])
       map.setZoom(13)
     } else {

@@ -37,16 +37,17 @@ function EudrBadge({
   enAttenteLabel: string
 }) {
   const norm = normalizeEudrStatus(status)
+  const base = "inline-block min-w-[140px] text-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
   if (norm === EUDR_STATUS.CONFORME) {
-    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-[#2ac1a3]/10 text-[#2ac1a3] border border-[#2ac1a3]/20">{conformeLabel}</span>
+    return <span className={`${base} bg-[#2ac1a3]/10 text-[#2ac1a3] border border-[#2ac1a3]/20`}>{conformeLabel}</span>
   }
   if (norm === EUDR_STATUS.NON_CONFORME) {
-    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-red-100 text-red-700 border border-red-200">{nonConformeLabel}</span>
+    return <span className={`${base} bg-red-100 text-red-700 border border-red-200`}>{nonConformeLabel}</span>
   }
   if (norm === EUDR_STATUS.RISQUE) {
-    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700 border border-yellow-200">{risqueLabel}</span>
+    return <span className={`${base} bg-yellow-100 text-yellow-700 border border-yellow-200`}>{risqueLabel}</span>
   }
-  return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-50 text-amber-700 border border-amber-200">{enAttenteLabel}</span>
+  return <span className={`${base} bg-amber-50 text-amber-700 border border-amber-200`}>{enAttenteLabel}</span>
 }
 
 export default function ParcellesContent({
@@ -205,10 +206,10 @@ export default function ParcellesContent({
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
-                      <Link href={`/parcelles/${parc.id}`} className="text-xs font-semibold text-gray-500 hover:text-[#2ac1a3] uppercase tracking-wide transition">
+                      <Link href={`/parcelles/${parc.id}`} className="text-xs font-semibold text-gray-400 hover:text-gray-600 uppercase tracking-wide transition">
                         {tp.actionView}
                       </Link>
-                      <Link href={`/parcelles/${parc.id}/edit`} className="text-xs font-semibold text-gray-500 hover:text-[#2ac1a3] uppercase tracking-wide transition">
+                      <Link href={`/parcelles/${parc.id}/edit`} className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition">
                         {tp.actionEdit}
                       </Link>
                     </div>

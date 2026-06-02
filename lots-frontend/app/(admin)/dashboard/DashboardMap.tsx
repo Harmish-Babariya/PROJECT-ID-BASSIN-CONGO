@@ -27,6 +27,7 @@ export type MapParcelle = {
   latitude: number | string | null
   longitude: number | string | null
   geojson: unknown
+  producteurs?: { nom: string; prenom?: string | null; pays?: { nom: string } | null } | null
 }
 
 type ParcelGeometry =

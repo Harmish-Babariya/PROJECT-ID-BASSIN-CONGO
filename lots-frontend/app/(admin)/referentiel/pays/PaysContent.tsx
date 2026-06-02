@@ -1,6 +1,7 @@
 "use client"
 import { useMemo, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { translateGeoName } from "@/lib/i18n/geo"
 import { actionCreatePays, actionUpdatePays, actionDeletePays } from "./actions"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
@@ -14,8 +15,9 @@ const labelClass = "block text-[10px] font-bold text-gray-500 uppercase tracking
 type Pays = { id: number; code: string; nom: string }
 
 export default function PaysContent({ pays }: { pays: Pays[] }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const tr = t.referentiel
+  const displayNom = (nom: string) => translateGeoName(nom, locale)
   const [list, setList] = useState<Pays[]>(pays)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Pays | null>(null)
@@ -205,7 +207,7 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
             {paged.map(p => (
               <tr key={p.id} className="hover:bg-gray-50 transition">
                 <td className="px-6 py-4 font-mono text-sm font-bold text-[#2ac1a3]">{p.code}</td>
-                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{p.nom}</td>
+                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{displayNom(p.nom)}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
                     <button

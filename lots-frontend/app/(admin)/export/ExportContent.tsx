@@ -146,7 +146,7 @@ export default function ExportContent({
   const stats = useMemo(() => {
     const generated = ddsRows.length
     const submitted = ddsRows.filter((r) => r.statut === "exporte").length
-    const pending = ddsRows.filter((r) => r.statut === "pret").length
+    const pending = ddsRows.filter((r) => r.statut === "en_preparation").length
     const totalExportKg = ddsRows
       .filter((r) => r.statut === "exporte")
       .reduce((sum, r) => sum + r.poidsKg, 0)
@@ -263,7 +263,7 @@ export default function ExportContent({
                 >
                   {row.refDds}
                 </Link>
-                <span className={`shrink-0 inline-block px-2.5 py-1 rounded-full text-[8px] font-semibold tracking-[0.12em] uppercase font-mono whitespace-nowrap ${statutColors(row.statut)}`}>
+                <span className={`shrink-0 inline-block min-w-[130px] text-center px-2.5 py-1 rounded-full text-[8px] font-semibold tracking-[0.12em] uppercase font-mono whitespace-nowrap ${statutColors(row.statut)}`}>
                   {statutLabel(row.statut)}
                 </span>
               </div>
@@ -290,20 +290,20 @@ export default function ExportContent({
               <div className="flex items-center gap-4 pt-1 border-t border-gray-100 text-[10px] tracking-[0.12em] font-semibold uppercase font-mono">
                 <Link
                   href={row.ddsId ? `/export/${row.ddsId}` : `/lots/${row.lotId}`}
-                  className="text-gray-500 hover:text-gray-900 transition"
+                  className="text-gray-400 hover:text-gray-600 transition"
                 >
                   {e.actionView}
                 </Link>
                 <Link
                   href={row.ddsId ? `/export/${row.ddsId}/edit` : `/lots/${row.lotId}/edit`}
-                  className="text-gray-500 hover:text-gray-900 transition"
+                  className="text-[#2AC1A3] hover:text-[#1da88e] transition"
                 >
                   {e.actionEdit}
                 </Link>
                 <a
                   href={`/api/generate-dss/${row.lotId}?lang=${locale}`}
                   download
-                  className="text-gray-500 hover:text-[#2AC1A3] transition"
+                  className="text-[#3b82f6] hover:text-[#2563eb] transition"
                 >
                   {e.actionDownload}
                 </a>
@@ -357,7 +357,7 @@ export default function ExportContent({
                   </td>
                   <td className="px-4 lg:px-6 py-4">
                     <span
-                      className={`inline-block px-2.5 lg:px-3 py-1 rounded-full text-[8px] lg:text-[9px] font-semibold tracking-[0.12em] lg:tracking-[0.15em] uppercase font-mono whitespace-nowrap ${statutColors(row.statut)}`}
+                      className={`inline-block min-w-[130px] text-center px-2.5 lg:px-3 py-1 rounded-full text-[8px] lg:text-[9px] font-semibold tracking-[0.12em] lg:tracking-[0.15em] uppercase font-mono whitespace-nowrap ${statutColors(row.statut)}`}
                     >
                       {statutLabel(row.statut)}
                     </span>
@@ -369,20 +369,20 @@ export default function ExportContent({
                     <div className="flex items-center gap-3 lg:gap-5 text-[9px] lg:text-[10px] tracking-[0.12em] lg:tracking-[0.15em] font-semibold uppercase font-mono whitespace-nowrap">
                       <Link
                         href={row.ddsId ? `/export/${row.ddsId}` : `/lots/${row.lotId}`}
-                        className="text-gray-500 hover:text-gray-900 transition"
+                        className="text-gray-400 hover:text-gray-600 transition"
                       >
                         {e.actionView}
                       </Link>
                       <Link
                         href={row.ddsId ? `/export/${row.ddsId}/edit` : `/lots/${row.lotId}/edit`}
-                        className="text-gray-500 hover:text-gray-900 transition"
+                        className="text-[#2AC1A3] hover:text-[#1da88e] transition"
                       >
                         {e.actionEdit}
                       </Link>
                       <a
                         href={`/api/generate-dss/${row.lotId}?lang=${locale}`}
                         download
-                        className="text-gray-500 hover:text-[#2AC1A3] transition"
+                        className="text-[#3b82f6] hover:text-[#2563eb] transition"
                       >
                         {e.actionDownload}
                       </a>

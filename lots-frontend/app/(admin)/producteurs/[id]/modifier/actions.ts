@@ -32,7 +32,7 @@ type ProducteurFormPayload = {
   kilos_vendus?: string | number | null
   prix_kilo?: string | number | null
   lieu_vente?: string
-  acheteur?: string[]
+  acheteur?: string | string[]
   statut?: string
 }
 
@@ -85,7 +85,7 @@ export async function updateProducteur(id: number, formData: ProducteurFormPaylo
     kilos_vendus: emptyToNull(formData.kilos_vendus ? String(formData.kilos_vendus) : null),
     prix_kilo: emptyToNull(formData.prix_kilo ? String(formData.prix_kilo) : null),
     lieu_vente: emptyToNull(formData.lieu_vente ?? null),
-    acheteur: arrOrNull(formData.acheteur),
+    acheteur: formData.acheteur && String(formData.acheteur).trim() ? [String(formData.acheteur).trim()] : null,
     statut: formData.statut ?? "Actif",
   }
 

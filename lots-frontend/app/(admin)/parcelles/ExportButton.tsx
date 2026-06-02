@@ -15,7 +15,7 @@ export default function ExportButton({ data }: { data: any[] }) {
   return (
     <button
       onClick={handleExport}
-      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold"
+      className="font-courier inline-block border border-gray-300 text-gray-600 px-5 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-gray-50 transition"
     >
       {t.parcelles.exportExcelBtn}
     </button>

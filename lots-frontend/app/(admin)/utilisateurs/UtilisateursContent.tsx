@@ -357,7 +357,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                     </td>
                     <td className="px-4 lg:px-6 py-4">
                       <span
-                        className={`inline-block px-2.5 lg:px-3 py-1 rounded-full text-[8px] lg:text-[9px] font-semibold tracking-[0.12em] lg:tracking-[0.15em] uppercase font-mono whitespace-nowrap ${
+                        className={`inline-block min-w-[110px] text-center px-2.5 lg:px-3 py-1 rounded-full text-[8px] lg:text-[9px] font-semibold tracking-[0.12em] lg:tracking-[0.15em] uppercase font-mono whitespace-nowrap ${
                           isAdmin
                             ? "bg-[#F5EDDF] text-[#A67C52] border border-[#A67C5233]"
                             : "bg-[#DFF5EF] text-[#2AC1A3] border border-[#2AC1A333]"
@@ -371,7 +371,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                     </td>
                     <td className="px-4 lg:px-6 py-4">
                       <span
-                        className={`inline-block px-2.5 lg:px-3 py-1 rounded-full text-[8px] lg:text-[9px] font-semibold tracking-[0.12em] lg:tracking-[0.15em] uppercase font-mono whitespace-nowrap ${
+                        className={`inline-block min-w-[110px] text-center px-2.5 lg:px-3 py-1 rounded-full text-[8px] lg:text-[9px] font-semibold tracking-[0.12em] lg:tracking-[0.15em] uppercase font-mono whitespace-nowrap ${
                           isPending
                             ? "bg-[#FBEFCF] text-[#A67C2E] border border-[#A67C2E33]"
                             : isInactive
