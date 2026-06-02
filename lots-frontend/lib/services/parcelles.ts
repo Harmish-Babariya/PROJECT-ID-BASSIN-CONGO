@@ -137,10 +137,14 @@ export async function getParcellesForMap(scope?: DataScope) {
       .in("id", producteurIds)
     if (prods) {
       for (const p of prods) {
+        const paysRaw = p.pays as unknown
+        const paysObj: { nom: string } | null = Array.isArray(paysRaw)
+          ? (paysRaw[0] as { nom: string } ?? null)
+          : (paysRaw as { nom: string } | null) ?? null
         producteursMap[p.id] = {
           nom: p.nom,
           prenom: p.prenom ?? null,
-          pays: (p.pays as { nom: string } | null) ?? null,
+          pays: paysObj,
         }
       }
     }
