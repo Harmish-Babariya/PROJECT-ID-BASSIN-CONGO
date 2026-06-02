@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
+import Image from "next/image"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { X, Menu, Layers } from "lucide-react"
@@ -454,12 +455,14 @@ export default function ExpandedMapModal({
             >
               <Menu className="w-4 h-4" />
             </button>
-            <div className="w-9 h-9 shrink-0 bg-gradient-to-br from-[#2AC1A3] to-[#1E8876] rounded-lg flex items-center justify-center font-bold text-white text-[10px] tracking-tight leading-none text-center px-1">
-              IBC
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">ID BASSIN CONGO</h1>
-            </div>
+            <Image
+              src="/logo.png"
+              alt="ID Bassin Congo"
+              width={220}
+              height={70}
+              priority
+              className="h-9 w-auto object-contain"
+            />
           </div>
           <div className="flex gap-2 shrink-0">
             <button
