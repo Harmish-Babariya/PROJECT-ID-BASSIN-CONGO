@@ -310,7 +310,7 @@ export default function LotMap({
       >
         <div ref={mapContainer} className="w-full h-full" />
 
-        {/* Style switcher */}
+        {/* Top row: style switcher (left) + expand (right) */}
         <div className="absolute top-3 left-3 z-10 flex gap-1.5 bg-black/40 backdrop-blur-sm rounded-md p-1">
           {STYLE_OPTIONS.map(({ key, label }) => (
             <button
@@ -328,8 +328,8 @@ export default function LotMap({
           ))}
         </div>
 
-        {/* View Plot button */}
-        <div className="absolute top-3 right-14 z-10">
+        {/* View Plot button — second row on mobile, same row on sm+ */}
+        <div className="absolute top-14 left-3 sm:top-3 sm:left-auto sm:right-14 z-10">
           <div className="relative">
             <button
               type="button"
@@ -337,13 +337,13 @@ export default function LotMap({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-black/50 hover:bg-black/70 backdrop-blur-sm border border-white/20 text-white text-[10px] font-bold tracking-widest transition"
             >
               <MapPin className="w-3 h-3" />
-              VIEW PLOT
+              {t.common.viewPlot}
             </button>
 
             {showParcelList && (
               <div className="absolute top-full right-0 mt-1 w-52 bg-[#1a2330]/95 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden shadow-xl">
                 <div className="px-3 py-2 border-b border-white/10">
-                  <p className="text-[9px] font-bold tracking-widest text-white/50 uppercase">Select Parcel</p>
+                  <p className="text-[9px] font-bold tracking-widest text-white/50 uppercase">{t.common.selectParcel}</p>
                 </div>
                 <div className="max-h-48 overflow-y-auto">
                   {points.map((p, idx) => {

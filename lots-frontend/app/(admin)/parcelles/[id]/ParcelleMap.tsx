@@ -205,7 +205,7 @@ export default function ParcelleMap({
           ))}
         </div>
 
-        {/* View Plot button — flies to the polygon/point */}
+        {/* View Plot button — second row on mobile, same row on sm+ */}
         <button
           type="button"
           onClick={() => {
@@ -219,10 +219,10 @@ export default function ParcelleMap({
               map.flyTo({ center: [lon, lat], zoom: 15, duration: 900 })
             }
           }}
-          className="absolute top-3 right-14 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-black/50 hover:bg-black/70 backdrop-blur-sm border border-white/20 text-white text-[10px] font-bold tracking-widest transition"
+          className="absolute top-14 left-3 sm:top-3 sm:left-auto sm:right-14 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-black/50 hover:bg-black/70 backdrop-blur-sm border border-white/20 text-white text-[10px] font-bold tracking-widest transition"
         >
           <MapPin className="w-3 h-3" />
-          VIEW PLOT
+          {t.common.viewPlot}
         </button>
 
         {/* Close/expand button placed at bottom-right so it does not overlap
