@@ -83,10 +83,7 @@ function polygonCentroid(poly: PolygonGeo): [number, number] | null {
   if (!ring || ring.length === 0) return null
   let sx = 0
   let sy = 0
-  ring.forEach(([x, y]) => {
-    sx += x
-    sy += y
-  })
+  ring.forEach(([x, y]) => { sx += x; sy += y })
   return [sx / ring.length, sy / ring.length]
 }
 
@@ -143,27 +140,31 @@ export default function LotMap({
     })
     .filter(Boolean) as ParcelPoint[]
 
+  function openParcelList() {
+    setShowParcelList(true)
+  }
+
+  function closeParcelList() {
+    setShowParcelList(false)
+  }
+
   function flyToParcel(p: ParcelPoint) {
     const map = mapRef.current
     if (!map) return
     const bounds = getBoundsForPoint(p)
     if (!bounds || bounds.isEmpty()) return
-    const polygon = parseGeojson(p.geojson)
-    if (polygon) {
+    if (parseGeojson(p.geojson)) {
       map.fitBounds(bounds, { padding: 80, maxZoom: 17, duration: 900 })
     } else {
       map.flyTo({ center: [p.lon, p.lat], zoom: 15, duration: 900 })
     }
-    setShowParcelList(false)
+    closeParcelList()
   }
 
-  // Re-creating markers/polygons is needed both on first load and after a
-  // style change (setStyle clears all custom markers/layers).
   function addMarkers(map: mapboxgl.Map, fit: boolean) {
     markersRef.current.forEach((mk) => mk.remove())
     markersRef.current = []
 
-    // Remove any previously added polygon layers/sources
     points.forEach((_, idx) => {
       const sid = `lot-parcelle-${idx}`
       if (map.getLayer(`${sid}-fill`)) map.removeLayer(`${sid}-fill`)
@@ -227,7 +228,6 @@ export default function LotMap({
     mapRef.current = map
 
     map.on("load", () => {
-      // Build bounds from real polygon coordinates drawn on the map
       const bounds = new mapboxgl.LngLatBounds()
       points.forEach((p) => {
         const polygon = parseGeojson(p.geojson)
@@ -237,9 +237,7 @@ export default function LotMap({
           bounds.extend([p.lon, p.lat])
         }
       })
-
       addMarkers(map, false)
-
       if (!bounds.isEmpty()) {
         map.fitBounds(bounds, { padding: 80, maxZoom: 16, duration: 0 })
       }
@@ -268,9 +266,7 @@ export default function LotMap({
 
   useEffect(() => {
     if (!expanded) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setExpanded(false)
-    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setExpanded(false) }
     document.addEventListener("keydown", onKey)
     document.body.style.overflow = "hidden"
     return () => {
@@ -299,18 +295,23 @@ export default function LotMap({
   return (
     <>
       {expanded && <div className="fixed inset-0 z-90 bg-black/70 backdrop-blur-sm" onClick={() => setExpanded(false)} />}
+
+      {/* Outer wrapper: relative so the dropdown escapes overflow:hidden of the map div */}
       <div
         ref={wrapperRef}
         className={
           expanded
-            ? "fixed inset-4 z-100 bg-[#141b23] rounded-xl overflow-hidden shadow-2xl"
-            : "bg-[#141b23] rounded-lg overflow-hidden relative"
+            ? "fixed inset-4 z-100 bg-[#141b23] rounded-xl shadow-2xl"
+            : "bg-[#141b23] rounded-lg relative"
         }
         style={expanded ? undefined : { height }}
       >
-        <div ref={mapContainer} className="w-full h-full" />
+        {/* Map canvas — overflow:hidden only on the canvas, not the wrapper */}
+        <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+          <div ref={mapContainer} className="w-full h-full" />
+        </div>
 
-        {/* Top row: style switcher (left) + expand (right) */}
+        {/* Style switcher */}
         <div className="absolute top-3 left-3 z-10 flex gap-1.5 bg-black/40 backdrop-blur-sm rounded-md p-1">
           {STYLE_OPTIONS.map(({ key, label }) => (
             <button
@@ -318,9 +319,7 @@ export default function LotMap({
               type="button"
               onClick={() => changeStyle(key)}
               className={`px-2.5 py-1 rounded text-[9px] font-bold tracking-widest transition ${
-                activeStyle === key
-                  ? "bg-[#2AC1A3] text-white"
-                  : "text-white/70 hover:text-white"
+                activeStyle === key ? "bg-[#2AC1A3] text-white" : "text-white/70 hover:text-white"
               }`}
             >
               {label}
@@ -328,24 +327,35 @@ export default function LotMap({
           ))}
         </div>
 
-        {/* View Plot button — second row on mobile, same row on sm+ */}
-        <div className="absolute top-14 left-3 sm:top-3 sm:left-auto sm:right-14 z-10">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowParcelList((v) => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-black/50 hover:bg-black/70 backdrop-blur-sm border border-white/20 text-white text-[10px] font-bold tracking-widest transition"
-            >
+        {/* View Plot button + dropdown — z-20 keeps it above map canvas */}
+        <div className="absolute top-14 left-3 sm:top-3 sm:left-auto sm:right-14 z-20">
+          <button
+            type="button"
+            onClick={() => showParcelList ? closeParcelList() : openParcelList()}
+            className={`flex items-center gap-2 pl-2.5 pr-3 py-1.5 rounded-lg border text-[10px] font-bold tracking-widest transition-all duration-200 shadow-lg ${
+              showParcelList
+                ? "bg-[#2AC1A3] border-[#2AC1A3] text-white shadow-[#2AC1A3]/30"
+                : "bg-black/60 border-white/20 text-white hover:bg-[#2AC1A3]/90 hover:border-[#2AC1A3] hover:shadow-[#2AC1A3]/20 backdrop-blur-sm"
+            }`}
+          >
+            <span className={`flex items-center justify-center w-5 h-5 rounded-md transition-colors ${showParcelList ? "bg-white/20" : "bg-white/10"}`}>
               <MapPin className="w-3 h-3" />
-              {t.common.viewPlot}
-            </button>
+            </span>
+            {t.common.viewPlot}
+          </button>
 
-            {showParcelList && (
-              <div className="absolute top-full right-0 mt-1 w-52 bg-[#1a2330]/95 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden shadow-xl">
-                <div className="px-3 py-2 border-b border-white/10">
-                  <p className="text-[9px] font-bold tracking-widest text-white/50 uppercase">{t.common.selectParcel}</p>
+          {showParcelList && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={closeParcelList} />
+              <div className="absolute top-full mt-2 left-0 sm:left-auto sm:right-0 z-20 w-60 rounded-xl overflow-hidden shadow-2xl border border-white/10 bg-[#0f1923]/95 backdrop-blur-md">
+                {/* Header */}
+                <div className="px-4 py-2.5 bg-[#2AC1A3]/10 border-b border-[#2AC1A3]/20 flex items-center gap-2">
+                  <MapPin className="w-3 h-3 text-[#2AC1A3]" />
+                  <p className="text-[9px] font-bold tracking-widest text-[#2AC1A3] uppercase">{t.common.selectParcel}</p>
+                  <span className="ml-auto text-[9px] text-white/30 font-mono">{points.length}</span>
                 </div>
-                <div className="max-h-48 overflow-y-auto">
+                {/* List */}
+                <div className="max-h-52 overflow-y-auto">
                   {points.map((p, idx) => {
                     const hasPolygon = !!parseGeojson(p.geojson)
                     const hasCoords = Number.isFinite(p.lat) && Number.isFinite(p.lon)
@@ -357,26 +367,20 @@ export default function LotMap({
                         type="button"
                         disabled={!canZoom}
                         onClick={() => flyToParcel(p)}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-white/5 transition text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 active:bg-white/10 transition-colors text-left disabled:opacity-30 disabled:cursor-not-allowed group border-b border-white/5 last:border-0"
                       >
-                        <span
-                          className="w-2 h-2 rounded-full flex-shrink-0"
-                          style={{ background: color }}
-                        />
-                        <span className="text-[11px] font-mono text-white/80 truncate">{p.code}</span>
-                        {hasPolygon && (
-                          <span className="ml-auto text-[8px] text-white/30 flex-shrink-0">POLY</span>
-                        )}
-                        {!hasPolygon && hasCoords && (
-                          <span className="ml-auto text-[8px] text-white/30 flex-shrink-0">PT</span>
-                        )}
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0 ring-2 ring-black/30" style={{ background: color }} />
+                        <span className="text-[11px] font-mono text-white/80 truncate group-hover:text-white transition-colors">{p.code}</span>
+                        <span className={`ml-auto text-[8px] font-bold shrink-0 px-1.5 py-0.5 rounded tracking-wider ${hasPolygon ? "bg-[#2AC1A3]/15 text-[#2AC1A3]" : "bg-white/10 text-white/40"}`}>
+                          {hasPolygon ? "POLY" : "PT"}
+                        </span>
                       </button>
                     )
                   })}
                 </div>
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Expand button */}
@@ -388,11 +392,6 @@ export default function LotMap({
         >
           {expanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
         </button>
-
-        {/* Close parcel list on outside click */}
-        {showParcelList && (
-          <div className="fixed inset-0 z-[9]" onClick={() => setShowParcelList(false)} />
-        )}
 
         <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px] font-mono tracking-widest text-white/80">
           <span className="flex items-center gap-1.5">
