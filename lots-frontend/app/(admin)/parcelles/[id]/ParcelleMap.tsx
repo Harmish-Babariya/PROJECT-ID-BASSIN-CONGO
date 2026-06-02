@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
-import { Maximize2, X } from "lucide-react"
+import { Maximize2, X, MapPin } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 
 const MAP_STYLES: Record<string, string> = {
@@ -204,6 +204,26 @@ export default function ParcelleMap({
             </button>
           ))}
         </div>
+
+        {/* View Plot button — flies to the polygon/point */}
+        <button
+          type="button"
+          onClick={() => {
+            const map = mapRef.current
+            if (!map) return
+            if (polygon) {
+              const bounds = new mapboxgl.LngLatBounds()
+              polygon.coordinates[0].forEach((c) => bounds.extend(c as [number, number]))
+              map.fitBounds(bounds, { padding: 80, maxZoom: 17, duration: 900 })
+            } else if (hasPoint) {
+              map.flyTo({ center: [lon, lat], zoom: 15, duration: 900 })
+            }
+          }}
+          className="absolute top-3 right-14 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-black/50 hover:bg-black/70 backdrop-blur-sm border border-white/20 text-white text-[10px] font-bold tracking-widest transition"
+        >
+          <MapPin className="w-3 h-3" />
+          VIEW PLOT
+        </button>
 
         {/* Close/expand button placed at bottom-right so it does not overlap
             Mapbox's NavigationControl (top-right) on the expanded view. */}

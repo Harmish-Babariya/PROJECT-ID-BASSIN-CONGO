@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
-import { Maximize2, X } from "lucide-react"
+import { Maximize2, X, MapPin } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { normalizeEudrStatus, EUDR_STATUS } from "@/lib/eudr"
 
@@ -90,6 +90,20 @@ function polygonCentroid(poly: PolygonGeo): [number, number] | null {
   return [sx / ring.length, sy / ring.length]
 }
 
+function getBoundsForPoint(p: ParcelPoint): mapboxgl.LngLatBounds | null {
+  const bounds = new mapboxgl.LngLatBounds()
+  const polygon = parseGeojson(p.geojson)
+  if (polygon) {
+    polygon.coordinates[0].forEach((c) => bounds.extend(c as [number, number]))
+    return bounds
+  }
+  if (Number.isFinite(p.lat) && Number.isFinite(p.lon)) {
+    bounds.extend([p.lon, p.lat])
+    return bounds
+  }
+  return null
+}
+
 export default function LotMap({
   points,
   height = 320,
@@ -116,6 +130,7 @@ export default function LotMap({
   const markersRef = useRef<mapboxgl.Marker[]>([])
   const [expanded, setExpanded] = useState(false)
   const [activeStyle, setActiveStyle] = useState("satellite")
+  const [showParcelList, setShowParcelList] = useState(false)
 
   const resolved = points
     .map((p) => {
@@ -127,6 +142,20 @@ export default function LotMap({
       return { ...p, lat, lon }
     })
     .filter(Boolean) as ParcelPoint[]
+
+  function flyToParcel(p: ParcelPoint) {
+    const map = mapRef.current
+    if (!map) return
+    const bounds = getBoundsForPoint(p)
+    if (!bounds || bounds.isEmpty()) return
+    const polygon = parseGeojson(p.geojson)
+    if (polygon) {
+      map.fitBounds(bounds, { padding: 80, maxZoom: 17, duration: 900 })
+    } else {
+      map.flyTo({ center: [p.lon, p.lat], zoom: 15, duration: 900 })
+    }
+    setShowParcelList(false)
+  }
 
   // Re-creating markers/polygons is needed both on first load and after a
   // style change (setStyle clears all custom markers/layers).
@@ -149,7 +178,6 @@ export default function LotMap({
       const polygon = parseGeojson(p.geojson)
 
       if (polygon) {
-        // Draw polygon fill + outline
         const sid = `lot-parcelle-${idx}`
         map.addSource(sid, {
           type: "geojson",
@@ -158,7 +186,6 @@ export default function LotMap({
         addPolygonLayersForLot(map, sid, color)
         polygon.coordinates[0].forEach((c) => bounds.extend(c as [number, number]))
       } else {
-        // Fallback: point marker
         const lat = p.lat
         const lon = p.lon
         if (!Number.isFinite(lat) || !Number.isFinite(lon)) return
@@ -179,12 +206,7 @@ export default function LotMap({
     })
 
     if (!fit || bounds.isEmpty()) return
-    if (resolved.length === 1 && !parseGeojson(points[0]?.geojson)) {
-      map.setCenter([resolved[0].lon, resolved[0].lat])
-      map.setZoom(13)
-    } else {
-      map.fitBounds(bounds, { padding: 60, duration: 0, maxZoom: 14 })
-    }
+    map.fitBounds(bounds, { padding: 80, maxZoom: 16, duration: 0 })
   }
 
   useEffect(() => {
@@ -198,14 +220,29 @@ export default function LotMap({
       container: mapContainer.current,
       style: MAP_STYLES.satellite,
       center: [resolved[0].lon, resolved[0].lat],
-      zoom: 6,
+      zoom: 4,
       attributionControl: false,
     })
 
     mapRef.current = map
 
     map.on("load", () => {
-      addMarkers(map, true)
+      // Build bounds from real polygon coordinates drawn on the map
+      const bounds = new mapboxgl.LngLatBounds()
+      points.forEach((p) => {
+        const polygon = parseGeojson(p.geojson)
+        if (polygon) {
+          polygon.coordinates[0].forEach((c) => bounds.extend(c as [number, number]))
+        } else if (Number.isFinite(p.lat) && Number.isFinite(p.lon)) {
+          bounds.extend([p.lon, p.lat])
+        }
+      })
+
+      addMarkers(map, false)
+
+      if (!bounds.isEmpty()) {
+        map.fitBounds(bounds, { padding: 80, maxZoom: 16, duration: 0 })
+      }
     })
 
     const ro = new ResizeObserver(() => map.resize())
@@ -225,8 +262,6 @@ export default function LotMap({
     const map = mapRef.current
     if (!map || key === activeStyle) return
     map.setStyle(MAP_STYLES[key])
-    // setStyle wipes markers; re-add them once the new style is ready.
-    // Don't refit the viewport so the user keeps their current pan/zoom.
     map.once("style.load", () => addMarkers(map, false))
     setActiveStyle(key)
   }
@@ -248,8 +283,6 @@ export default function LotMap({
   const nonConformeCount = resolved.filter((p) => statusKey(p.status_eudr) === "non_compliant").length
   const risqueCount = resolved.filter((p) => statusKey(p.status_eudr) === "alert").length
   const enAttenteCount = resolved.filter((p) => statusKey(p.status_eudr) === "pending_review").length
-  // pending_review covers both EN ATTENTE and never-verified rows — kept at 0
-  // for legend back-compat (some callers still reference the symbol).
   const notVerifiedCount = 0
 
   if (resolved.length === 0) {
@@ -277,6 +310,7 @@ export default function LotMap({
       >
         <div ref={mapContainer} className="w-full h-full" />
 
+        {/* Style switcher */}
         <div className="absolute top-3 left-3 z-10 flex gap-1.5 bg-black/40 backdrop-blur-sm rounded-md p-1">
           {STYLE_OPTIONS.map(({ key, label }) => (
             <button
@@ -294,6 +328,58 @@ export default function LotMap({
           ))}
         </div>
 
+        {/* View Plot button */}
+        <div className="absolute top-3 right-14 z-10">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowParcelList((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-black/50 hover:bg-black/70 backdrop-blur-sm border border-white/20 text-white text-[10px] font-bold tracking-widest transition"
+            >
+              <MapPin className="w-3 h-3" />
+              VIEW PLOT
+            </button>
+
+            {showParcelList && (
+              <div className="absolute top-full right-0 mt-1 w-52 bg-[#1a2330]/95 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden shadow-xl">
+                <div className="px-3 py-2 border-b border-white/10">
+                  <p className="text-[9px] font-bold tracking-widest text-white/50 uppercase">Select Parcel</p>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {points.map((p, idx) => {
+                    const hasPolygon = !!parseGeojson(p.geojson)
+                    const hasCoords = Number.isFinite(p.lat) && Number.isFinite(p.lon)
+                    const canZoom = hasPolygon || hasCoords
+                    const color = STATUS_COLOR[statusKey(p.status_eudr)]
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        disabled={!canZoom}
+                        onClick={() => flyToParcel(p)}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-white/5 transition text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ background: color }}
+                        />
+                        <span className="text-[11px] font-mono text-white/80 truncate">{p.code}</span>
+                        {hasPolygon && (
+                          <span className="ml-auto text-[8px] text-white/30 flex-shrink-0">POLY</span>
+                        )}
+                        {!hasPolygon && hasCoords && (
+                          <span className="ml-auto text-[8px] text-white/30 flex-shrink-0">PT</span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Expand button */}
         <button
           type="button"
           onClick={() => setExpanded(v => !v)}
@@ -302,6 +388,11 @@ export default function LotMap({
         >
           {expanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
         </button>
+
+        {/* Close parcel list on outside click */}
+        {showParcelList && (
+          <div className="fixed inset-0 z-[9]" onClick={() => setShowParcelList(false)} />
+        )}
 
         <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px] font-mono tracking-widest text-white/80">
           <span className="flex items-center gap-1.5">
