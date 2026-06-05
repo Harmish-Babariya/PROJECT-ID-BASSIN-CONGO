@@ -4,7 +4,6 @@ import { AlertTriangle } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { translateGeoName } from "@/lib/i18n/geo"
 import DashboardMap from "./DashboardMap"
-import PeriodFilter from "./PeriodFilter"
 
 type Stats = {
   producteurs: {
@@ -102,7 +101,6 @@ export default function DashboardContent({
           <span className="text-[12px] sm:text-[13px] text-[#888]">
             {d.hello} <strong className="text-[#1A1A1A] font-semibold">{userName}</strong>
           </span>
-          <PeriodFilter />
         </div>
       </div>
 
@@ -209,7 +207,6 @@ export default function DashboardContent({
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">{d.totalLabel}</p>
                 <div className="flex items-end gap-3 flex-wrap">
                   <span className="text-[40px] sm:text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.producteurs.total}</span>
-                  <span className="text-[12px] text-[#2AC1A3] font-bold mb-2.5 bg-[#E8F8F4] px-2.5 py-1 rounded-full">+12</span>
                 </div>
                 <p className="text-[10px] text-[#AAAAAA] tracking-[0.1em] uppercase mt-3">{d.registeredProducers}</p>
               </div>
@@ -217,7 +214,6 @@ export default function DashboardContent({
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3">{d.women}</p>
                 <div className="flex items-end gap-3 flex-wrap">
                   <span className="text-[40px] sm:text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight">{stats.producteurs.pourcentageFemmes}<span className="text-[22px] sm:text-[28px]">%</span></span>
-                  <span className="text-[12px] text-[#2AC1A3] font-bold mb-2.5 bg-[#E8F8F4] px-2.5 py-1 rounded-full">+2%</span>
                 </div>
                 <p className="text-[10px] text-[#AAAAAA] tracking-[0.1em] uppercase mt-3">{stats.producteurs.femmes} / {stats.producteurs.total} {d.productrices}</p>
               </div>
@@ -268,21 +264,18 @@ export default function DashboardContent({
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3 leading-[1.4] min-h-6.5">{d.collectes}</p>
                 <div className="flex items-end gap-2 min-w-0">
                   <span className="text-[32px] sm:text-[36px] xl:text-[40px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight whitespace-nowrap">{stats.collectes.total.toLocaleString()}</span>
-                  <span className="text-[11px] text-[#2AC1A3] font-bold mb-1.5 bg-[#E8F8F4] px-2 py-1 rounded-full whitespace-nowrap shrink-0">+8%</span>
                 </div>
               </div>
               <div className="min-w-0">
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3 leading-[1.4] min-h-6.5">{d.totalNetWeight}</p>
                 <div className="flex items-end gap-2 min-w-0">
                   <span className="text-[32px] sm:text-[36px] xl:text-[40px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight whitespace-nowrap">{stats.collectes.poids.toLocaleString()}</span>
-                  <span className="text-[11px] text-[#8B7355] font-bold mb-1.5 bg-[#F5EEE0] px-2 py-1 rounded-full whitespace-nowrap shrink-0">-2%</span>
                 </div>
               </div>
               <div className="min-w-0">
                 <p className="text-[9px] text-[#AAAAAA] tracking-[0.12em] uppercase font-semibold mb-3 leading-[1.4] min-h-6.5">{d.avgWeightPerCollecte}</p>
                 <div className="flex items-end gap-2 min-w-0">
                   <span className="text-[32px] sm:text-[36px] xl:text-[40px] font-bold text-[#1A1A1A] leading-none font-numbers tracking-tight whitespace-nowrap">{stats.collectes.poidsMoyen.toLocaleString()}</span>
-                  <span className="text-[11px] text-[#C4943A] font-bold mb-1.5 bg-[#FFF3E0] px-2 py-1 rounded-full whitespace-nowrap shrink-0">-10%</span>
                 </div>
               </div>
             </div>

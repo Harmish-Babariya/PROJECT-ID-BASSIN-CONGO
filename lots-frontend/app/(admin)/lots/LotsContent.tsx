@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { Filter, Search } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import ConfirmModal from "@/components/ConfirmModal"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
 import SortableHeader from "@/components/SortableHeader"
@@ -53,6 +54,14 @@ export default function LotsContent({
   const l = t.lots
   const router = useRouter()
   const [search, setSearch] = useState("")
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+
+  async function handleDelete() {
+    if (!deleteId) return
+    await fetch(`/api/lots/${deleteId}/delete`, { method: "POST" })
+    setDeleteId(null)
+    router.refresh()
+  }
   const [showFilters, setShowFilters] = useState(false)
   const [produit, setProduit] = useState("")
   const [statut, setStatut] = useState("")
@@ -311,6 +320,9 @@ export default function LotsContent({
                     <Link href={`/lots/${lot.id}/edit`} className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition">
                       {l.actionEdit}
                     </Link>
+                    <button onClick={() => setDeleteId(lot.id)} className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition">
+                      {t.referentiel.delete}
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -333,6 +345,16 @@ export default function LotsContent({
         pageSize={pageSize}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
+      />
+
+      <ConfirmModal
+        open={deleteId !== null}
+        title={t.referentiel.deleteTitle}
+        message={locale === "fr" ? "Supprimer ce lot ? Cette action est irréversible." : "Delete this lot? This action cannot be undone."}
+        confirmLabel={t.referentiel.delete}
+        cancelLabel={t.referentiel.cancel}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteId(null)}
       />
     </div>
   )

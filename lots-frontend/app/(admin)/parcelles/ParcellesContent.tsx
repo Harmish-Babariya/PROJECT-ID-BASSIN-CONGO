@@ -3,6 +3,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/contexts/LanguageContext"
+import ConfirmModal from "@/components/ConfirmModal"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
 import SortableHeader from "@/components/SortableHeader"
@@ -64,6 +65,14 @@ export default function ParcellesContent({
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR"
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+
+  async function handleDelete() {
+    if (!deleteId) return
+    await fetch(`/api/parcelles/${deleteId}/delete`, { method: "POST" })
+    setDeleteId(null)
+    router.refresh()
+  }
   const [search, setSearch] = useState(searchParams.get("recherche") || "")
   const [showFilter, setShowFilter] = useState(false)
   const [filterStatus, setFilterStatus] = useState(searchParams.get("status_eudr") || "")
@@ -212,6 +221,9 @@ export default function ParcellesContent({
                       <Link href={`/parcelles/${parc.id}/edit`} className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition">
                         {tp.actionEdit}
                       </Link>
+                      <button onClick={() => setDeleteId(parc.id)} className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition">
+                        {t.referentiel.delete}
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -236,6 +248,16 @@ export default function ParcellesContent({
       />
 
       <p className="text-gray-400 text-sm">{tp.count(parcelles.length).toUpperCase()}</p>
+
+      <ConfirmModal
+        open={deleteId !== null}
+        title={t.referentiel.deleteTitle}
+        message={locale === "fr" ? "Supprimer cette parcelle ? Cette action est irréversible." : "Delete this parcel? This action cannot be undone."}
+        confirmLabel={t.referentiel.delete}
+        cancelLabel={t.referentiel.cancel}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   )
 }

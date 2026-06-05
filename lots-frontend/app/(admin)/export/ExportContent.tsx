@@ -2,6 +2,7 @@
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import ConfirmModal from "@/components/ConfirmModal"
 import * as XLSX from "xlsx"
 
 type Lot = {
@@ -90,6 +91,14 @@ export default function ExportContent({
   const [search, setSearch] = useState("")
   const [filterStatut, setFilterStatut] = useState<string>("all")
   const [page, setPage] = useState(1)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+
+  async function handleDelete() {
+    if (!deleteId) return
+    await fetch(`/api/dds/${deleteId}/delete`, { method: "POST" })
+    setDeleteId(null)
+    window.location.reload()
+  }
   const PAGE_SIZE = 10
 
   function handleSearch(v: string) { setSearch(v); setPage(1) }
@@ -307,6 +316,11 @@ export default function ExportContent({
                 >
                   {e.actionDownload}
                 </a>
+                {row.ddsId && (
+                  <button onClick={() => setDeleteId(row.ddsId)} className="text-red-400 hover:text-red-600 transition">
+                    {t.referentiel.delete}
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -386,6 +400,11 @@ export default function ExportContent({
                       >
                         {e.actionDownload}
                       </a>
+                      {row.ddsId && (
+                        <button onClick={() => setDeleteId(row.ddsId)} className="text-red-400 hover:text-red-600 transition">
+                          {t.referentiel.delete}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -480,6 +499,16 @@ export default function ExportContent({
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={deleteId !== null}
+        title={t.referentiel.deleteTitle}
+        message={locale === "fr" ? "Supprimer ce DDS ? Cette action est irréversible." : "Delete this DDS? This action cannot be undone."}
+        confirmLabel={t.referentiel.delete}
+        cancelLabel={t.referentiel.cancel}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import ConfirmModal from "@/components/ConfirmModal"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
 import SortableHeader from "@/components/SortableHeader"
@@ -33,6 +34,14 @@ export default function CollectesContent({
   const tr = t.referentiel
   const router = useRouter()
   const [search, setSearch] = useState("")
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+
+  async function handleDelete() {
+    if (!deleteId) return
+    await fetch(`/api/collectes/${deleteId}/delete`, { method: "POST" })
+    setDeleteId(null)
+    router.refresh()
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -229,6 +238,9 @@ export default function CollectesContent({
                         <Link href={`/collectes/${col.id}/edit`} className="text-[#2AC1A3] hover:text-[#1da88e]">
                           {c.actionEdit}
                         </Link>
+                        <button onClick={() => setDeleteId(col.id)} className="text-red-400 hover:text-red-600">
+                          {t.referentiel.delete}
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -246,6 +258,16 @@ export default function CollectesContent({
         pageSize={pageSize}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
+      />
+
+      <ConfirmModal
+        open={deleteId !== null}
+        title={t.referentiel.deleteTitle}
+        message={locale === "fr" ? "Supprimer cette collecte ? Cette action est irréversible." : "Delete this collection? This action cannot be undone."}
+        confirmLabel={t.referentiel.delete}
+        cancelLabel={t.referentiel.cancel}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteId(null)}
       />
     </div>
   )

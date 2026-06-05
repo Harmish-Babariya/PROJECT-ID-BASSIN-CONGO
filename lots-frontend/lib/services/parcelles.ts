@@ -128,12 +128,12 @@ export async function getParcellesForMap(scope?: DataScope) {
 
   // Step 2: fetch producteur names + country separately (no FK in schema cache)
   const producteurIds = [...new Set(parcelles.map(p => p.producteur_id).filter(Boolean))]
-  let producteursMap: Record<number, { nom: string; prenom: string | null; pays: { nom: string } | null }> = {}
+  const producteursMap: Record<number, { nom: string; prenom: string | null; pays: { nom: string } | null; zone_nom: string | null; village: string | null }> = {}
 
   if (producteurIds.length > 0) {
     const { data: prods } = await supabaseAdmin
       .from("producteurs")
-      .select("id, nom, prenom, pays(nom)")
+      .select("id, nom, prenom, pays(nom), zones(nom), village")
       .in("id", producteurIds)
     if (prods) {
       for (const p of prods) {
@@ -141,10 +141,16 @@ export async function getParcellesForMap(scope?: DataScope) {
         const paysObj: { nom: string } | null = Array.isArray(paysRaw)
           ? (paysRaw[0] as { nom: string } ?? null)
           : (paysRaw as { nom: string } | null) ?? null
+        const zonesRaw = p.zones as unknown
+        const zoneObj: { nom: string } | null = Array.isArray(zonesRaw)
+          ? (zonesRaw[0] as { nom: string } ?? null)
+          : (zonesRaw as { nom: string } | null) ?? null
         producteursMap[p.id] = {
           nom: p.nom,
           prenom: p.prenom ?? null,
           pays: paysObj,
+          zone_nom: zoneObj?.nom ?? null,
+          village: (p as Record<string, unknown>).village as string | null ?? null,
         }
       }
     }

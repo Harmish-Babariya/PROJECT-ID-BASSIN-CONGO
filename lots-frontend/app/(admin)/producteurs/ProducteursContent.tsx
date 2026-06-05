@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect, useMemo } from "react"
 import { Filter, Search } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import ConfirmModal from "@/components/ConfirmModal"
 import { translateGeoName } from "@/lib/i18n/geo"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
@@ -40,6 +41,14 @@ export default function ProducteursContent({
   const co = t.common
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+
+  async function handleDelete() {
+    if (!deleteId) return
+    await fetch(`/api/producteurs/${deleteId}/delete`, { method: "POST" })
+    setDeleteId(null)
+    router.refresh()
+  }
 
   const [recherche, setRecherche] = useState(searchParams.get("recherche") || "")
   const [showFilters, setShowFilters] = useState(false)
@@ -245,6 +254,9 @@ export default function ProducteursContent({
                       <Link href={`/parcelles/nouveau?producteur_id=${prod.id}`} className="text-[#3b82f6] hover:text-[#2563eb] whitespace-nowrap">
                         {p.actionParcel}
                       </Link>
+                      <button onClick={() => setDeleteId(prod.id)} className="text-red-400 hover:text-red-600 whitespace-nowrap">
+                        {t.referentiel.delete}
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -303,6 +315,9 @@ export default function ProducteursContent({
               <Link href={`/parcelles/nouveau?producteur_id=${prod.id}`} className="text-[#3b82f6] hover:text-[#2563eb]">
                 {p.actionParcel}
               </Link>
+              <button onClick={() => setDeleteId(prod.id)} className="text-red-400 hover:text-red-600">
+                {t.referentiel.delete}
+              </button>
             </div>
           </div>
         ))}
@@ -319,6 +334,16 @@ export default function ProducteursContent({
       <p className="text-[11px] text-[#AAAAAA] tracking-[0.18em] uppercase font-medium">
         {p.count(producteurs.length)}
       </p>
+
+      <ConfirmModal
+        open={deleteId !== null}
+        title={t.referentiel.deleteTitle}
+        message={locale === "fr" ? "Supprimer ce producteur ? Cette action est irréversible." : "Delete this producer? This action cannot be undone."}
+        confirmLabel={t.referentiel.delete}
+        cancelLabel={t.referentiel.cancel}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   )
 }

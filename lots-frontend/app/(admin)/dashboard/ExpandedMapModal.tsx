@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import Image from "next/image"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
@@ -25,7 +25,7 @@ export type MapParcelle = {
   latitude: number | string | null
   longitude: number | string | null
   geojson: unknown
-  producteurs?: { nom: string; prenom?: string | null; pays?: { nom: string } | null } | null
+  producteurs?: { nom: string; prenom?: string | null; pays?: { nom: string } | null; zone_nom?: string | null; village?: string | null } | null
 }
 
 type ParcelGeometry =
@@ -53,6 +53,8 @@ interface ParcelListItem {
   feature: ParcelFeature | null
   producer_name: string | null
   country_name: string | null
+  zone_nom: string | null
+  village: string | null
 }
 
 interface Stats {
@@ -173,6 +175,8 @@ function buildItems(parcelles: MapParcelle[]): ParcelListItem[] {
     const prod = row.producteurs
     const producer_name = prod ? [prod.nom, prod.prenom].filter(Boolean).join(" ") : null
     const country_name = prod?.pays?.nom ?? null
+    const zone_nom = prod?.zone_nom ?? null
+    const village = prod?.village ?? null
     return {
       id,
       filename,
@@ -183,6 +187,8 @@ function buildItems(parcelles: MapParcelle[]): ParcelListItem[] {
       feature,
       producer_name,
       country_name,
+      zone_nom,
+      village,
     }
   })
 }
@@ -207,6 +213,10 @@ export default function ExpandedMapModal({
   const [activeStyle, setActiveStyle] = useState("satellite")
   const [activeId, setActiveId] = useState<number | string | null>(null)
   const [search, setSearch] = useState("")
+  const [filterCountry, setFilterCountry] = useState("")
+  const [filterZone, setFilterZone] = useState("")
+  const [filterVillage, setFilterVillage] = useState("")
+  const [filterStatus, setFilterStatus] = useState("")
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
@@ -354,21 +364,49 @@ export default function ExpandedMapModal({
     t.dashboard.mapPopupSurfaceLabel,
   ])
 
+  const countryOptions = useMemo(() => {
+    const set = new Set<string>()
+    allItems.forEach(it => { if (it.country_name) set.add(it.country_name) })
+    return Array.from(set).sort()
+  }, [allItems])
+
+  const zoneOptions = useMemo(() => {
+    const set = new Set<string>()
+    allItems.forEach(it => {
+      if (it.zone_nom && (!filterCountry || it.country_name === filterCountry)) set.add(it.zone_nom)
+    })
+    return Array.from(set).sort()
+  }, [allItems, filterCountry])
+
+  const villageOptions = useMemo(() => {
+    const set = new Set<string>()
+    allItems.forEach(it => {
+      if (it.village &&
+        (!filterCountry || it.country_name === filterCountry) &&
+        (!filterZone || it.zone_nom === filterZone)
+      ) set.add(it.village)
+    })
+    return Array.from(set).sort()
+  }, [allItems, filterCountry, filterZone])
+
   useEffect(() => {
     const q = search.trim().toLowerCase()
-    if (!q) {
-      setFilteredItems(allItems)
-      return
-    }
     setFilteredItems(
       allItems.filter((it) => {
-        const code = String(it.code_parcelle ?? "").toLowerCase()
-        const filename = String(it.filename ?? "").toLowerCase()
-        const id = String(it.id ?? "").toLowerCase()
-        return code.includes(q) || filename.includes(q) || id.includes(q)
+        if (filterCountry && it.country_name !== filterCountry) return false
+        if (filterZone && it.zone_nom !== filterZone) return false
+        if (filterVillage && it.village !== filterVillage) return false
+        if (filterStatus && statusBucketKey(it.status_eudr) !== filterStatus) return false
+        if (q) {
+          const code = String(it.code_parcelle ?? "").toLowerCase()
+          const filename = String(it.filename ?? "").toLowerCase()
+          const id = String(it.id ?? "").toLowerCase()
+          return code.includes(q) || filename.includes(q) || id.includes(q)
+        }
+        return true
       })
     )
-  }, [search, allItems])
+  }, [search, filterCountry, filterZone, filterVillage, filterStatus, allItems])
 
   const changeStyle = useCallback((styleKey: string) => {
     const map = mapRef.current
@@ -535,6 +573,53 @@ export default function ExpandedMapModal({
                 className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2AC1A3] focus:ring-2 focus:ring-[#2AC1A3]/20 transition"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-1.5 mt-2">
+              <select
+                value={filterCountry}
+                onChange={e => { setFilterCountry(e.target.value); setFilterZone(""); setFilterVillage("") }}
+                className="col-span-2 w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-[#2AC1A3] focus:ring-2 focus:ring-[#2AC1A3]/20 transition bg-white"
+              >
+                <option value="">{locale === "fr" ? "Tous les pays" : "All countries"}</option>
+                {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select
+                value={filterZone}
+                onChange={e => { setFilterZone(e.target.value); setFilterVillage("") }}
+                className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-[#2AC1A3] focus:ring-2 focus:ring-[#2AC1A3]/20 transition bg-white"
+              >
+                <option value="">{locale === "fr" ? "Toutes les zones" : "All zones"}</option>
+                {zoneOptions.map(z => <option key={z} value={z}>{z}</option>)}
+              </select>
+              <select
+                value={filterVillage}
+                onChange={e => setFilterVillage(e.target.value)}
+                className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-[#2AC1A3] focus:ring-2 focus:ring-[#2AC1A3]/20 transition bg-white"
+              >
+                <option value="">{locale === "fr" ? "Tous les villages" : "All villages"}</option>
+                {villageOptions.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+              <select
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+                className="col-span-2 w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-[#2AC1A3] focus:ring-2 focus:ring-[#2AC1A3]/20 transition bg-white"
+              >
+                <option value="">{locale === "fr" ? "Tous les statuts EUDR" : "All EUDR statuses"}</option>
+                <option value="compliant">{t.dashboard.mapStatusConforme}</option>
+                <option value="non_compliant">{t.dashboard.mapStatusNonConforme}</option>
+                <option value="alert">{t.dashboard.mapStatusRisque}</option>
+                <option value="pending_review">{t.dashboard.mapStatusEnAttente}</option>
+              </select>
+            </div>
+
+            {(filterCountry || filterZone || filterVillage || filterStatus) && (
+              <button
+                onClick={() => { setFilterCountry(""); setFilterZone(""); setFilterVillage(""); setFilterStatus("") }}
+                className="mt-1.5 w-full text-[10px] font-semibold text-[#2AC1A3] hover:text-[#1E8876] transition text-center"
+              >
+                {locale === "fr" ? "Réinitialiser les filtres" : "Reset filters"}
+              </button>
+            )}
           </div>
 
           {stats && (
@@ -688,16 +773,16 @@ export default function ExpandedMapModal({
             <span>{t.dashboard.mapStatusConforme}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626] shadow" />
+            <span>{t.dashboard.mapStatusNonConforme}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
             <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] shadow" />
             <span>{t.dashboard.mapStatusRisque}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] shadow" />
             <span>{t.dashboard.mapStatusEnAttente}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#94A3B8] shadow" />
-            <span>{t.dashboard.mapStatusNotVerified}</span>
           </div>
         </div>
       </div>
