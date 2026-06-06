@@ -244,17 +244,17 @@ export default function ProducteursContent({
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex gap-3 text-[11px] tracking-[0.12em] uppercase font-medium">
-                      <Link href={`/producteurs/${prod.id}`} className="text-gray-400 hover:text-gray-600 whitespace-nowrap">
+                    <div className="flex items-center gap-4">
+                      <Link href={`/producteurs/${prod.id}`} className="text-xs font-semibold text-gray-400 hover:text-gray-600 uppercase tracking-wide transition">
                         {p.actionView}
                       </Link>
-                      <Link href={`/producteurs/${prod.id}/modifier`} className="text-[#2AC1A3] hover:text-[#1da88e] whitespace-nowrap">
+                      <Link href={`/producteurs/${prod.id}/modifier`} className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition">
                         {p.actionEdit}
                       </Link>
-                      <Link href={`/parcelles/nouveau?producteur_id=${prod.id}`} className="text-[#3b82f6] hover:text-[#2563eb] whitespace-nowrap">
+                      <Link href={`/parcelles/nouveau?producteur_id=${prod.id}`} className="text-xs font-semibold text-[#3b82f6] hover:text-[#2563eb] uppercase tracking-wide transition">
                         {p.actionParcel}
                       </Link>
-                      <button onClick={() => setDeleteId(prod.id)} className="text-red-400 hover:text-red-600 whitespace-nowrap">
+                      <button onClick={() => setDeleteId(prod.id)} className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition">
                         {t.referentiel.delete}
                       </button>
                     </div>
@@ -305,17 +305,17 @@ export default function ProducteursContent({
               <span>·</span>
               <span>{prod.village ?? "—"}</span>
             </div>
-            <div className="flex gap-4 pt-1 border-t border-gray-100 text-[11px] tracking-[0.12em] uppercase font-medium">
-              <Link href={`/producteurs/${prod.id}`} className="text-gray-400 hover:text-gray-600">
+            <div className="flex items-center gap-4 pt-1 border-t border-gray-100">
+              <Link href={`/producteurs/${prod.id}`} className="text-xs font-semibold text-gray-400 hover:text-gray-600 uppercase tracking-wide transition">
                 {p.actionView}
               </Link>
-              <Link href={`/producteurs/${prod.id}/modifier`} className="text-[#2AC1A3] hover:text-[#1da88e]">
+              <Link href={`/producteurs/${prod.id}/modifier`} className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition">
                 {p.actionEdit}
               </Link>
-              <Link href={`/parcelles/nouveau?producteur_id=${prod.id}`} className="text-[#3b82f6] hover:text-[#2563eb]">
+              <Link href={`/parcelles/nouveau?producteur_id=${prod.id}`} className="text-xs font-semibold text-[#3b82f6] hover:text-[#2563eb] uppercase tracking-wide transition">
                 {p.actionParcel}
               </Link>
-              <button onClick={() => setDeleteId(prod.id)} className="text-red-400 hover:text-red-600">
+              <button onClick={() => setDeleteId(prod.id)} className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition">
                 {t.referentiel.delete}
               </button>
             </div>

@@ -227,10 +227,10 @@ export default function ZonesContent({ zones, pays }: { zones: Zone[]; pays: Pay
                 <td className="px-6 py-4 text-sm text-gray-600">{(z.pays as any)?.nom || "—"}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
-                    <button onClick={() => openEdit(z)} className="text-xs font-semibold text-gray-500 hover:text-[#2ac1a3] uppercase tracking-wide transition">
+                    <button onClick={() => openEdit(z)} className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition">
                       {tr.edit}
                     </button>
-                    <button onClick={() => setConfirmTarget(z)} className="text-xs font-semibold text-gray-500 hover:text-red-500 uppercase tracking-wide transition">
+                    <button onClick={() => setConfirmTarget(z)} className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition">
                       {tr.delete}
                     </button>
                   </div>

@@ -296,28 +296,28 @@ export default function ExportContent({
                   <p className="text-gray-500 font-mono">{row.dateGeneration}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 pt-1 border-t border-gray-100 text-[10px] tracking-[0.12em] font-semibold uppercase font-mono">
+              <div className="flex items-center gap-4 pt-1 border-t border-gray-100">
                 <Link
                   href={row.ddsId ? `/export/${row.ddsId}` : `/lots/${row.lotId}`}
-                  className="text-gray-400 hover:text-gray-600 transition"
+                  className="text-xs font-semibold text-gray-400 hover:text-gray-600 uppercase tracking-wide transition"
                 >
                   {e.actionView}
                 </Link>
                 <Link
                   href={row.ddsId ? `/export/${row.ddsId}/edit` : `/lots/${row.lotId}/edit`}
-                  className="text-[#2AC1A3] hover:text-[#1da88e] transition"
+                  className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition"
                 >
                   {e.actionEdit}
                 </Link>
                 <a
                   href={`/api/generate-dss/${row.lotId}?lang=${locale}`}
                   download
-                  className="text-[#3b82f6] hover:text-[#2563eb] transition"
+                  className="text-xs font-semibold text-[#3b82f6] hover:text-[#2563eb] uppercase tracking-wide transition"
                 >
                   {e.actionDownload}
                 </a>
                 {row.ddsId && (
-                  <button onClick={() => setDeleteId(row.ddsId)} className="text-red-400 hover:text-red-600 transition">
+                  <button onClick={() => setDeleteId(row.ddsId)} className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition">
                     {t.referentiel.delete}
                   </button>
                 )}
@@ -380,28 +380,28 @@ export default function ExportContent({
                     {row.generePar}
                   </td>
                   <td className="px-4 lg:px-6 py-4">
-                    <div className="flex items-center gap-3 lg:gap-5 text-[9px] lg:text-[10px] tracking-[0.12em] lg:tracking-[0.15em] font-semibold uppercase font-mono whitespace-nowrap">
+                    <div className="flex items-center gap-4">
                       <Link
                         href={row.ddsId ? `/export/${row.ddsId}` : `/lots/${row.lotId}`}
-                        className="text-gray-400 hover:text-gray-600 transition"
+                        className="text-xs font-semibold text-gray-400 hover:text-gray-600 uppercase tracking-wide transition"
                       >
                         {e.actionView}
                       </Link>
                       <Link
                         href={row.ddsId ? `/export/${row.ddsId}/edit` : `/lots/${row.lotId}/edit`}
-                        className="text-[#2AC1A3] hover:text-[#1da88e] transition"
+                        className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition"
                       >
                         {e.actionEdit}
                       </Link>
                       <a
                         href={`/api/generate-dss/${row.lotId}?lang=${locale}`}
                         download
-                        className="text-[#3b82f6] hover:text-[#2563eb] transition"
+                        className="text-xs font-semibold text-[#3b82f6] hover:text-[#2563eb] uppercase tracking-wide transition"
                       >
                         {e.actionDownload}
                       </a>
                       {row.ddsId && (
-                        <button onClick={() => setDeleteId(row.ddsId)} className="text-red-400 hover:text-red-600 transition">
+                        <button onClick={() => setDeleteId(row.ddsId)} className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition">
                           {t.referentiel.delete}
                         </button>
                       )}

@@ -392,14 +392,14 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                       )}
                     </td>
                     <td className="px-4 lg:px-6 py-4">
-                      <div className="flex items-center gap-3 lg:gap-5 text-[9px] lg:text-[10px] tracking-[0.12em] lg:tracking-[0.15em] font-semibold uppercase font-mono whitespace-nowrap">
+                      <div className="flex items-center gap-4">
                         {isPending ? (
                           <>
                             <button
                               type="button"
                               disabled={pendingAction === `${user.id}:resend`}
                               onClick={() => runAction(user.id, "resend")}
-                              className="text-gray-500 hover:text-gray-900 disabled:opacity-50"
+                              className="text-xs font-semibold text-gray-500 hover:text-gray-900 uppercase tracking-wide transition disabled:opacity-50"
                             >
                               {u.actionResend}
                             </button>
@@ -407,7 +407,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                               type="button"
                               disabled={pendingAction === `${user.id}:cancel`}
                               onClick={() => runAction(user.id, "cancel")}
-                              className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                              className="text-xs font-semibold text-[#d97757] hover:text-[#c04d2e] uppercase tracking-wide transition disabled:opacity-50"
                             >
                               {u.actionCancel}
                             </button>
@@ -418,7 +418,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                               type="button"
                               disabled={pendingAction === `${user.id}:reactivate`}
                               onClick={() => runAction(user.id, "reactivate")}
-                              className="text-gray-500 hover:text-gray-900 disabled:opacity-50"
+                              className="text-xs font-semibold text-gray-500 hover:text-gray-900 uppercase tracking-wide transition disabled:opacity-50"
                             >
                               {u.actionReactivate}
                             </button>
@@ -426,7 +426,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                               type="button"
                               disabled={pendingAction === `${user.id}:delete`}
                               onClick={() => runAction(user.id, "delete")}
-                              className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                              className="text-xs font-semibold text-[#d97757] hover:text-[#c04d2e] uppercase tracking-wide transition disabled:opacity-50"
                             >
                               {u.actionDelete}
                             </button>
@@ -435,7 +435,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                           <>
                             <Link
                               href={`/utilisateurs/${user.id}/modifier`}
-                              className="text-gray-500 hover:text-gray-900"
+                              className="text-xs font-semibold text-gray-500 hover:text-gray-900 uppercase tracking-wide transition"
                             >
                               {u.actionEdit}
                             </Link>
@@ -443,7 +443,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                               type="button"
                               disabled={pendingAction === `${user.id}:deactivate`}
                               onClick={() => runAction(user.id, "deactivate")}
-                              className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                              className="text-xs font-semibold text-[#d97757] hover:text-[#c04d2e] uppercase tracking-wide transition disabled:opacity-50"
                             >
                               {u.actionDisable}
                             </button>
@@ -538,14 +538,14 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 pt-3 border-t border-gray-100 text-[10px] tracking-widest font-semibold uppercase font-mono">
+              <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
                 {isPending ? (
                   <>
                     <button
                       type="button"
                       disabled={pendingAction === `${user.id}:resend`}
                       onClick={() => runAction(user.id, "resend")}
-                      className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                      className="text-xs font-semibold text-gray-600 hover:text-gray-900 uppercase tracking-wide transition disabled:opacity-50"
                     >
                       {u.actionResend}
                     </button>
@@ -553,7 +553,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                       type="button"
                       disabled={pendingAction === `${user.id}:cancel`}
                       onClick={() => runAction(user.id, "cancel")}
-                      className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                      className="text-xs font-semibold text-[#d97757] hover:text-[#c04d2e] uppercase tracking-wide transition disabled:opacity-50"
                     >
                       {u.actionCancel}
                     </button>
@@ -564,7 +564,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                       type="button"
                       disabled={pendingAction === `${user.id}:reactivate`}
                       onClick={() => runAction(user.id, "reactivate")}
-                      className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                      className="text-xs font-semibold text-gray-600 hover:text-gray-900 uppercase tracking-wide transition disabled:opacity-50"
                     >
                       {u.actionReactivate}
                     </button>
@@ -572,7 +572,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                       type="button"
                       disabled={pendingAction === `${user.id}:delete`}
                       onClick={() => runAction(user.id, "delete")}
-                      className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                      className="text-xs font-semibold text-[#d97757] hover:text-[#c04d2e] uppercase tracking-wide transition disabled:opacity-50"
                     >
                       {u.actionDelete}
                     </button>
@@ -581,7 +581,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                   <>
                     <Link
                       href={`/utilisateurs/${user.id}/modifier`}
-                      className="text-gray-600 hover:text-gray-900"
+                      className="text-xs font-semibold text-gray-600 hover:text-gray-900 uppercase tracking-wide transition"
                     >
                       {u.actionEdit}
                     </Link>
@@ -589,7 +589,7 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
                       type="button"
                       disabled={pendingAction === `${user.id}:deactivate`}
                       onClick={() => runAction(user.id, "deactivate")}
-                      className="text-[#d97757] hover:text-[#c04d2e] disabled:opacity-50"
+                      className="text-xs font-semibold text-[#d97757] hover:text-[#c04d2e] uppercase tracking-wide transition disabled:opacity-50"
                     >
                       {u.actionDisable}
                     </button>

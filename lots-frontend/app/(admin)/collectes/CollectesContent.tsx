@@ -231,14 +231,14 @@ export default function CollectesContent({
 
                     {/* Actions */}
                     <td className="px-6 py-3.5">
-                      <div className="flex gap-3 font-courier text-[10px] font-semibold tracking-widest uppercase">
-                        <Link href={`/collectes/${col.id}`} className="text-gray-400 hover:text-gray-600">
+                      <div className="flex items-center gap-4">
+                        <Link href={`/collectes/${col.id}`} className="text-xs font-semibold text-gray-400 hover:text-gray-600 uppercase tracking-wide transition">
                           {c.actionView}
                         </Link>
-                        <Link href={`/collectes/${col.id}/edit`} className="text-[#2AC1A3] hover:text-[#1da88e]">
+                        <Link href={`/collectes/${col.id}/edit`} className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition">
                           {c.actionEdit}
                         </Link>
-                        <button onClick={() => setDeleteId(col.id)} className="text-red-400 hover:text-red-600">
+                        <button onClick={() => setDeleteId(col.id)} className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition">
                           {t.referentiel.delete}
                         </button>
                       </div>

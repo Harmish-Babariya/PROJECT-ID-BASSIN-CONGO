@@ -212,13 +212,13 @@ export default function PaysContent({ pays }: { pays: Pays[] }) {
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => openEdit(p)}
-                      className="text-xs font-semibold text-gray-500 hover:text-[#2ac1a3] uppercase tracking-wide transition"
+                      className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition"
                     >
                       {tr.edit}
                     </button>
                     <button
                       onClick={() => setConfirmTarget(p)}
-                      className="text-xs font-semibold text-gray-500 hover:text-red-500 uppercase tracking-wide transition"
+                      className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition"
                     >
                       {tr.delete}
                     </button>
