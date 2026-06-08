@@ -1,6 +1,8 @@
 "use client"
 import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
+import DetailMap from "@/components/DetailMap"
+import type { MapParcel } from "@/components/DetailMap"
 
 type Props = {
   collecte: {
@@ -12,7 +14,14 @@ type Props = {
     nombre_sacs: number | null
     humidite_pct: number | null
     producteurs: { id: number; code_producteur: string; nom: string; prenom: string } | null
-    parcelles: { id: number; code_parcelle: string } | null
+    parcelles: {
+      id: number
+      code_parcelle: string
+      latitude?: number | null
+      longitude?: number | null
+      geojson?: unknown
+      status_eudr?: string | null
+    } | null
   }
   estAssignee: boolean
   lot: { id: number; code_lot: string; statut: string } | undefined
@@ -21,6 +30,18 @@ type Props = {
 export default function CollecteDetailClient({ collecte, estAssignee, lot }: Props) {
   const { t, locale } = useLanguage()
   const c = t.collectes
+
+  const mapPoints: MapParcel[] = (() => {
+    const pc = collecte.parcelles
+    if (!pc) return []
+    return [{
+      code: pc.code_parcelle,
+      lat: Number(pc.latitude),
+      lon: Number(pc.longitude),
+      status_eudr: pc.status_eudr ?? null,
+      geojson: pc.geojson,
+    }]
+  })()
 
   const dateFormatted = new Date(collecte.date_collecte).toLocaleDateString(
     locale === "fr" ? "fr-FR" : "en-GB",
@@ -142,6 +163,20 @@ export default function CollecteDetailClient({ collecte, estAssignee, lot }: Pro
         </div>
 
       </div>
+
+      {/* Parcelle map */}
+      {mapPoints.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-8 pt-6 pb-2">
+            <p className="font-courier text-[9px] text-gray-400 tracking-[0.15em] uppercase font-semibold mb-4">
+              {c.labelParcelle}
+            </p>
+          </div>
+          <div className="px-8 pb-6">
+            <DetailMap points={mapPoints} height={280} />
+          </div>
+        </div>
+      )}
 
       {/* Lot assignment banners */}
       {estAssignee && lot && (

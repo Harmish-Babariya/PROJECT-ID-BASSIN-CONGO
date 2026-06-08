@@ -83,7 +83,9 @@ export default function Sidebar({
         >
           <Menu className="w-5 h-5" />
         </button>
-        <Image src="/logo.png" alt="ID Bassin Congo" width={110} height={34} priority />
+        <Link href="/dashboard" onClick={closeDrawer}>
+          <Image src="/logo.png" alt="ID Bassin Congo" width={110} height={34} priority />
+        </Link>
         <div className="w-9" />
       </div>
 
@@ -103,7 +105,9 @@ export default function Sidebar({
       >
         {/* Logo + close (mobile) */}
         <div className="px-5 pt-6 pb-8 flex items-center justify-between shrink-0">
-          <Image src="/logo.png" alt="ID Bassin Congo" width={140} height={44} priority />
+          <Link href="/dashboard" onClick={closeDrawer}>
+            <Image src="/logo.png" alt="ID Bassin Congo" width={140} height={44} priority />
+          </Link>
           <button
             onClick={() => setOpen(false)}
             aria-label={t.common.closeMenu}

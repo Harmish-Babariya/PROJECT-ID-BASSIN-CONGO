@@ -140,7 +140,6 @@ export default function DashboardContent({
                   <span className="text-[44px] sm:text-[52px] font-bold text-[#1A1A1A] leading-none font-numbers">{eudrPercent}</span>
                   <span className="text-[22px] sm:text-[26px] font-bold text-[#1A1A1A] mb-1.5 font-numbers">%</span>
                 </div>
-                <span className="inline-block text-[11px] text-[#2AC1A3] bg-[#E8F8F4] px-3 py-1 rounded-full mt-2.5 font-medium">{d.thisCampaign}</span>
                 <div className="w-full h-2.5 bg-[#E8E8E3] rounded-full mt-3.5 overflow-hidden">
                   <div className="h-2.5 rounded-full" style={{ width: `${eudrPercent}%`, background: "linear-gradient(90deg, #2AC1A3 0%, #2AC1A3 70%, #A8DDD2 100%)" }} />
                 </div>

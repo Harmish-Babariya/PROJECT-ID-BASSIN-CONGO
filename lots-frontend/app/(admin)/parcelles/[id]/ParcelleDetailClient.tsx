@@ -1,7 +1,8 @@
 "use client"
 import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
-import ParcelleMap from "./ParcelleMap"
+import DetailMap from "@/components/DetailMap"
+import type { MapParcel } from "@/components/DetailMap"
 import { EUDR_STATUS, normalizeEudrStatus, eudrBucket } from "@/lib/eudr"
 import { translateGeoName } from "@/lib/i18n/geo"
 import { translateJustification } from "@/lib/i18n/justification"
@@ -201,11 +202,15 @@ export default function ParcelleDetailClient({
               ))}
             </div>
 
-            <ParcelleMap
-              geojson={parcelle.geojson}
-              latitude={latitude}
-              longitude={longitude}
-              emptyLabel={tp.noGps}
+            <DetailMap
+              points={[{
+                code: parcelle.code_parcelle,
+                lat: Number(latitude),
+                lon: Number(longitude),
+                status_eudr: parcelle.status_eudr ?? null,
+                geojson: parcelle.geojson,
+              } satisfies MapParcel]}
+              height={240}
             />
           </div>
         </div>

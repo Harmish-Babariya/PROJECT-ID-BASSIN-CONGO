@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
-import LotMap from "./LotMap"
+import DetailMap from "@/components/DetailMap"
 
 type ParcelPoint = {
   code: string
@@ -168,15 +168,7 @@ export default function LotDetailClient({
         <h2 className="text-sm font-bold text-gray-800 tracking-[0.15em] uppercase mb-5">
           {l.sectionGeoloc}
         </h2>
-        <LotMap
-          points={mapPoints}
-          emptyLabel={l.mapEmpty}
-          legendConformeLabel={l.legendConforme}
-          legendNonConformeLabel={l.legendNonConforme}
-          legendRisqueLabel={l.legendRisque}
-          legendEnAttenteLabel={l.legendEnAttente}
-          legendNotVerifiedLabel={l.legendNotVerified}
-        />
+        <DetailMap points={mapPoints} />
       </div>
     </div>
   )
