@@ -1,6 +1,7 @@
 "use client"
 import { useMemo, useState } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { getCountryName } from "@/lib/i18n/countries"
 import { actionCreateNationalite, actionUpdateNationalite, actionDeleteNationalite } from "./actions"
 import Pagination from "@/components/Pagination"
 import { usePagination } from "@/components/usePagination"
@@ -14,10 +15,9 @@ const labelClass = "block text-[10px] font-bold text-gray-500 uppercase tracking
 type Nationalite = { id: number; code: string; nom: string }
 
 export default function NationalitesContent({ nationalites }: { nationalites: Nationalite[] }) {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const tr = t.referentiel
-  const labels = (t.producteurs as { optionLabels?: Record<string, string> }).optionLabels ?? {}
-  const displayNom = (nom: string) => labels[nom] ?? nom
+  const displayNom = (n: Nationalite) => getCountryName(n.nom, locale)
   const [list, setList] = useState<Nationalite[]>(nationalites)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Nationalite | null>(null)
@@ -34,14 +34,14 @@ export default function NationalitesContent({ nationalites }: { nationalites: Na
     return list.filter(n =>
       n.code.toLowerCase().includes(q) ||
       n.nom.toLowerCase().includes(q) ||
-      (labels[n.nom] ?? n.nom).toLowerCase().includes(q)
+      displayNom(n).toLowerCase().includes(q)
     )
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list, search, labels])
+  }, [list, search, locale])
 
   const { sorted, sortKey, sortDirection, toggle } = useTableSort<Nationalite>(filtered, {
     code: (n) => n.code,
-    nom: (n) => displayNom(n.nom),
+    nom: (n) => displayNom(n),
   })
   const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
@@ -209,7 +209,7 @@ export default function NationalitesContent({ nationalites }: { nationalites: Na
             {paged.map(n => (
               <tr key={n.id} className="hover:bg-gray-50 transition">
                 <td className="px-6 py-4 font-mono text-sm font-bold text-[#2ac1a3]">{n.code}</td>
-                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{displayNom(n.nom)}</td>
+                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{displayNom(n)}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
                     <button
