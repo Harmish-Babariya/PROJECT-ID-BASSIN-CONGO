@@ -32,13 +32,16 @@ export default function NationalitesContent({ nationalites }: { nationalites: Na
     const q = search.trim().toLowerCase()
     if (!q) return list
     return list.filter(n =>
-      n.code.toLowerCase().includes(q) || n.nom.toLowerCase().includes(q)
+      n.code.toLowerCase().includes(q) ||
+      n.nom.toLowerCase().includes(q) ||
+      (labels[n.nom] ?? n.nom).toLowerCase().includes(q)
     )
-  }, [list, search])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list, search, labels])
 
   const { sorted, sortKey, sortDirection, toggle } = useTableSort<Nationalite>(filtered, {
     code: (n) => n.code,
-    nom: (n) => n.nom,
+    nom: (n) => displayNom(n.nom),
   })
   const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 

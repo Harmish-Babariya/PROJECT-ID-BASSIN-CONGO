@@ -163,6 +163,16 @@ export async function getParcellesForMap(scope?: DataScope) {
   }))
 }
 
+// Returns a short-lived signed URL (60 min) for downloading a private GPX file.
+// Use this wherever the frontend needs to let an authenticated user access the file.
+export async function getSignedGpxUrl(storagePath: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin.storage
+    .from("parcelles-gpx")
+    .createSignedUrl(storagePath, 3600)
+  if (error || !data?.signedUrl) return null
+  return data.signedUrl
+}
+
 // Stats for dashboard
 export async function getParcellesStats(scope?: DataScope) {
   let query = supabaseAdmin.from("parcelles").select("id, producteur_id, status_eudr, surface_ha")

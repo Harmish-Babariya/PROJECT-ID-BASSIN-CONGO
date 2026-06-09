@@ -20,13 +20,23 @@ import { supabaseAdmin } from "@/lib/supabase-server"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const HANSEN_BASE_URL =
-  "https://storage.googleapis.com/earthenginepartners-hansen/GFC-2023-v1.11"
+// Hansen dataset versions in preferred order — newest first.
+// GFC-2023-v1.11 covers deforestation events through end of 2023 (lossyear=23).
+// When Google releases GFC-2024, add it at the front of this array and the
+// code will automatically use it without any other change needed.
+const HANSEN_VERSIONS: { version: string; maxLossYear: number }[] = [
+  { version: "GFC-2023-v1.11", maxLossYear: 23 }, // covers 2001–2023
+]
+
+const HANSEN_GCS_BASE = "https://storage.googleapis.com/earthenginepartners-hansen"
 
 const GFW_API_URL = "https://data-api.globalforestwatch.org"
 
 const FOREST_THRESHOLD = 10   // treecover2000 % to count as forest (matches Python)
 const DEFORESTATION_ALERT = 5 // deforestation % above which parcel is non-compliant
+
+// EUDR cutoff: loss after 31 Dec 2020 → lossyear value 21 (year - 2000)
+const EUDR_LOSS_YEAR_CUTOFF = 21
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -219,17 +229,21 @@ async function getGpxPolygon(gpxFileUrl: string): Promise<Coord[]> {
   try {
     let gpxText: string
 
-    if (gpxFileUrl.startsWith("http://") || gpxFileUrl.startsWith("https://")) {
-      const res = await fetch(gpxFileUrl, { signal: AbortSignal.timeout(15_000) })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      gpxText = await res.text()
-    } else {
-      const { data, error } = await supabaseAdmin.storage
-        .from("parcelles-gpx")
-        .download(gpxFileUrl)
-      if (error || !data) throw new Error(error?.message ?? "Download failed")
-      gpxText = await data.text()
+    // Always download via the service-role key — bucket is private.
+    // gpx_file_url stores the storage path (e.g. "1234567890_file.gpx").
+    // Legacy rows may still carry a full Supabase public URL; extract the
+    // path segment after the bucket name so both formats are handled.
+    let storagePath = gpxFileUrl
+    const bucketMarker = "/parcelles-gpx/"
+    if (gpxFileUrl.includes(bucketMarker)) {
+      storagePath = gpxFileUrl.split(bucketMarker).slice(1).join(bucketMarker)
     }
+
+    const { data, error } = await supabaseAdmin.storage
+      .from("parcelles-gpx")
+      .download(storagePath)
+    if (error || !data) throw new Error(error?.message ?? "Download failed")
+    gpxText = await data.text()
 
     const gpxData = await parseStringPromise(gpxText)
     const coords: Coord[] = []
@@ -338,20 +352,25 @@ function latLonToTile(lat: number, lon: number): { latTile: string; lonTile: str
   return { latTile, lonTile }
 }
 
-function hansenTileUrl(lat: number, lon: number, dataType: "treecover2000" | "lossyear"): string {
+function hansenTileUrl(
+  lat: number,
+  lon: number,
+  dataType: "treecover2000" | "lossyear",
+  version: string
+): string {
   const { latTile, lonTile } = latLonToTile(lat, lon)
-  return `${HANSEN_BASE_URL}/Hansen_GFC-2023-v1.11_${dataType}_${latTile}_${lonTile}.tif`
+  return `${HANSEN_GCS_BASE}/${version}/Hansen_${version}_${dataType}_${latTile}_${lonTile}.tif`
 }
 
 // ─── Core deforestation analysis ─────────────────────────────────────────────
 
-function makeIndeterminate(message: string): DeforestationResult {
+function makeIndeterminate(message: string, sources = HANSEN_VERSIONS[0].version): DeforestationResult {
   return {
     conforme: null,
     risque: "Indéterminé",
     statut: EUDR_STATUS.EN_ATTENTE,
     justification: message,
-    sources: "Hansen Global Forest Change 2023 (v1.11)",
+    sources: `Hansen Global Forest Change (${sources})`,
     tree_cover_2000_percent: 0,
     avg_tree_cover_2000: 0,
     deforestation_after_2020_percent: 0,
@@ -383,65 +402,72 @@ async function analyzeDeforestationPolygon(
     Math.max(...lats),
   ]
 
-  const tcUrl = hansenTileUrl(centerLat, centerLon, "treecover2000")
-  const lyUrl = hansenTileUrl(centerLat, centerLon, "lossyear")
+  // Try each Hansen version newest-first; fall back to the next if tiles are unavailable.
+  let tcPixels: number[] = []
+  let lyPixels: number[] = []
+  let rasterWidth = 0
+  let rasterHeight = 0
+  let rasterBbox: [number, number, number, number] = [0, 0, 0, 0]
+  let usedVersion: string | undefined
 
-  let tcPixels: number[]
-  let lyPixels: number[]
-  let rasterWidth: number
-  let rasterHeight: number
-  let rasterBbox: [number, number, number, number]
+  let loaded = false
+  for (const { version } of HANSEN_VERSIONS) {
+    const tcUrl = hansenTileUrl(centerLat, centerLon, "treecover2000", version)
+    const lyUrl = hansenTileUrl(centerLat, centerLon, "lossyear", version)
 
-  try {
-    // Open treecover tile — geotiff uses HTTP Range requests, never loads full file
-    const tcTiff = await fromUrl(tcUrl)
-    const tcImage = await tcTiff.getImage()
+    try {
+      // Open treecover tile — geotiff uses HTTP Range requests, never loads full file
+      const tcTiff = await fromUrl(tcUrl)
+      const tcImage = await tcTiff.getImage()
 
-    // Convert geographic bbox → pixel window [left, top, right, bottom]
-    // getOrigin() returns [west, north], getResolution() returns [xRes, yRes]
-    const [originX, originY] = tcImage.getOrigin()           // top-left corner
-    const [xRes, yRes] = tcImage.getResolution(tcImage)      // degrees per pixel
+      // Convert geographic bbox → pixel window [left, top, right, bottom]
+      const [originX, originY] = tcImage.getOrigin()
+      const [xRes, yRes] = tcImage.getResolution(tcImage)
 
-    const left   = Math.floor((bbox[0] - originX) / xRes)
-    const top    = Math.floor((originY - bbox[3]) / Math.abs(yRes))
-    const right  = Math.ceil((bbox[2] - originX) / xRes)
-    const bottom = Math.ceil((originY - bbox[1]) / Math.abs(yRes))
+      const left   = Math.floor((bbox[0] - originX) / xRes)
+      const top    = Math.floor((originY - bbox[3]) / Math.abs(yRes))
+      const right  = Math.ceil((bbox[2] - originX) / xRes)
+      const bottom = Math.ceil((originY - bbox[1]) / Math.abs(yRes))
 
-    // Clamp to raster extent
-    const imgW = tcImage.getWidth()
-    const imgH = tcImage.getHeight()
-    const wLeft   = Math.max(0, left)
-    const wTop    = Math.max(0, top)
-    const wRight  = Math.min(imgW, right)
-    const wBottom = Math.min(imgH, bottom)
+      const imgW = tcImage.getWidth()
+      const imgH = tcImage.getHeight()
+      const wLeft   = Math.max(0, left)
+      const wTop    = Math.max(0, top)
+      const wRight  = Math.min(imgW, right)
+      const wBottom = Math.min(imgH, bottom)
 
-    const window: [number, number, number, number] = [wLeft, wTop, wRight, wBottom]
+      const window: [number, number, number, number] = [wLeft, wTop, wRight, wBottom]
 
-    // Recompute actual geographic extent of the clamped window
-    rasterWidth  = wRight - wLeft
-    rasterHeight = wBottom - wTop
-    rasterBbox = [
-      originX + wLeft  * xRes,
-      originY - wBottom * Math.abs(yRes),
-      originX + wRight * xRes,
-      originY - wTop   * Math.abs(yRes),
-    ]
+      rasterWidth  = wRight - wLeft
+      rasterHeight = wBottom - wTop
+      rasterBbox = [
+        originX + wLeft   * xRes,
+        originY - wBottom * Math.abs(yRes),
+        originX + wRight  * xRes,
+        originY - wTop    * Math.abs(yRes),
+      ]
 
-    if (rasterWidth <= 0 || rasterHeight <= 0) {
-      return makeIndeterminate("Polygon hors limites du raster Hansen.")
+      if (rasterWidth <= 0 || rasterHeight <= 0) {
+        return makeIndeterminate("Polygon hors limites du raster Hansen.")
+      }
+
+      const tcRaster = await tcImage.readRasters({ window })
+      tcPixels = Array.from(tcRaster[0] as any)
+
+      const lyTiff = await fromUrl(lyUrl)
+      const lyImage = await lyTiff.getImage()
+      const lyRaster = await lyImage.readRasters({ window })
+      lyPixels = Array.from(lyRaster[0] as any)
+
+      usedVersion = version
+      loaded = true
+      break
+    } catch (e: any) {
+      console.warn(`Hansen tile read error (${version}):`, e.message)
     }
+  }
 
-    // Read only the windowed pixels — mirrors rasterio.mask.mask()
-    const tcRaster = await tcImage.readRasters({ window })
-    tcPixels = Array.from(tcRaster[0] as any)
-
-    const lyTiff = await fromUrl(lyUrl)
-    const lyImage = await lyTiff.getImage()
-    const lyRaster = await lyImage.readRasters({ window })
-    lyPixels = Array.from(lyRaster[0] as any)
-
-  } catch (e: any) {
-    console.warn("Hansen tile read error:", e.message)
+  if (!loaded) {
     return makeIndeterminate("Données Hansen non disponibles pour cette localisation.")
   }
 
@@ -483,8 +509,8 @@ async function analyzeDeforestationPolygon(
       // avg_tree_cover_2000: mean of non-zero pixels inside polygon
       if (tc > 0) { sumTreecover += tc; nonZeroCount++ }
 
-      // loss_after_2020 = lossyear >= 21  AND  treecover >= FOREST_THRESHOLD
-      if (ly >= 21 && tc >= FOREST_THRESHOLD) deforestationPixels++
+      // loss after 31 Dec 2020: lossyear >= 21 (value = year - 2000)
+      if (ly >= EUDR_LOSS_YEAR_CUTOFF && tc >= FOREST_THRESHOLD) deforestationPixels++
     }
   }
 
@@ -500,7 +526,7 @@ async function analyzeDeforestationPolygon(
 
   // ── EUDR decision tree — identical to Python ─────────────────────────────
 
-  const sources = "Hansen Global Forest Change 2023 (v1.11)"
+  const sources = `Hansen Global Forest Change (${usedVersion ?? HANSEN_VERSIONS[0].version})`
   const parts: string[] = []
   let conforme: boolean
   let risque: "Négligeable" | "Non négligeable"

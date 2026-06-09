@@ -196,7 +196,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data: { publicUrl } } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(fileName)
+    // Store the storage path (not a public URL) — bucket is private.
+    // verify-eudr downloads via supabaseAdmin.storage.download(path) using the
+    // service-role key, so no public access is ever needed.
+    const storagePath = fileName
 
     const latitude = coords.reduce((s, c) => s + c.lat, 0) / coords.length
     const longitude = coords.reduce((s, c) => s + c.lon, 0) / coords.length
@@ -220,7 +223,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      gpx_file_url: publicUrl,
+      gpx_file_url: storagePath,
       latitude: latitude.toFixed(6),
       longitude: longitude.toFixed(6),
       surface_ha: surface_ha.toFixed(4),
