@@ -4,7 +4,7 @@ Analyse complète des parcelles (polygons GPX) pour conformité EUDR
 
 Données Hansen :
 - Tree cover 2000
-- Tree cover loss (année par année 2001-2023)
+- Tree cover loss (année par année 2001-2025)
 - Tree cover gain 2000-2012
 
 Logique EUDR :
@@ -35,8 +35,8 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Hansen data tiles (Google Cloud Storage - public, gratuit)
-HANSEN_BASE_URL = "https://storage.googleapis.com/earthenginepartners-hansen/GFC-2023-v1.11"
+# Hansen data tiles (University of Maryland GLAD Lab - hosted on Google Cloud Storage)
+HANSEN_BASE_URL = "https://storage.googleapis.com/earthenginepartners-hansen/GFC-2025-v1.13"
 
 # Global Forest Watch API (pas d'auth requise)
 GFW_API_URL = "https://data-api.globalforestwatch.org"
@@ -164,7 +164,7 @@ def download_hansen_tile(lat, lon, data_type='lossyear'):
     
     # URL pattern Hansen
     # Example: Hansen_GFC-2023-v1.11_lossyear_00N_010E.tif
-    filename = f"Hansen_GFC-2023-v1.11_{data_type}_{lat_tile}_{lon_tile}.tif"
+    filename = f"Hansen_GFC-2025-v1.13_{data_type}_{lat_tile}_{lon_tile}.tif"
     url = f"{HANSEN_BASE_URL}/{filename}"
     
     print(f"📥 Téléchargement {data_type} pour tile {lat_tile}_{lon_tile}...")

@@ -21,11 +21,11 @@ import { supabaseAdmin } from "@/lib/supabase-server"
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // Hansen dataset versions in preferred order — newest first.
-// GFC-2023-v1.11 covers deforestation events through end of 2023 (lossyear=23).
-// When Google releases GFC-2024, add it at the front of this array and the
-// code will automatically use it without any other change needed.
+// GFC-2025-v1.13 covers deforestation events through end of 2025 (lossyear=25).
+// Add newer versions at the front when released — code falls back automatically.
 const HANSEN_VERSIONS: { version: string; maxLossYear: number }[] = [
-  { version: "GFC-2023-v1.11", maxLossYear: 23 }, // covers 2001–2023
+  { version: "GFC-2025-v1.13", maxLossYear: 25 }, // covers 2001–2025
+  { version: "GFC-2023-v1.11", maxLossYear: 23 }, // fallback: covers 2001–2023
 ]
 
 const HANSEN_GCS_BASE = "https://storage.googleapis.com/earthenginepartners-hansen"
