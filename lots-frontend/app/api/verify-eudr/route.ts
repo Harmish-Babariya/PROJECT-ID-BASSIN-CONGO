@@ -56,14 +56,170 @@ interface DeforestationResult {
   total_pixels: number
 }
 
+// ─── External EUDR service (Cloud Run) ───────────────────────────────────────
+
+const EUDR_SERVICE_URL = process.env.NEXT_PUBLIC_EUDR_SERVICE_URL
+
+// Shape returned by the Cloud Run /verify endpoint. All fields optional because
+// the "Non-compliant geometry" / error responses carry only a subset.
+interface EudrServiceResponse {
+  risk?: "negligible" | "non_negligible" | "indeterminate" | string
+  status?: string
+  reason?: string
+  sources?: string
+  legal_note?: string
+  analysis_date?: string
+  in_protected_area?: boolean
+  protected_area_name?: string | null
+  deforestation_pct_of_forest?: number
+  forest_2020_pct?: number
+  forest_2020_ha?: number
+  parcel_area_ha?: number
+  loss_2021_2024_ha?: number
+  deforestation_total_ha?: number
+  alerts_2025_plus_ha?: number
+}
+
+/**
+ * Verify one parcel using the external EUDR Cloud Run service (JRC + Hansen +
+ * GFW + WDPA) and persist the result to the same Supabase columns the local
+ * pipeline writes, so the rest of the app is unaffected by the source change.
+ *
+ * Returns the same success/skip/error shape as runEudrVerificationLocal().
+ */
+export async function runEudrVerificationViaService(parcelle_id: number | string) {
+  // Honour admin override exactly like the local pipeline — pinned parcels must
+  // not be re-verified and overwritten by the service.
+  const { data: parcelle, error: fetchError } = await supabaseAdmin
+    .from("parcelles")
+    .select("id, code_parcelle, eudr_admin_override")
+    .eq("id", parcelle_id)
+    .single()
+
+  if (fetchError || !parcelle) {
+    return { success: false as const, error: `Parcelle ${parcelle_id} non trouvée` }
+  }
+
+  if (parcelle.eudr_admin_override) {
+    return {
+      success: true as const,
+      parcelle_id,
+      code_parcelle: parcelle.code_parcelle,
+      skipped: true,
+      reason: "admin_override",
+    }
+  }
+
+  // Call the Cloud Run service. Long timeout — JRC/Hansen reads can take a while.
+  const res = await fetch(`${EUDR_SERVICE_URL}/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ parcelle_id }),
+    signal: AbortSignal.timeout(120_000),
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "")
+    throw new Error(`EUDR service responded ${res.status}: ${text.slice(0, 300)}`)
+  }
+
+  const data: EudrServiceResponse = await res.json()
+
+  // ── Map the service result onto the canonical 4-value DB model ────────────
+  const dans_zone_protegee = data.in_protected_area ?? null
+  const zone_protegee_nom = data.protected_area_name ?? null
+
+  let final_statut: string
+  let conforme: boolean | null
+  let risque: string
+
+  const risk = (data.risk ?? "").toLowerCase()
+
+  if (risk === "negligible") {
+    // Negligible deforestation risk. A protected-area overlap upgrades the
+    // bucket to RISQUE NON NÉGLIGEABLE — mirrors the local pipeline overlay.
+    conforme = true
+    risque = "Négligeable"
+    final_statut = dans_zone_protegee ? EUDR_STATUS.RISQUE : EUDR_STATUS.CONFORME
+  } else if (risk === "non_negligible" || risk === "non-negligible") {
+    conforme = false
+    risque = "Non négligeable"
+    // Deforestation-driven non-compliance → NON CONFORME; a pure protected-area
+    // finding (no deforestation) maps to RISQUE NON NÉGLIGEABLE.
+    const hasDeforestation =
+      (data.deforestation_total_ha ?? 0) > 0 ||
+      (data.deforestation_pct_of_forest ?? 0) > 0 ||
+      (data.alerts_2025_plus_ha ?? 0) > 0
+    final_statut = hasDeforestation ? EUDR_STATUS.NON_CONFORME : EUDR_STATUS.RISQUE
+  } else {
+    // indeterminate / non-compliant geometry / unknown
+    conforme = null
+    risque = "Indéterminé"
+    final_statut = EUDR_STATUS.EN_ATTENTE
+  }
+
+  const final_justification = data.reason ?? data.status ?? "Vérification EUDR via service externe."
+  const final_sources = data.sources ?? "JRC + Hansen + GFW + WDPA"
+  const eudr_date_verification = data.analysis_date ?? new Date().toISOString()
+
+  await supabaseAdmin
+    .from("parcelles")
+    .update({
+      eudr_conforme: conforme,
+      eudr_risque: risque,
+      eudr_statut: final_statut,
+      status_eudr: final_statut,
+      eudr_justification: final_justification,
+      justification_eudr: final_justification,
+      eudr_sources: final_sources,
+      eudr_date_verification,
+      dans_zone_protegee: dans_zone_protegee ?? false,
+      zone_protegee_nom,
+      zone_protegee_type: null,
+    })
+    .eq("id", parcelle_id)
+
+  return {
+    success: true as const,
+    parcelle_id,
+    code_parcelle: parcelle.code_parcelle,
+    eudr_statut: final_statut,
+    eudr_risque: risque,
+    eudr_conforme: conforme,
+    eudr_justification: final_justification,
+    eudr_sources: final_sources,
+    eudr_date_verification,
+    dans_zone_protegee,
+    zone_protegee_nom,
+    zone_protegee_type: null,
+    service: true as const,
+    raw: data,
+  }
+}
+
+/**
+ * Public entry point used across the app (create/edit parcel, override clear,
+ * batch, manual POST). Delegates to the external EUDR service when configured;
+ * falls back to the in-process pipeline only when the service URL is absent.
+ */
+export async function runEudrVerification(parcelle_id: number | string) {
+  if (EUDR_SERVICE_URL) {
+    return runEudrVerificationViaService(parcelle_id)
+  }
+  return runEudrVerificationLocal(parcelle_id)
+}
+
 // ─── POST handler ─────────────────────────────────────────────────────────────
 
 /**
- * Run the full Hansen + WDPA verification pipeline for one parcel and persist
- * the result. Exported so server actions can call it directly without a
- * self-HTTP round-trip (which would require knowing the app's own origin).
+ * Legacy in-process (native JS) verification pipeline.
+ *
+ * NOTE: This is the legacy in-process (native JS) implementation. The exported
+ * `runEudrVerification` now delegates to the external EUDR Cloud Run service
+ * (see runEudrVerificationViaService). This function is kept as the canonical
+ * fallback/reference and is still used when the service URL is not configured.
  */
-export async function runEudrVerification(parcelle_id: number | string) {
+export async function runEudrVerificationLocal(parcelle_id: number | string) {
   // 1. Fetch parcel from Supabase
   const { data: parcelle, error: fetchError } = await supabaseAdmin
     .from("parcelles")
