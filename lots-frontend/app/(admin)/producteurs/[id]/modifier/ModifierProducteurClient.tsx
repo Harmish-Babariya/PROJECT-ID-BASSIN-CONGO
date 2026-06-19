@@ -28,6 +28,7 @@ type Producteur = {
   role_activite_cacao?: string | null
   type_proprietaire?: string | null
   communaute?: string | null
+  cooperative?: string | null
   autres_activites?: string[] | null
   autres_activites_details?: string[] | null
   source_principale_revenus?: string | null
@@ -87,6 +88,7 @@ export default function ModifierProducteurClient({
     role_activite_cacao: toStr(producteur.role_activite_cacao),
     type_proprietaire: toStr(producteur.type_proprietaire),
     communaute: toStr(producteur.communaute),
+    cooperative: toStr(producteur.cooperative),
     autres_activites: toArr(producteur.autres_activites),
     autres_activites_details: toArr(producteur.autres_activites_details),
     source_principale_revenus: toStr(producteur.source_principale_revenus),

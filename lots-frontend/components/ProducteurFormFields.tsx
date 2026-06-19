@@ -16,6 +16,7 @@ export type ProducteurFormState = {
   role_activite_cacao: string
   type_proprietaire: string
   communaute: string
+  cooperative: string
   autres_activites: string[]
   autres_activites_details: string[]
   source_principale_revenus: string
@@ -236,6 +237,15 @@ export default function ProducteurFormFields({
               onChange={(e) => update("communaute", e.target.value)}
               placeholder={p.placeholderCommunaute}
               maxLength={50}
+            />
+          </div>
+          <div>
+            <Label>{p.labelCooperative}</Label>
+            <Input
+              value={form.cooperative}
+              onChange={(e) => update("cooperative", e.target.value)}
+              placeholder={p.placeholderCooperative}
+              maxLength={120}
             />
           </div>
           <div>

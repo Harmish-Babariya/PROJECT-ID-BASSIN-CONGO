@@ -20,6 +20,7 @@ type ProducteurFormPayload = {
   role_activite_cacao?: string
   type_proprietaire?: string
   communaute?: string
+  cooperative?: string
   autres_activites?: string[]
   autres_activites_details?: string[]
   source_principale_revenus?: string
@@ -78,6 +79,7 @@ export async function createProducteur(
       role_activite_cacao: emptyToNull(formData.role_activite_cacao ?? null),
       type_proprietaire: emptyToNull(formData.type_proprietaire ?? null),
       communaute: emptyToNull(formData.communaute ?? null),
+      cooperative: emptyToNull(formData.cooperative ?? null),
       autres_activites: arrOrNull(formData.autres_activites),
       autres_activites_details: arrOrNull(formData.autres_activites_details),
       source_principale_revenus: emptyToNull(

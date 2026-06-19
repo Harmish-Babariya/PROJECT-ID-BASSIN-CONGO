@@ -36,6 +36,7 @@ interface Dict {
   // Section 2
   section2: string
   colParcel: string
+  colCooperative: string
   colSurface: string
   colType: string
   colLat: string
@@ -73,6 +74,7 @@ const DICTS: Record<Lang, Dict> = {
     fieldBuyer: "ACHETEUR",
     section2: "2. PARCELLES ET GÉOLOCALISATION",
     colParcel: "ID PARCELLE",
+    colCooperative: "COOPÉRATIVE",
     colSurface: "SURFACE (HA)",
     colType: "TYPE",
     colLat: "LAT.",
@@ -107,6 +109,7 @@ const DICTS: Record<Lang, Dict> = {
     fieldBuyer: "BUYER",
     section2: "2. PARCELS & GEOLOCATION",
     colParcel: "PARCEL ID",
+    colCooperative: "COOPERATIVE",
     colSurface: "SURFACE (HA)",
     colType: "TYPE",
     colLat: "LAT.",
@@ -210,7 +213,7 @@ export async function GET(
       .select(`
         collectes (
           id,
-          producteurs (id, code_producteur, nom, prenom),
+          producteurs (id, code_producteur, nom, prenom, cooperative),
           parcelles (
             id, code_parcelle, surface_ha, status_eudr,
             latitude, longitude, geojson,
@@ -222,8 +225,13 @@ export async function GET(
 
     const collectes = (lotCollectes ?? []).map((lc: any) => lc.collectes).filter(Boolean) as any[]
     const parcellesMap = new Map<string, any>()
+    // Each parcel belongs to a producer; map parcel id → producer's cooperative.
+    const cooperativeByParcelle = new Map<string, string | null>()
     collectes.forEach((c: any) => {
-      if (c.parcelles) parcellesMap.set(String(c.parcelles.id), c.parcelles)
+      if (c.parcelles) {
+        parcellesMap.set(String(c.parcelles.id), c.parcelles)
+        cooperativeByParcelle.set(String(c.parcelles.id), c.producteurs?.cooperative ?? null)
+      }
     })
     const parcelles = Array.from(parcellesMap.values())
 
@@ -352,8 +360,8 @@ export async function GET(
 
     // Table column widths
     const TABLE_W = MR - ML
-    const COL_WIDTHS = [110, 80, 65, 65, 65, 55]  // parcel, surface, type, lat, lon, geojson
-    const COL_HEADERS = [d.colParcel, d.colSurface, d.colType, d.colLat, d.colLon, d.colGeojson]
+    const COL_WIDTHS = [90, 110, 60, 50, 60, 60, 50]  // parcel, cooperative, surface, type, lat, lon, geojson
+    const COL_HEADERS = [d.colParcel, d.colCooperative, d.colSurface, d.colType, d.colLat, d.colLon, d.colGeojson]
     const ROW_H = 20
     const HEADER_H = 22
 
@@ -385,8 +393,14 @@ export async function GET(
       const type = hasGeo ? d.typePolygon : (hasPoint ? d.typePoint : "—")
       const geoText = (hasGeo || hasPoint) ? d.geojsonOui : d.geojsonNon
 
+      const coopName = cooperativeByParcelle.get(String(p.id)) ?? null
+      const coopText = coopName
+        ? (coopName.length > 26 ? coopName.slice(0, 25) + "…" : coopName)
+        : "—"
+
       const values = [
         { text: p.code_parcelle, color: TEAL },
+        { text: coopText, color: coopName ? DARK : GRAY },
         { text: p.surface_ha != null ? String(p.surface_ha) : "—", color: DARK },
         { text: type, color: DARK },
         { text: p.latitude != null ? Number(p.latitude).toFixed(4) : "—", color: DARK },

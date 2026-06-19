@@ -49,6 +49,7 @@ export default function NouveauProducteurClient({
     role_activite_cacao: "",
     type_proprietaire: "",
     communaute: "",
+    cooperative: "",
     autres_activites: [],
     autres_activites_details: [],
     source_principale_revenus: "",

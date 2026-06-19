@@ -18,6 +18,7 @@ type Producteur = {
   annee_naissance: number | null
   nationalite: string | null
   communaute: string | null
+  cooperative: string | null
   village: string | null
   telephone: string | null
   statut: string | null
@@ -105,6 +106,7 @@ export default function ProducteurDetailClient({
     { label: p.fieldAnneeNaissance, value: formatValue(producteur.annee_naissance) },
     { label: p.fieldNationalite, value: formatValue(producteur.nationalite, labels) },
     { label: p.fieldCommunaute, value: formatValue(producteur.communaute) },
+    { label: p.fieldCooperative, value: formatValue(producteur.cooperative) },
     { label: p.fieldTelephone, value: formatValue(producteur.telephone) },
     { label: p.fieldPays, value: formatValue(geo(producteur.pays?.nom)) },
     { label: p.fieldZone, value: formatValue(geo(producteur.zones?.nom)) },

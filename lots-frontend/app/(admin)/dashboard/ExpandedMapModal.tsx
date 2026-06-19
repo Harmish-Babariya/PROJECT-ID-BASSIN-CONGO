@@ -25,7 +25,7 @@ export type MapParcelle = {
   latitude: number | string | null
   longitude: number | string | null
   geojson: unknown
-  producteurs?: { nom: string; prenom?: string | null; pays?: { nom: string } | null; zone_nom?: string | null; village?: string | null } | null
+  producteurs?: { nom: string; prenom?: string | null; pays?: { nom: string } | null; zone_nom?: string | null; village?: string | null; cooperative?: string | null } | null
 }
 
 type ParcelGeometry =
@@ -55,6 +55,7 @@ interface ParcelListItem {
   country_name: string | null
   zone_nom: string | null
   village: string | null
+  cooperative: string | null
 }
 
 interface Stats {
@@ -177,6 +178,7 @@ function buildItems(parcelles: MapParcelle[]): ParcelListItem[] {
     const country_name = prod?.pays?.nom ?? null
     const zone_nom = prod?.zone_nom ?? null
     const village = prod?.village ?? null
+    const cooperative = prod?.cooperative ?? null
     return {
       id,
       filename,
@@ -189,6 +191,7 @@ function buildItems(parcelles: MapParcelle[]): ParcelListItem[] {
       country_name,
       zone_nom,
       village,
+      cooperative,
     }
   })
 }
@@ -216,6 +219,7 @@ export default function ExpandedMapModal({
   const [filterCountry, setFilterCountry] = useState("")
   const [filterZone, setFilterZone] = useState("")
   const [filterVillage, setFilterVillage] = useState("")
+  const [filterCooperative, setFilterCooperative] = useState("")
   const [filterStatus, setFilterStatus] = useState("")
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -389,6 +393,12 @@ export default function ExpandedMapModal({
     return Array.from(set).sort()
   }, [allItems, filterCountry, filterZone])
 
+  const cooperativeOptions = useMemo(() => {
+    const set = new Set<string>()
+    allItems.forEach(it => { if (it.cooperative) set.add(it.cooperative) })
+    return Array.from(set).sort()
+  }, [allItems])
+
   useEffect(() => {
     const q = search.trim().toLowerCase()
     setFilteredItems(
@@ -396,6 +406,7 @@ export default function ExpandedMapModal({
         if (filterCountry && it.country_name !== filterCountry) return false
         if (filterZone && it.zone_nom !== filterZone) return false
         if (filterVillage && it.village !== filterVillage) return false
+        if (filterCooperative && it.cooperative !== filterCooperative) return false
         if (filterStatus && statusBucketKey(it.status_eudr) !== filterStatus) return false
         if (q) {
           const code = String(it.code_parcelle ?? "").toLowerCase()
@@ -406,7 +417,7 @@ export default function ExpandedMapModal({
         return true
       })
     )
-  }, [search, filterCountry, filterZone, filterVillage, filterStatus, allItems])
+  }, [search, filterCountry, filterZone, filterVillage, filterCooperative, filterStatus, allItems])
 
   const changeStyle = useCallback((styleKey: string) => {
     const map = mapRef.current
@@ -600,6 +611,14 @@ export default function ExpandedMapModal({
                 {villageOptions.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
               <select
+                value={filterCooperative}
+                onChange={e => setFilterCooperative(e.target.value)}
+                className="col-span-2 w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-[#2AC1A3] focus:ring-2 focus:ring-[#2AC1A3]/20 transition bg-white"
+              >
+                <option value="">{locale === "fr" ? "Toutes les coopératives" : "All cooperatives"}</option>
+                {cooperativeOptions.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select
                 value={filterStatus}
                 onChange={e => setFilterStatus(e.target.value)}
                 className="col-span-2 w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-[#2AC1A3] focus:ring-2 focus:ring-[#2AC1A3]/20 transition bg-white"
@@ -612,9 +631,9 @@ export default function ExpandedMapModal({
               </select>
             </div>
 
-            {(filterCountry || filterZone || filterVillage || filterStatus) && (
+            {(filterCountry || filterZone || filterVillage || filterCooperative || filterStatus) && (
               <button
-                onClick={() => { setFilterCountry(""); setFilterZone(""); setFilterVillage(""); setFilterStatus("") }}
+                onClick={() => { setFilterCountry(""); setFilterZone(""); setFilterVillage(""); setFilterCooperative(""); setFilterStatus("") }}
                 className="mt-1.5 w-full text-[10px] font-semibold text-[#2AC1A3] hover:text-[#1E8876] transition text-center"
               >
                 {locale === "fr" ? "Réinitialiser les filtres" : "Reset filters"}
