@@ -3,6 +3,7 @@ import { parseStringPromise } from "xml2js"
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { getCurrentUser } from "@/lib/services/auth"
 import { EUDR_STATUS } from "@/lib/eudr"
+import { fixSelfIntersection } from "@/lib/geo"
 
 const EUDR_SCRIPT_VERSION = "1.0.0"
 const BUCKET = "parcelles-gpx"
@@ -166,6 +167,16 @@ export async function POST(request: NextRequest) {
     // NOT done here: a reliable equality check needs a persisted gpx hash
     // column, which requires a DB migration. Deferred by product decision.
 
+    // If the walk-around trace crosses itself (common GPS wobble near the start/end
+    // overlap), repair it by un-twisting the loop instead of rejecting. This keeps
+    // every surveyed point, so the parcel's real area and shape are preserved. Only
+    // a hopelessly tangled trace that cannot be made simple is rejected.
+    const fix = fixSelfIntersection(coords)
+    if (!fix.ok) {
+      return NextResponse.json({ success: false, error: m.selfIntersect }, { status: 400 })
+    }
+    coords = fix.coords
+
     // Preserve the surveyor's actual trace. The shoelace area below works for
     // any simple polygon, concave or convex, so we do NOT replace coords with a
     // convex hull — that would discard the parcel's real shape.
@@ -173,10 +184,6 @@ export async function POST(request: NextRequest) {
 
     if (surface_ha < 0.0001) {
       return NextResponse.json({ success: false, error: m.zeroArea }, { status: 400 })
-    }
-
-    if (hasSelfIntersection(coords)) {
-      return NextResponse.json({ success: false, error: m.selfIntersect }, { status: 400 })
     }
 
     // Upload to Supabase Storage only after validation passes
@@ -252,30 +259,5 @@ function calculatePolygonArea(coords: { lat: number; lon: number }[]): number {
   area = Math.abs(area) / 2
   const avgLat = coords.reduce((s, c) => s + c.lat, 0) / coords.length
   return area * 111320 * 111320 * Math.cos(avgLat * Math.PI / 180) / 10000
-}
-
-function hasSelfIntersection(coords: { lat: number; lon: number }[]): boolean {
-  const n = coords.length
-  if (n < 4) return false
-  for (let i = 0; i < n - 1; i++) {
-    for (let j = i + 2; j < n - 1; j++) {
-      if (i === 0 && j === n - 2) continue
-      if (segmentsIntersect(coords[i], coords[i + 1], coords[j], coords[j + 1])) {
-        return true
-      }
-    }
-  }
-  return false
-}
-
-function segmentsIntersect(
-  a: { lat: number; lon: number },
-  b: { lat: number; lon: number },
-  c: { lat: number; lon: number },
-  d: { lat: number; lon: number }
-): boolean {
-  const ccw = (p1: typeof a, p2: typeof a, p3: typeof a) =>
-    (p3.lat - p1.lat) * (p2.lon - p1.lon) > (p2.lat - p1.lat) * (p3.lon - p1.lon)
-  return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d)
 }
 

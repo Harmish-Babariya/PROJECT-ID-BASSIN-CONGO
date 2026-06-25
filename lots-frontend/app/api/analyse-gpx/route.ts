@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseStringPromise } from 'xml2js'
 import { EUDR_STATUS } from '@/lib/eudr'
+import { fixSelfIntersection } from '@/lib/geo'
 
 const EUDR_SCRIPT_VERSION = "1.0.0"
 
@@ -94,7 +95,19 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // 4. Calculate polygon area
+    // 4. Repair a self-crossing walk-around trace by un-twisting the loop (keeps
+    // every point, so the parcel area is preserved). Reject only if it cannot be
+    // made simple.
+    const fix = fixSelfIntersection(coords)
+    if (!fix.ok) {
+      return NextResponse.json({
+        success: false,
+        error: "Le polygone presente des auto-intersections. Veuillez corriger le trace GPX."
+      }, { status: 400 })
+    }
+    coords = fix.coords
+
+    // 5. Calculate polygon area (on the repaired ring)
     const surface_ha = calculatePolygonArea(coords)
 
     // Reject zero-area polygons
@@ -102,14 +115,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: "Le polygone a une surface nulle ou quasi-nulle"
-      }, { status: 400 })
-    }
-
-    // 5. Check for self-intersections (simplified check)
-    if (hasSelfIntersection(coords)) {
-      return NextResponse.json({
-        success: false,
-        error: "Le polygone presente des auto-intersections. Veuillez corriger le trace GPX."
       }, { status: 400 })
     }
 
@@ -178,38 +183,4 @@ function calculatePolygonArea(coords: { lat: number; lon: number }[]): number {
   const hectares = area * 111320 * 111320 * Math.cos(avgLat * Math.PI / 180) / 10000
 
   return hectares
-}
-
-// Simplified self-intersection check using line segment crossing
-function hasSelfIntersection(coords: { lat: number; lon: number }[]): boolean {
-  const n = coords.length
-  if (n < 4) return false
-
-  for (let i = 0; i < n - 1; i++) {
-    for (let j = i + 2; j < n - 1; j++) {
-      if (i === 0 && j === n - 2) continue // Skip adjacent closing segments
-      if (segmentsIntersect(
-        coords[i], coords[i + 1],
-        coords[j], coords[j + 1]
-      )) {
-        return true
-      }
-    }
-  }
-  return false
-}
-
-function segmentsIntersect(
-  a: { lat: number; lon: number },
-  b: { lat: number; lon: number },
-  c: { lat: number; lon: number },
-  d: { lat: number; lon: number }
-): boolean {
-  const ccw = (p1: typeof a, p2: typeof a, p3: typeof a) => {
-    return (p3.lat - p1.lat) * (p2.lon - p1.lon) > (p2.lat - p1.lat) * (p3.lon - p1.lon)
-  }
-  return (
-    ccw(a, c, d) !== ccw(b, c, d) &&
-    ccw(a, b, c) !== ccw(a, b, d)
-  )
 }
