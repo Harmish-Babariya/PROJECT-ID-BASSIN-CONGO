@@ -24,8 +24,11 @@ export async function getLotCollectes(lotId: string) {
       collecte_id,
       collectes (
         *,
-        producteurs (code_producteur, nom, prenom),
-        parcelles (code_parcelle, surface_ha, status_eudr, latitude, longitude, geojson)
+        producteurs (code_producteur, nom, prenom, cooperative),
+        parcelles (
+          id, code_parcelle, surface_ha, status_eudr, latitude, longitude, geojson,
+          eudr_foret_2020_pct, eudr_perte_2021_2024_ha, eudr_alertes_2025_ha, dans_zone_protegee
+        )
       )
     `)
     .eq("lot_id", lotId)
@@ -150,6 +153,48 @@ export async function getLotWithDetails(lotId: string) {
     parcelles: Array.from(parcellesMap.values()),
     collectesCount: collectes.length,
   }
+}
+
+// Parcelle + producer pairs for a lot, with the geometry/identity fields the
+// GeoJSON export needs. Each parcelle is paired with the producer it was
+// collected from (via lot_collectes -> collectes).
+export async function getLotParcellesForExport(lotId: string) {
+  const { data: lot } = await supabaseAdmin
+    .from("lots")
+    .select("id, code_lot")
+    .eq("id", lotId)
+    .single()
+  if (!lot) return null
+
+  const { data: rows } = await supabaseAdmin
+    .from("lot_collectes")
+    .select(`
+      collectes (
+        producteurs (nom, prenom, cooperative, village, pays(nom), zones(nom)),
+        parcelles (id, code_parcelle, surface_ha, latitude, longitude, geojson)
+      )
+    `)
+    .eq("lot_id", lotId)
+
+  // De-duplicate parcelles (a parcelle can appear in multiple collectes).
+  type ExportRow = {
+    collectes?: {
+      producteurs?: Record<string, unknown> | null
+      parcelles?: ({ id: number | string } & Record<string, unknown>) | null
+    } | null
+  }
+  const seen = new Set<string>()
+  const pairs: Array<{ parcelle: Record<string, unknown>; producteur: Record<string, unknown> | null }> = []
+  for (const lc of (rows ?? []) as ExportRow[]) {
+    const col = lc.collectes
+    if (!col?.parcelles) continue
+    const pid = String(col.parcelles.id)
+    if (seen.has(pid)) continue
+    seen.add(pid)
+    pairs.push({ parcelle: col.parcelles, producteur: col.producteurs ?? null })
+  }
+
+  return { lot, pairs }
 }
 
 // Stats for dashboard

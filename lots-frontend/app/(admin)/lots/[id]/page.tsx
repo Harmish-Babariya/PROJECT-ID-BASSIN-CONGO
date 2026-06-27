@@ -23,14 +23,17 @@ export default async function LotDetail({ params }: { params: Promise<{ id: stri
     parcelle_code: c.parcelles?.code_parcelle ?? null,
   }))
 
-  // Build unique parcelles for the map
+  // Build unique parcelles (keyed by code) for the map + analysis table. Pair
+  // each parcelle with the producer it was collected from.
   const parcellesMap = new Map<string, any>()
   collectesRaw.forEach((c) => {
-    if (c.parcelles?.code_parcelle) {
-      parcellesMap.set(c.parcelles.code_parcelle, c.parcelles)
+    if (c.parcelles?.code_parcelle && !parcellesMap.has(c.parcelles.code_parcelle)) {
+      parcellesMap.set(c.parcelles.code_parcelle, { ...c.parcelles, producteur: c.producteurs ?? null })
     }
   })
-  const mapPoints = Array.from(parcellesMap.values()).map((p: any) => {
+  const uniqueParcelles = Array.from(parcellesMap.values())
+
+  const mapPoints = uniqueParcelles.map((p: any) => {
     return {
       code: p.code_parcelle,
       lat: p.latitude !== null && p.latitude !== "" ? Number(p.latitude) : NaN,
@@ -39,6 +42,19 @@ export default async function LotDetail({ params }: { params: Promise<{ id: stri
       geojson: p.geojson ?? null,
     }
   })
+
+  // Parcelle analysis rows for the deforestation summary + table.
+  const parcelles = uniqueParcelles.map((p: any) => ({
+    code_parcelle: p.code_parcelle,
+    producteur_nom: p.producteur ? [p.producteur.nom, p.producteur.prenom].filter(Boolean).join(" ") || null : null,
+    cooperative: p.producteur?.cooperative ?? null,
+    surface_ha: p.surface_ha ?? null,
+    status_eudr: normalizeEudrStatus(p.status_eudr),
+    foret_2020_pct: p.eudr_foret_2020_pct ?? null,
+    perte_2021_2024_ha: p.eudr_perte_2021_2024_ha ?? null,
+    alertes_2025_ha: p.eudr_alertes_2025_ha ?? null,
+    dans_zone_protegee: p.dans_zone_protegee ?? null,
+  }))
 
   return (
     <LotDetailClient
@@ -55,6 +71,7 @@ export default async function LotDetail({ params }: { params: Promise<{ id: stri
       }}
       collectes={collectes}
       mapPoints={mapPoints}
+      parcelles={parcelles}
     />
   )
 }

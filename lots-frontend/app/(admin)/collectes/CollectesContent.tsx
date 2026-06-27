@@ -31,10 +31,13 @@ export default function CollectesContent({
 }) {
   const { t, locale } = useLanguage()
   const c = t.collectes
+  const co = t.common
   const tr = t.referentiel
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [bulkConfirm, setBulkConfirm] = useState(false)
 
   async function handleDelete() {
     if (!deleteId) return
@@ -43,20 +46,40 @@ export default function CollectesContent({
     router.refresh()
   }
 
+  function toggleSelected(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function handleBulkDelete() {
+    for (const id of selectedIds) {
+      await fetch(`/api/collectes/${id}/delete`, { method: "POST" })
+    }
+    setSelectedIds(new Set())
+    setBulkConfirm(false)
+    router.refresh()
+  }
+
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return collectes
+    // Token-based search: every whitespace-separated token must appear somewhere
+    // in the row's searchable text. Handles partial matches, full names typed in
+    // any order ("Jean Dupont" / "Dupont Jean"), and stray/trailing spaces.
+    const tokens = search.toLowerCase().split(/\s+/).filter(Boolean)
+    if (tokens.length === 0) return collectes
     return collectes.filter((col) => {
       const producteurStr = col.producteurs
-        ? `${col.producteurs.code_producteur} ${col.producteurs.nom} ${col.producteurs.prenom}`
+        ? `${col.producteurs.code_producteur} ${col.producteurs.nom} ${col.producteurs.prenom ?? ""}`
         : ""
-      const parcelle = col.parcelles?.code_parcelle ?? ""
-      return (
-        producteurStr.toLowerCase().includes(q) ||
-        parcelle.toLowerCase().includes(q) ||
-        (col.qualite ?? "").toLowerCase().includes(q) ||
-        (col.produit ?? "").toLowerCase().includes(q)
-      )
+      const haystack = [
+        producteurStr,
+        col.parcelles?.code_parcelle ?? "",
+        col.qualite ?? "",
+        col.produit ?? "",
+      ].join(" ").toLowerCase()
+      return tokens.every((tok) => haystack.includes(tok))
     })
   }, [collectes, search])
 
@@ -132,12 +155,47 @@ export default function CollectesContent({
         />
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-3">
+          <span className="text-[12px] font-semibold text-[#1A1A1A]">{co.bulkSelected(selectedIds.size)}</span>
+          <button
+            type="button"
+            onClick={() => setBulkConfirm(true)}
+            className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-lg uppercase tracking-wide transition"
+          >
+            {co.bulkDelete}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs font-semibold text-gray-500 hover:text-gray-700 uppercase tracking-wide transition"
+          >
+            {co.bulkClear}
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-100">
+              <th className="px-6 py-3 w-10">
+                <input
+                  type="checkbox"
+                  checked={paged.length > 0 && paged.every((row) => selectedIds.has(row.id))}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setSelectedIds((prev) => {
+                      const next = new Set(prev)
+                      paged.forEach((row) => (checked ? next.add(row.id) : next.delete(row.id)))
+                      return next
+                    })
+                  }}
+                />
+              </th>
               <SortableHeader label={c.colDate} sortKey="date" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <SortableHeader label={c.colProducer} sortKey="producteur" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <SortableHeader label={c.colParcel} sortKey="parcelle" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
@@ -150,7 +208,7 @@ export default function CollectesContent({
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-10 text-center text-[13px] text-gray-400">
+                <td colSpan={8} className="px-6 py-10 text-center text-[13px] text-gray-400">
                   {c.empty}
                 </td>
               </tr>
@@ -161,6 +219,15 @@ export default function CollectesContent({
                 const lotAssigne = collecteLotsMap.get(col.id)
                 return (
                   <tr key={col.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/40 transition">
+
+                    {/* Select */}
+                    <td className="px-6 py-3.5 w-10" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(col.id)}
+                        onChange={() => toggleSelected(col.id)}
+                      />
+                    </td>
 
                     {/* Date */}
                     <td className="px-6 py-3.5 text-[13px] text-gray-600 whitespace-nowrap">
@@ -268,6 +335,16 @@ export default function CollectesContent({
         cancelLabel={t.referentiel.cancel}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
+      />
+
+      <ConfirmModal
+        open={bulkConfirm}
+        title={co.bulkConfirmTitle}
+        message={co.bulkConfirmMessage(selectedIds.size)}
+        confirmLabel={co.bulkDelete}
+        cancelLabel={t.referentiel.cancel}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setBulkConfirm(false)}
       />
     </div>
   )

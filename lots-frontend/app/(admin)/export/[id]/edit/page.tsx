@@ -51,7 +51,7 @@ export default async function EditDdsPage({
     const status = normalizeEudrStatus(p.status_eudr)
     eudrSummary.total++
     if (status === EUDR_STATUS.CONFORME) eudrSummary.conformes++
-    if (status === EUDR_STATUS.RISQUE || status === EUDR_STATUS.NON_CONFORME) eudrSummary.risques++
+    if (status === EUDR_STATUS.NON_CONFORME) eudrSummary.risques++
   })
 
   const currentUserName = user?.nom_complet || user?.email || "Admin"

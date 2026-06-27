@@ -45,7 +45,7 @@ export default async function GenerateDdsPage({
       if (!grouped[lotId]) grouped[lotId] = { conformes: 0, risques: 0, total: 0 }
       grouped[lotId].total++
       if (status === EUDR_STATUS.CONFORME) grouped[lotId].conformes++
-      if (status === EUDR_STATUS.RISQUE || status === EUDR_STATUS.NON_CONFORME) grouped[lotId].risques++
+      if (status === EUDR_STATUS.NON_CONFORME) grouped[lotId].risques++
     })
     Object.assign(eudrSummaryByLot, grouped)
   }

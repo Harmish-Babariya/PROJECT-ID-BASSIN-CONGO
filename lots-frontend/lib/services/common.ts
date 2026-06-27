@@ -1,5 +1,30 @@
 import { supabaseAdmin } from "@/lib/supabase-server"
 
+// --- Search helpers -------------------------------------------------------
+
+// PostgREST treats commas and parentheses as syntax inside or()/and() filters,
+// so any user-supplied term must have those characters stripped before it is
+// interpolated, otherwise the filter is silently mangled (or rejected).
+function sanitizeSearchTerm(term: string): string {
+  return term.replace(/[(),*]/g, " ").replace(/\s+/g, " ").trim()
+}
+
+// Splits a search box value into individual tokens.
+// "  Jean   Dupont " -> ["jean", "dupont"]
+export function searchTokens(raw: string | null | undefined): string[] {
+  const cleaned = sanitizeSearchTerm((raw ?? "").toLowerCase())
+  if (!cleaned) return []
+  return cleaned.split(" ").filter(Boolean)
+}
+
+// Builds the .or() argument matching a single token against any of `columns`
+// using case-insensitive partial match (ilike). e.g.
+//   tokenOrExpr("dup", ["nom", "prenom"]) ->
+//   "nom.ilike.%dup%,prenom.ilike.%dup%"
+export function tokenOrExpr(token: string, columns: string[]): string {
+  return columns.map((c) => `${c}.ilike.%${token}%`).join(",")
+}
+
 // Shared reference data queries
 
 export async function getZones() {

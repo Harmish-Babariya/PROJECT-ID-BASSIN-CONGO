@@ -53,7 +53,7 @@ function statutBadge(statut: string, e: any): { label: string; cls: string } {
 function eudrGlobal(parcelles: Parcelle[], e: any): { label: string; cls: string } {
   if (!parcelles.length) return { label: e.viewEudrEnAttente, cls: "text-yellow-600" }
   const hasRisk = parcelles.some(
-    (p) => p.status_eudr === EUDR_STATUS.RISQUE || p.status_eudr === EUDR_STATUS.NON_CONFORME
+    (p) => p.status_eudr === EUDR_STATUS.NON_CONFORME
   )
   if (hasRisk) return { label: e.viewEudrRisque, cls: "text-red-500" }
   const allOk = parcelles.every((p) => p.status_eudr === EUDR_STATUS.CONFORME)

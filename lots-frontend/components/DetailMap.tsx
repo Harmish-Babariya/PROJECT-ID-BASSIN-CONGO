@@ -27,11 +27,12 @@ export type MapParcel = {
   geojson?: unknown
 }
 
-type StatusKey = "compliant" | "non_compliant" | "alert" | "pending_review"
+type StatusKey = "compliant" | "non_compliant" | "geometry" | "alert" | "pending_review"
 
 const STATUS_COLOR: Record<StatusKey, string> = {
   compliant: "#2AC1A3",
   non_compliant: "#DC2626",
+  geometry: "#EA580C",
   alert: "#EAB308",
   pending_review: "#F59E0B",
 }
@@ -61,7 +62,7 @@ function toStatusKey(status: string | null): StatusKey {
   const norm = normalizeEudrStatus(status)
   if (norm === EUDR_STATUS.CONFORME) return "compliant"
   if (norm === EUDR_STATUS.NON_CONFORME) return "non_compliant"
-  if (norm === EUDR_STATUS.RISQUE) return "alert"
+  if (norm === EUDR_STATUS.GEOMETRIE_INVALIDE) return "geometry"
   return "pending_review"
 }
 
@@ -229,7 +230,7 @@ export default function DetailMap({
 
   const conformeCount = resolved.filter((p) => toStatusKey(p.status_eudr) === "compliant").length
   const nonConformeCount = resolved.filter((p) => toStatusKey(p.status_eudr) === "non_compliant").length
-  const risqueCount = resolved.filter((p) => toStatusKey(p.status_eudr) === "alert").length
+  const geometryCount = resolved.filter((p) => toStatusKey(p.status_eudr) === "geometry").length
   const enAttenteCount = resolved.filter((p) => toStatusKey(p.status_eudr) === "pending_review").length
 
   if (resolved.length === 0) {
@@ -349,8 +350,8 @@ export default function DetailMap({
             {l.legendNonConforme(nonConformeCount)}
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308]" />
-            {l.legendRisque(risqueCount)}
+            <span className="w-2.5 h-2.5 rounded-full bg-[#EA580C]" />
+            {l.legendGeometrieInvalide(geometryCount)}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />

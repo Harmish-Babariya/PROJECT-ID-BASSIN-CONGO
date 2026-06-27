@@ -163,9 +163,10 @@ export async function POST(request: NextRequest) {
     //   - .gpx extension + max size (checked above)
     //   - well-formed XML with coordinates present (checked above)
     //   - reject zero-area / self-intersecting polygons (checked below)
-    // Duplicate-upload detection (same polygon uploaded twice) is intentionally
-    // NOT done here: a reliable equality check needs a persisted gpx hash
-    // column, which requires a DB migration. Deferred by product decision.
+    // Duplicate-upload detection (same polygon uploaded twice, even under a
+    // different filename) is done further below via a centroid+area match
+    // against existing parcelles — no DB migration required. The result is
+    // returned as a non-blocking `duplicateWarning` for the client to surface.
 
     // If the walk-around trace crosses itself (common GPS wobble near the start/end
     // overlap), repair it by un-twisting the loop instead of rejecting. This keeps
@@ -211,6 +212,33 @@ export async function POST(request: NextRequest) {
     const latitude = coords.reduce((s, c) => s + c.lat, 0) / coords.length
     const longitude = coords.reduce((s, c) => s + c.lon, 0) / coords.length
 
+    // Content-based duplicate detection: a parcel uploaded twice (even under a
+    // different filename) produces the same boundary, hence the same centroid
+    // and surface. We flag an existing parcelle whose centroid is within ~55 m
+    // (≈0.0005°) AND whose area is within 5% of this one. This is a non-blocking
+    // warning returned to the client; it does not prevent creation.
+    let duplicateWarning: { code_parcelle: string | null; id: number } | null = null
+    {
+      const dLat = 0.0005
+      const dLon = 0.0005
+      const { data: nearby } = await supabaseAdmin
+        .from("parcelles")
+        .select("id, code_parcelle, surface_ha, latitude, longitude")
+        .gte("latitude", latitude - dLat)
+        .lte("latitude", latitude + dLat)
+        .gte("longitude", longitude - dLon)
+        .lte("longitude", longitude + dLon)
+      for (const p of nearby ?? []) {
+        const existingArea = p.surface_ha != null ? Number(p.surface_ha) : NaN
+        if (!Number.isFinite(existingArea) || existingArea <= 0) continue
+        const areaDiff = Math.abs(existingArea - surface_ha) / existingArea
+        if (areaDiff <= 0.05) {
+          duplicateWarning = { code_parcelle: p.code_parcelle ?? null, id: p.id }
+          break
+        }
+      }
+    }
+
     const geojson = {
       type: "Polygon",
       coordinates: [coords.map(c => [c.lon, c.lat])],
@@ -240,6 +268,7 @@ export async function POST(request: NextRequest) {
       verification_timestamp,
       script_version: EUDR_SCRIPT_VERSION,
       geojson,
+      duplicateWarning,
     })
   } catch (error: any) {
     console.error("Erreur upload-gpx:", error)

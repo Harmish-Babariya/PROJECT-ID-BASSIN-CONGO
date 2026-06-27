@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { DataScope, applyScope } from "@/lib/services/scope"
+import { searchTokens } from "@/lib/services/common"
 
 export async function getParcelles(filters?: {
   recherche?: string
@@ -14,8 +15,11 @@ export async function getParcelles(filters?: {
   // Parcelles carry both pays_id and created_by, so scope directly (Issue #1).
   query = applyScope(query, filters?.scope ?? null)
 
-  if (filters?.recherche) {
-    query = query.ilike("code_parcelle", `%${filters.recherche}%`)
+  // Token-based search on the parcel code: each whitespace-separated token must
+  // match (tokens AND together). Trims the term so a trailing space no longer
+  // wipes out results.
+  for (const token of searchTokens(filters?.recherche)) {
+    query = query.ilike("code_parcelle", `%${token}%`)
   }
   if (filters?.zone_id) {
     query = query.eq("zone_id", parseInt(filters.zone_id))
@@ -24,28 +28,27 @@ export async function getParcelles(filters?: {
     query = query.eq("culture", filters.culture)
   }
   if (filters?.status_eudr) {
-    // Per spec, 4 separate filter values:
-    //   "CONFORME"                 → compliant
-    //   "NON CONFORME"             → deforestation alert (own filter)
-    //   "RISQUE NON NÉGLIGEABLE"   → protected-area alert (own filter)
-    //   "__pending_review__"       → EN ATTENTE ∪ null
-    // Legacy aliases ("__alert__", "__not_verified__") kept for back-compat.
+    // Risk-based filter. Each filter value matches BOTH the new risk strings and
+    // every legacy DB value, so it works whether or not a row has been migrated.
+    //   "CONFORME"                 → Negligible risk
+    //   "NON CONFORME" / RISQUE…   → Non-negligible risk (collapsed)
+    //   "__pending_review__"       → Could not assess ∪ null
     const v = filters.status_eudr
-    if (v === "__pending_review__" || v === "__not_verified__" || v === "EN ATTENTE") {
+    const NEGLIGIBLE = ["Risque négligeable", "CONFORME", "COMPLIANT"]
+    const NON_NEGLIGIBLE = [
+      "Risque non négligeable",
+      "Risque non négligeable (zone protégée)",
+      "NON CONFORME", "NON-CONFORME",
+      "RISQUE NON NÉGLIGEABLE", "RISQUE NON NEGLIGEABLE", "ALERT",
+    ]
+    if (v === "__pending_review__" || v === "__not_verified__" || v === "EN ATTENTE" || v === "Analyse impossible") {
       query = query.or(
-        "status_eudr.is.null,status_eudr.eq.,status_eudr.eq.EN ATTENTE,status_eudr.eq.PENDING,status_eudr.eq.PENDING_REVIEW"
+        "status_eudr.is.null,status_eudr.eq.,status_eudr.eq.Analyse impossible,status_eudr.eq.EN ATTENTE,status_eudr.eq.PENDING,status_eudr.eq.PENDING_REVIEW"
       )
-    } else if (v === "__alert__") {
-      query = query.in("status_eudr", [
-        "NON CONFORME", "NON-CONFORME",
-        "RISQUE NON NÉGLIGEABLE", "RISQUE NON NEGLIGEABLE",
-      ])
-    } else if (v === "NON CONFORME") {
-      query = query.in("status_eudr", ["NON CONFORME", "NON-CONFORME"])
-    } else if (v === "RISQUE NON NÉGLIGEABLE") {
-      query = query.in("status_eudr", ["RISQUE NON NÉGLIGEABLE", "RISQUE NON NEGLIGEABLE", "ALERT"])
-    } else if (v === "CONFORME") {
-      query = query.in("status_eudr", ["CONFORME", "COMPLIANT"])
+    } else if (v === "__alert__" || v === "NON CONFORME" || v === "RISQUE NON NÉGLIGEABLE" || v === "Risque non négligeable") {
+      query = query.in("status_eudr", NON_NEGLIGIBLE)
+    } else if (v === "CONFORME" || v === "Risque négligeable") {
+      query = query.in("status_eudr", NEGLIGIBLE)
     } else {
       query = query.eq("status_eudr", v)
     }

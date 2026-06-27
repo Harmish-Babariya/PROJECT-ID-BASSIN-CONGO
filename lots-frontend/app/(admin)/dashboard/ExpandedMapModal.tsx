@@ -2,18 +2,19 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { X, Menu, Layers } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { normalizeEudrStatus, EUDR_STATUS } from "@/lib/eudr"
 
-type StatusKey = "compliant" | "non_compliant" | "alert" | "pending_review"
+type StatusKey = "compliant" | "non_compliant" | "geometry" | "alert" | "pending_review"
 function statusBucketKey(status: string | null | undefined): StatusKey {
   const norm = normalizeEudrStatus(status)
   if (norm === EUDR_STATUS.CONFORME) return "compliant"
   if (norm === EUDR_STATUS.NON_CONFORME) return "non_compliant"
-  if (norm === EUDR_STATUS.RISQUE) return "alert"
+  if (norm === EUDR_STATUS.GEOMETRIE_INVALIDE) return "geometry"
   return "pending_review"
 }
 
@@ -25,6 +26,7 @@ export type MapParcelle = {
   latitude: number | string | null
   longitude: number | string | null
   geojson: unknown
+  producteur_id?: number | null
   producteurs?: { nom: string; prenom?: string | null; pays?: { nom: string } | null; zone_nom?: string | null; village?: string | null; cooperative?: string | null } | null
 }
 
@@ -52,6 +54,7 @@ interface ParcelListItem {
   surface_ha: string | number | null
   feature: ParcelFeature | null
   producer_name: string | null
+  producer_id: number | null
   country_name: string | null
   zone_nom: string | null
   village: string | null
@@ -112,6 +115,7 @@ const STATUS_COLOR_EXPR: mapboxgl.ExpressionSpecification = [
   "case",
   ["==", ["get", "status_bucket"], "compliant"], "#2AC1A3",
   ["==", ["get", "status_bucket"], "non_compliant"], "#DC2626",
+  ["==", ["get", "status_bucket"], "geometry"], "#EA580C",
   ["==", ["get", "status_bucket"], "alert"], "#EAB308",
   ["==", ["get", "status_bucket"], "pending_review"], "#F59E0B",
   "#94A3B8",
@@ -175,6 +179,7 @@ function buildItems(parcelles: MapParcelle[]): ParcelListItem[] {
       : null
     const prod = row.producteurs
     const producer_name = prod ? [prod.nom, prod.prenom].filter(Boolean).join(" ") : null
+    const producer_id = row.producteur_id ?? null
     const country_name = prod?.pays?.nom ?? null
     const zone_nom = prod?.zone_nom ?? null
     const village = prod?.village ?? null
@@ -188,6 +193,7 @@ function buildItems(parcelles: MapParcelle[]): ParcelListItem[] {
       surface_ha: row.surface_ha ?? null,
       feature,
       producer_name,
+      producer_id,
       country_name,
       zone_nom,
       village,
@@ -400,7 +406,9 @@ export default function ExpandedMapModal({
   }, [allItems])
 
   useEffect(() => {
-    const q = search.trim().toLowerCase()
+    // Token-based search: every whitespace-separated token must appear somewhere
+    // in the parcel's searchable text (code, producer name, filename, id).
+    const tokens = search.toLowerCase().split(/\s+/).filter(Boolean)
     setFilteredItems(
       allItems.filter((it) => {
         if (filterCountry && it.country_name !== filterCountry) return false
@@ -408,11 +416,14 @@ export default function ExpandedMapModal({
         if (filterVillage && it.village !== filterVillage) return false
         if (filterCooperative && it.cooperative !== filterCooperative) return false
         if (filterStatus && statusBucketKey(it.status_eudr) !== filterStatus) return false
-        if (q) {
-          const code = String(it.code_parcelle ?? "").toLowerCase()
-          const filename = String(it.filename ?? "").toLowerCase()
-          const id = String(it.id ?? "").toLowerCase()
-          return code.includes(q) || filename.includes(q) || id.includes(q)
+        if (tokens.length > 0) {
+          const haystack = [
+            it.code_parcelle ?? "",
+            it.producer_name ?? "",
+            it.filename ?? "",
+            it.id ?? "",
+          ].join(" ").toLowerCase()
+          return tokens.every((tok) => haystack.includes(tok))
         }
         return true
       })
@@ -626,7 +637,7 @@ export default function ExpandedMapModal({
                 <option value="">{locale === "fr" ? "Tous les statuts EUDR" : "All EUDR statuses"}</option>
                 <option value="compliant">{t.dashboard.mapStatusConforme}</option>
                 <option value="non_compliant">{t.dashboard.mapStatusNonConforme}</option>
-                <option value="alert">{t.dashboard.mapStatusRisque}</option>
+                <option value="geometry">{t.dashboard.geometrieInvalide}</option>
                 <option value="pending_review">{t.dashboard.mapStatusEnAttente}</option>
               </select>
             </div>
@@ -690,10 +701,10 @@ export default function ExpandedMapModal({
                 dotColor = "#DC2626"
                 pillBg = "bg-red-100 text-red-700"
                 pillLabel = t.dashboard.mapStatusNonConforme
-              } else if (key === "alert") {
-                dotColor = "#EAB308"
-                pillBg = "bg-yellow-100 text-yellow-800"
-                pillLabel = t.dashboard.mapStatusRisque
+              } else if (key === "geometry") {
+                dotColor = "#EA580C"
+                pillBg = "bg-orange-100 text-orange-700"
+                pillLabel = t.dashboard.geometrieInvalide
               } else {
                 dotColor = "#F59E0B"
                 pillBg = "bg-amber-50 text-amber-700"
@@ -734,7 +745,17 @@ export default function ExpandedMapModal({
                         </span>
                       )}
                       {item.producer_name && (
-                        <span className="text-[10px] text-slate-500 truncate">{item.producer_name}</span>
+                        item.producer_id ? (
+                          <Link
+                            href={`/producteurs/${item.producer_id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[10px] text-[#2ac1a3] hover:underline truncate"
+                          >
+                            {item.producer_name}
+                          </Link>
+                        ) : (
+                          <span className="text-[10px] text-slate-500 truncate">{item.producer_name}</span>
+                        )
                       )}
                     </div>
                   )}
@@ -796,8 +817,8 @@ export default function ExpandedMapModal({
             <span>{t.dashboard.mapStatusNonConforme}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] shadow" />
-            <span>{t.dashboard.mapStatusRisque}</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#EA580C] shadow" />
+            <span>{t.dashboard.geometrieInvalide}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] shadow" />

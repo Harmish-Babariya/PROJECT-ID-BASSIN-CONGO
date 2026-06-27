@@ -52,14 +52,34 @@ export default function LotsContent({
 }) {
   const { t, locale } = useLanguage()
   const l = t.lots
+  const co = t.common
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [bulkConfirm, setBulkConfirm] = useState(false)
 
   async function handleDelete() {
     if (!deleteId) return
     await fetch(`/api/lots/${deleteId}/delete`, { method: "POST" })
     setDeleteId(null)
+    router.refresh()
+  }
+
+  function toggleSelected(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function handleBulkDelete() {
+    for (const id of selectedIds) {
+      await fetch(`/api/lots/${id}/delete`, { method: "POST" })
+    }
+    setSelectedIds(new Set())
+    setBulkConfirm(false)
     router.refresh()
   }
   const [showFilters, setShowFilters] = useState(false)
@@ -107,15 +127,20 @@ export default function LotsContent({
   }
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    // Token-based search: every whitespace-separated token must appear somewhere
+    // in the row's searchable text (handles partial matches and stray spaces).
+    const tokens = search.toLowerCase().split(/\s+/).filter(Boolean)
     const min = poidsMin ? parseFloat(poidsMin) : null
     const max = poidsMax ? parseFloat(poidsMax) : null
     return lots.filter((lot) => {
-      if (q && !(
-        lot.code_lot.toLowerCase().includes(q) ||
-        (lot.produit ?? "").toLowerCase().includes(q) ||
-        (lot.statut ?? "").toLowerCase().includes(q)
-      )) return false
+      if (tokens.length > 0) {
+        const haystack = [
+          lot.code_lot,
+          lot.produit ?? "",
+          lot.statut ?? "",
+        ].join(" ").toLowerCase()
+        if (!tokens.every((tok) => haystack.includes(tok))) return false
+      }
       if (produit && lot.produit !== produit) return false
       if (statut && lot.statut !== statut) return false
       const count = collectesParLot[lot.id] || 0
@@ -279,11 +304,46 @@ export default function LotsContent({
         </div>
       )}
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-3">
+          <span className="text-[12px] font-semibold text-[#1A1A1A]">{co.bulkSelected(selectedIds.size)}</span>
+          <button
+            type="button"
+            onClick={() => setBulkConfirm(true)}
+            className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-lg uppercase tracking-wide transition"
+          >
+            {co.bulkDelete}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs font-semibold text-gray-500 hover:text-gray-700 uppercase tracking-wide transition"
+          >
+            {co.bulkClear}
+          </button>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-200">
+              <th className="px-6 py-4 w-10">
+                <input
+                  type="checkbox"
+                  checked={paged.length > 0 && paged.every((row) => selectedIds.has(row.id))}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setSelectedIds((prev) => {
+                      const next = new Set(prev)
+                      paged.forEach((row) => (checked ? next.add(row.id) : next.delete(row.id)))
+                      return next
+                    })
+                  }}
+                />
+              </th>
               <SortableHeader label={l.colCode} sortKey="code" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <SortableHeader label={l.colProduct} sortKey="produit" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <SortableHeader label={l.colCollectes} sortKey="collectes" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
@@ -295,6 +355,13 @@ export default function LotsContent({
           <tbody className="divide-y divide-gray-100">
             {paged.map((lot) => (
               <tr key={lot.id} className="hover:bg-gray-50 transition">
+                <td className="px-6 py-4 w-10" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(lot.id)}
+                    onChange={() => toggleSelected(lot.id)}
+                  />
+                </td>
                 <td className="px-6 py-4">
                   <Link href={`/lots/${lot.id}`} className="font-mono text-sm font-bold text-[#2ac1a3] hover:underline">
                     {lot.code_lot}
@@ -329,7 +396,7 @@ export default function LotsContent({
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-gray-400 text-sm">
+                <td colSpan={7} className="px-6 py-12 text-center text-gray-400 text-sm">
                   {l.empty}
                 </td>
               </tr>
@@ -355,6 +422,16 @@ export default function LotsContent({
         cancelLabel={t.referentiel.cancel}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
+      />
+
+      <ConfirmModal
+        open={bulkConfirm}
+        title={co.bulkConfirmTitle}
+        message={co.bulkConfirmMessage(selectedIds.size)}
+        confirmLabel={co.bulkDelete}
+        cancelLabel={t.referentiel.cancel}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setBulkConfirm(false)}
       />
     </div>
   )

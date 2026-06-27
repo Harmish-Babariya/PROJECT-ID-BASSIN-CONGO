@@ -35,7 +35,6 @@ function getStatusColor(status: string | null): string {
   const norm = normalizeEudrStatus(status)
   if (norm === EUDR_STATUS.CONFORME) return '#2ac1a3'
   if (norm === EUDR_STATUS.NON_CONFORME) return '#dc2626'
-  if (norm === EUDR_STATUS.RISQUE) return '#eab308'
   return '#f59e0b' // EN ATTENTE + null → pending_review
 }
 

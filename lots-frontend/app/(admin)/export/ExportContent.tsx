@@ -316,11 +316,18 @@ export default function ExportContent({
                 >
                   {e.actionDownload}
                 </a>
-                {row.ddsId && (
-                  <button onClick={() => setDeleteId(row.ddsId)} className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition">
-                    {t.referentiel.delete}
-                  </button>
-                )}
+                <button
+                  onClick={() => row.ddsId && setDeleteId(row.ddsId)}
+                  disabled={!row.ddsId}
+                  title={row.ddsId ? undefined : e.deleteNoDds}
+                  className={`text-xs font-semibold uppercase tracking-wide transition ${
+                    row.ddsId
+                      ? "text-red-400 hover:text-red-600"
+                      : "text-gray-300 cursor-not-allowed"
+                  }`}
+                >
+                  {t.referentiel.delete}
+                </button>
               </div>
             </div>
           ))}
@@ -400,11 +407,18 @@ export default function ExportContent({
                       >
                         {e.actionDownload}
                       </a>
-                      {row.ddsId && (
-                        <button onClick={() => setDeleteId(row.ddsId)} className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition">
-                          {t.referentiel.delete}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => row.ddsId && setDeleteId(row.ddsId)}
+                        disabled={!row.ddsId}
+                        title={row.ddsId ? undefined : e.deleteNoDds}
+                        className={`text-xs font-semibold uppercase tracking-wide transition ${
+                          row.ddsId
+                            ? "text-red-400 hover:text-red-600"
+                            : "text-gray-300 cursor-not-allowed"
+                        }`}
+                      >
+                        {t.referentiel.delete}
+                      </button>
                     </div>
                   </td>
                 </tr>

@@ -10,12 +10,12 @@ import { normalizeEudrStatus, EUDR_STATUS } from "@/lib/eudr"
 
 // 4 display variants (compliant / non_compliant / alert / pending_review)
 // keyed for the Mapbox `case` expression to branch on directly.
-type StatusKey = "compliant" | "non_compliant" | "alert" | "pending_review"
+type StatusKey = "compliant" | "non_compliant" | "geometry" | "alert" | "pending_review"
 function statusBucketKey(status: string | null | undefined): StatusKey {
   const norm = normalizeEudrStatus(status)
   if (norm === EUDR_STATUS.CONFORME) return "compliant"
   if (norm === EUDR_STATUS.NON_CONFORME) return "non_compliant"
-  if (norm === EUDR_STATUS.RISQUE) return "alert"
+  if (norm === EUDR_STATUS.GEOMETRIE_INVALIDE) return "geometry"
   return "pending_review"
 }
 
@@ -123,6 +123,7 @@ const STATUS_COLOR_EXPR: mapboxgl.ExpressionSpecification = [
   "case",
   ["==", ["get", "status_bucket"], "compliant"], "#2AC1A3",
   ["==", ["get", "status_bucket"], "non_compliant"], "#DC2626",
+  ["==", ["get", "status_bucket"], "geometry"], "#EA580C",
   ["==", ["get", "status_bucket"], "alert"], "#EAB308",
   ["==", ["get", "status_bucket"], "pending_review"], "#F59E0B",
   "#94A3B8",
@@ -171,16 +172,16 @@ export default function DashboardMap({ parcelles }: { parcelles: MapParcelle[] }
 
   const features = useMemo(() => buildFeatures(parcelles), [parcelles])
 
-  const { conformeCount, nonConformeCount, risqueCount, enAttenteCount } = useMemo(() => {
-    let c = 0, nc = 0, r = 0, pe = 0
+  const { conformeCount, nonConformeCount, geometryCount, enAttenteCount } = useMemo(() => {
+    let c = 0, nc = 0, geo = 0, pe = 0
     for (const p of parcelles) {
       const k = statusBucketKey(p.status_eudr)
       if (k === "compliant") c++
       else if (k === "non_compliant") nc++
-      else if (k === "alert") r++
+      else if (k === "geometry") geo++
       else pe++ // pending_review covers EN ATTENTE and null
     }
-    return { conformeCount: c, nonConformeCount: nc, risqueCount: r, enAttenteCount: pe }
+    return { conformeCount: c, nonConformeCount: nc, geometryCount: geo, enAttenteCount: pe }
   }, [parcelles])
 
   // Mount the map exactly once. Subsequent updates patch the source data
@@ -388,8 +389,8 @@ export default function DashboardMap({ parcelles }: { parcelles: MapParcelle[] }
           {t.dashboard.mapLegendNonConforme(nonConformeCount)}
         </span>
         <span className="flex items-center gap-2 text-[10px] text-white/60 tracking-[0.1em] font-medium">
-          <span className="w-2 h-2 rounded-full bg-[#EAB308]" />
-          {t.dashboard.mapLegendRisque(risqueCount)}
+          <span className="w-2 h-2 rounded-full bg-[#EA580C]" />
+          {t.dashboard.mapLegendGeometrieInvalide(geometryCount)}
         </span>
         <span className="flex items-center gap-2 text-[10px] text-white/60 tracking-[0.1em] font-medium">
           <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />

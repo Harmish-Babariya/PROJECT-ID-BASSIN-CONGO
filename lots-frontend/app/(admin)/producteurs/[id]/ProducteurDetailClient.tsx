@@ -267,9 +267,9 @@ export default function ProducteurDetailClient({
                           } else if (norm === EUDR_STATUS.NON_CONFORME) {
                             cls = "bg-red-100 text-red-700"
                             label = t.parcelles.eudrNonConforme
-                          } else if (norm === EUDR_STATUS.RISQUE) {
-                            cls = "bg-[#FBE9C8] text-[#8B6914]"
-                            label = t.parcelles.eudrRisque
+                          } else if (norm === EUDR_STATUS.GEOMETRIE_INVALIDE) {
+                            cls = "bg-orange-100 text-orange-700"
+                            label = t.parcelles.eudrGeometrieInvalide
                           }
                           return (
                             <span className={`inline-block px-2 sm:px-3 py-1 rounded-full font-numbers text-[10px] sm:text-[11px] font-bold tracking-[0.1em] uppercase whitespace-nowrap ${cls}`}>

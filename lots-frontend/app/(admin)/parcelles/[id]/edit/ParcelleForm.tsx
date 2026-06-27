@@ -501,12 +501,14 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays, isAdm
                     const norm = normalizeEudrStatus(formData.status_eudr)
                     const statusLabel =
                       norm === EUDR_STATUS.CONFORME ? tp.eudrConforme :
-                      norm === EUDR_STATUS.RISQUE ? tp.eudrRisque :
+                      norm === EUDR_STATUS.NON_CONFORME ? tp.eudrNonConforme :
+                      norm === EUDR_STATUS.GEOMETRIE_INVALIDE ? tp.eudrGeometrieInvalide :
                       norm === EUDR_STATUS.EN_ATTENTE ? tp.eudrEnAttente :
                       formData.status_eudr
                     const colorClass =
                       norm === EUDR_STATUS.CONFORME ? "text-[#2ac1a3]" :
-                      norm === EUDR_STATUS.RISQUE ? "text-yellow-600" :
+                      norm === EUDR_STATUS.NON_CONFORME ? "text-red-600" :
+                      norm === EUDR_STATUS.GEOMETRIE_INVALIDE ? "text-orange-600" :
                       norm === EUDR_STATUS.EN_ATTENTE ? "text-amber-600" :
                       "text-gray-500"
                     return (

@@ -42,19 +42,20 @@ function addPolygonLayersForLot(map: mapboxgl.Map, sourceId: string, color: stri
   })
 }
 
-type StatusKey = "compliant" | "non_compliant" | "alert" | "pending_review"
+type StatusKey = "compliant" | "non_compliant" | "geometry" | "alert" | "pending_review"
 
 function statusKey(status: string | null): StatusKey {
   const norm = normalizeEudrStatus(status)
   if (norm === EUDR_STATUS.CONFORME) return "compliant"
   if (norm === EUDR_STATUS.NON_CONFORME) return "non_compliant"
-  if (norm === EUDR_STATUS.RISQUE) return "alert"
+  if (norm === EUDR_STATUS.GEOMETRIE_INVALIDE) return "geometry"
   return "pending_review"
 }
 
 const STATUS_COLOR: Record<StatusKey, string> = {
   compliant: "#2AC1A3",
   non_compliant: "#DC2626",
+  geometry: "#EA580C",
   alert: "#EAB308",
   pending_review: "#F59E0B",
 }
@@ -107,7 +108,7 @@ export default function LotMap({
   emptyLabel,
   legendConformeLabel,
   legendNonConformeLabel,
-  legendRisqueLabel,
+  legendGeometrieLabel = (count: number) => `GÉOMÉTRIE INVALIDE (${count})`,
   legendEnAttenteLabel,
   legendNotVerifiedLabel,
 }: {
@@ -116,7 +117,7 @@ export default function LotMap({
   emptyLabel: string
   legendConformeLabel: (count: number) => string
   legendNonConformeLabel: (count: number) => string
-  legendRisqueLabel: (count: number) => string
+  legendGeometrieLabel?: (count: number) => string
   legendEnAttenteLabel: (count: number) => string
   legendNotVerifiedLabel: (count: number) => string
 }) {
@@ -277,7 +278,7 @@ export default function LotMap({
 
   const conformeCount = resolved.filter((p) => statusKey(p.status_eudr) === "compliant").length
   const nonConformeCount = resolved.filter((p) => statusKey(p.status_eudr) === "non_compliant").length
-  const risqueCount = resolved.filter((p) => statusKey(p.status_eudr) === "alert").length
+  const geometryCount = resolved.filter((p) => statusKey(p.status_eudr) === "geometry").length
   const enAttenteCount = resolved.filter((p) => statusKey(p.status_eudr) === "pending_review").length
   const notVerifiedCount = 0
 
@@ -403,8 +404,8 @@ export default function LotMap({
             {legendNonConformeLabel(nonConformeCount)}
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308]" />
-            {legendRisqueLabel(risqueCount)}
+            <span className="w-2.5 h-2.5 rounded-full bg-[#EA580C]" />
+            {legendGeometrieLabel(geometryCount)}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />

@@ -10,7 +10,7 @@ import { runEudrVerification } from "@/app/api/verify-eudr/route"
 const ALLOWED_STATUSES = [
   EUDR_STATUS.CONFORME,
   EUDR_STATUS.NON_CONFORME,
-  EUDR_STATUS.RISQUE,
+  EUDR_STATUS.GEOMETRIE_INVALIDE,
   EUDR_STATUS.EN_ATTENTE,
 ] as const
 

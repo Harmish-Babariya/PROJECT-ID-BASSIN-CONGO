@@ -140,22 +140,28 @@ export async function runEudrVerificationViaService(parcelle_id: number | string
     // bucket to RISQUE NON NÉGLIGEABLE — mirrors the local pipeline overlay.
     conforme = true
     risque = "Négligeable"
-    final_statut = dans_zone_protegee ? EUDR_STATUS.RISQUE : EUDR_STATUS.CONFORME
+    final_statut = dans_zone_protegee ? EUDR_STATUS.NON_CONFORME : EUDR_STATUS.CONFORME
   } else if (risk === "non_negligible" || risk === "non-negligible") {
     conforme = false
     risque = "Non négligeable"
     // Deforestation-driven non-compliance → NON CONFORME; a pure protected-area
     // finding (no deforestation) maps to RISQUE NON NÉGLIGEABLE.
-    const hasDeforestation =
-      (data.deforestation_total_ha ?? 0) > 0 ||
-      (data.deforestation_pct_of_forest ?? 0) > 0 ||
-      (data.alerts_2025_plus_ha ?? 0) > 0
-    final_statut = hasDeforestation ? EUDR_STATUS.NON_CONFORME : EUDR_STATUS.RISQUE
+    final_statut = EUDR_STATUS.NON_CONFORME
   } else {
-    // indeterminate / non-compliant geometry / unknown
+    // indeterminate: either an invalid polygon ("Non-compliant geometry") or a
+    // generic "could not assess". Distinguish the two via the service's status/
+    // reason text so the geometry case gets its own category.
     conforme = null
     risque = "Indéterminé"
-    final_statut = EUDR_STATUS.EN_ATTENTE
+    const statusText = `${data.status ?? ""} ${data.reason ?? ""}`.toLowerCase()
+    const isGeometryInvalid =
+      statusText.includes("geometry") ||
+      statusText.includes("géométrie") ||
+      statusText.includes("geometrie") ||
+      statusText.includes("invalid") ||
+      statusText.includes("self-inter") ||
+      statusText.includes("auto-inter")
+    final_statut = isGeometryInvalid ? EUDR_STATUS.GEOMETRIE_INVALIDE : EUDR_STATUS.EN_ATTENTE
   }
 
   const final_justification = data.reason ?? data.status ?? "Vérification EUDR via service externe."
@@ -176,6 +182,9 @@ export async function runEudrVerificationViaService(parcelle_id: number | string
       dans_zone_protegee: dans_zone_protegee ?? false,
       zone_protegee_nom,
       zone_protegee_type: null,
+      eudr_foret_2020_pct: data.forest_2020_pct ?? null,
+      eudr_perte_2021_2024_ha: data.loss_2021_2024_ha ?? null,
+      eudr_alertes_2025_ha: data.alerts_2025_plus_ha ?? null,
     })
     .eq("id", parcelle_id)
 
@@ -290,7 +299,7 @@ export async function runEudrVerificationLocal(parcelle_id: number | string) {
   let final_sources = analysis.sources
 
   if (dans_zone_protegee && final_statut === EUDR_STATUS.CONFORME) {
-    final_statut = EUDR_STATUS.RISQUE
+    final_statut = EUDR_STATUS.NON_CONFORME
     final_justification +=
       ` La parcelle est située partiellement ou totalement dans la zone protégée` +
       ` '${zone_protegee_nom}' (${zone_protegee_type}) selon la base WDPA.` +
@@ -326,6 +335,12 @@ export async function runEudrVerificationLocal(parcelle_id: number | string) {
       dans_zone_protegee: dans_zone_protegee ?? false,
       zone_protegee_nom,
       zone_protegee_type,
+      // The local fallback pipeline reports forest cover as a percentage; it
+      // does not break loss down into the 2021-2024 / 2025+ ha buckets the
+      // Cloud Run service provides, so those stay null here.
+      eudr_foret_2020_pct: analysis.tree_cover_2000_percent ?? null,
+      eudr_perte_2021_2024_ha: null,
+      eudr_alertes_2025_ha: null,
     })
     .eq("id", parcelle_id)
 

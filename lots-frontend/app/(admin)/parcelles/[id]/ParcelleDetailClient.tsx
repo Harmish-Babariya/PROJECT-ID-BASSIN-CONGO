@@ -32,18 +32,17 @@ function EudrBadge({
   notVerifiedLabel,
   conformeLabel,
   nonConformeLabel,
-  risqueLabel,
+  geometrieInvalideLabel,
   enAttenteLabel,
 }: {
   status: string | null
   notVerifiedLabel: string
   conformeLabel: string
   nonConformeLabel: string
-  risqueLabel: string
+  geometrieInvalideLabel: string
   enAttenteLabel: string
 }) {
-  // Four display variants. NON CONFORME and RISQUE NON NÉGLIGEABLE both
-  // belong to the "alert" bucket logically but get distinct badges per spec.
+  // The 4 client risk categories, each with its own badge.
   const norm = normalizeEudrStatus(status)
   if (norm === EUDR_STATUS.CONFORME) {
     return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-[#2ac1a3]/15 text-[#2ac1a3]">{conformeLabel}</span>
@@ -51,8 +50,8 @@ function EudrBadge({
   if (norm === EUDR_STATUS.NON_CONFORME) {
     return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-red-100 text-red-700">{nonConformeLabel}</span>
   }
-  if (norm === EUDR_STATUS.RISQUE) {
-    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-yellow-100 text-yellow-700">{risqueLabel}</span>
+  if (norm === EUDR_STATUS.GEOMETRIE_INVALIDE) {
+    return <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-orange-100 text-orange-700">{geometrieInvalideLabel}</span>
   }
   // EN ATTENTE + null both fall through to pending_review badge.
   if (eudrBucket(status) === "pending_review") {
@@ -148,7 +147,7 @@ export default function ParcelleDetailClient({
                 notVerifiedLabel={tp.notVerified}
                 conformeLabel={tp.eudrConforme}
                 nonConformeLabel={tp.eudrNonConforme}
-                risqueLabel={tp.eudrRisque}
+                geometrieInvalideLabel={tp.eudrGeometrieInvalide}
                 enAttenteLabel={tp.eudrEnAttente}
               />
             </div>
@@ -156,9 +155,18 @@ export default function ParcelleDetailClient({
               {tp.fieldProducteur} : {producteur?.code_producteur} – {producteur?.nom}{(producteur as any)?.prenom ? ` ${(producteur as any).prenom}` : ""}
             </p>
           </div>
-          <Link href={`/parcelles/${parcelle.id}/edit`} className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] transition shrink-0">
-            {tp.btnEdit}
-          </Link>
+          <div className="flex items-center gap-3 shrink-0">
+            <a
+              href={`/api/parcelles/${parcelle.id}/geojson`}
+              download
+              className="border border-[#2ac1a3] text-[#2ac1a3] px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#2ac1a3]/10 transition"
+            >
+              {tp.btnDownloadGeojson}
+            </a>
+            <Link href={`/parcelles/${parcelle.id}/edit`} className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] transition">
+              {tp.btnEdit}
+            </Link>
+          </div>
         </div>
 
         {parcelle.justification_eudr && (
@@ -167,6 +175,24 @@ export default function ParcelleDetailClient({
             <p className="text-sm text-gray-700">{translateJustification(parcelle.justification_eudr, locale)}</p>
           </div>
         )}
+
+        {/* Deforestation analysis summary (EUDR Article 5) */}
+        <div className="mb-6">
+          <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3">{tp.analyseDeforestationTitle}</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: tp.analyseForet2020, value: parcelle.eudr_foret_2020_pct != null ? `${Number(parcelle.eudr_foret_2020_pct)}%` : "—" },
+              { label: tp.analysePerte, value: parcelle.eudr_perte_2021_2024_ha != null ? `${Number(parcelle.eudr_perte_2021_2024_ha)} ha` : "—" },
+              { label: tp.analyseAlertes, value: parcelle.eudr_alertes_2025_ha != null ? `${Number(parcelle.eudr_alertes_2025_ha)} ha` : "—" },
+              { label: tp.analyseZoneProtegee, value: parcelle.dans_zone_protegee == null ? "—" : (parcelle.dans_zone_protegee ? tp.yes : tp.no) },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-gray-50 rounded-lg p-4">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+                <p className="text-base font-semibold text-gray-900">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left: detail table */}

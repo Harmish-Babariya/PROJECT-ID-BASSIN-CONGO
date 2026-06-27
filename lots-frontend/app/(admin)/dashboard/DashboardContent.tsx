@@ -18,7 +18,7 @@ type Stats = {
     total: number
     conformes: number
     nonConformes: number
-    risques: number
+    geometrieInvalide: number
     enAttente: number
     nonVerifies: number
     pourcentageConformite: number
@@ -171,9 +171,9 @@ export default function DashboardContent({
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#DC2626"/><path d="M4 4L8 8M8 4L4 8" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
                 {stats.parcelles.nonConformes} {d.nonCompliant}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] bg-yellow-100 text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#EAB308"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                {stats.parcelles.risques} {d.atRisk}
+              <span className="inline-flex items-center gap-1.5 text-[10px] bg-orange-100 text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#EA580C"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {stats.parcelles.geometrieInvalide} {d.geometrieInvalide}
               </span>
               <span className="inline-flex items-center gap-1.5 text-[10px] bg-amber-50 text-[#1A1A1A] px-3 sm:px-3.5 py-1.5 rounded-full font-semibold tracking-[0.05em]">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="6" fill="#F59E0B"/><path d="M6 3.5V6.5M6 8V8.01" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>

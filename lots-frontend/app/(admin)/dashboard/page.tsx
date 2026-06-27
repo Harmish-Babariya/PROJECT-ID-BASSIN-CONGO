@@ -60,8 +60,11 @@ async function getStats(scope: DataScope, range: Range) {
   const norms = parcelles.map(p => normalizeEudrStatus(p.status_eudr))
   const conformes = norms.filter(s => s === EUDR_STATUS.CONFORME).length
   const nonConformes = norms.filter(s => s === EUDR_STATUS.NON_CONFORME).length
-  const risques = norms.filter(s => s === EUDR_STATUS.RISQUE).length
-  const enAttente = parcelles.filter(p => eudrBucket(p.status_eudr) === "pending_review").length
+  const geometrieInvalide = norms.filter(s => s === EUDR_STATUS.GEOMETRIE_INVALIDE).length
+  // "Could not assess" = pending_review bucket minus the geometry-invalid rows
+  // (which share the bucket but get their own counter/badge per the client).
+  const enAttente =
+    parcelles.filter(p => eudrBucket(p.status_eudr) === "pending_review").length - geometrieInvalide
   // Legacy field kept at 0 for back-compat — null status now folds into enAttente.
   const nonVerifies = 0
   const pourcentageConformite =
@@ -82,7 +85,7 @@ async function getStats(scope: DataScope, range: Range) {
 
   return {
     producteurs: { total: totalProducteurs, femmes, pourcentageFemmes, ageMoyen, ageMin, ageMax },
-    parcelles: { total: totalParcelles, conformes, nonConformes, risques, enAttente, nonVerifies, pourcentageConformite, superficieTotale, haParProducteur },
+    parcelles: { total: totalParcelles, conformes, nonConformes, geometrieInvalide, enAttente, nonVerifies, pourcentageConformite, superficieTotale, haParProducteur },
     lots: { total: totalLots, exportes: lotsExportes, poidsTotal: poidsTotalLots, poidsMoyen: poidsMoyenLot },
     collectes: { total: totalCollectes, poids: poidsCollectes, poidsMoyen: poidsMoyenCollecte },
   }

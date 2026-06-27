@@ -1,5 +1,120 @@
 export type LatLon = { lat: number; lon: number }
 
+// --- EUDR / TRACES GeoJSON export -----------------------------------------
+
+// Minimal shapes for the data the export needs. Kept loose because the rows
+// come straight from Supabase (snake_case columns, possibly null).
+export type ExportParcelle = {
+  code_parcelle?: string | null
+  surface_ha?: string | number | null
+  latitude?: string | number | null
+  longitude?: string | number | null
+  geojson?: unknown // stored as a GeoJSON Polygon object or a JSON string
+}
+
+export type ExportProducteur = {
+  nom?: string | null
+  prenom?: string | null
+  cooperative?: string | null
+  village?: string | null
+  pays?: { nom?: string | null } | null
+  zones?: { nom?: string | null } | null
+} | null
+
+// ISO-3166 alpha-2 codes for the countries this platform operates in. The DB
+// stores the country name, so map the common ones; fall back to the raw name.
+const COUNTRY_ISO: Record<string, string> = {
+  "république du congo": "CG",
+  "republique du congo": "CG",
+  "congo": "CG",
+  "république démocratique du congo": "CD",
+  "republique democratique du congo": "CD",
+  "rdc": "CD",
+  "cameroun": "CM",
+  "cameroon": "CM",
+}
+
+function isoCountry(name: string | null | undefined): string {
+  if (!name) return ""
+  return COUNTRY_ISO[name.trim().toLowerCase()] ?? name
+}
+
+// Parse the `geojson` column into a usable Polygon geometry, tolerating both
+// object and stringified storage. Returns null when there's no usable polygon.
+function parsePolygon(raw: unknown): { type: "Polygon"; coordinates: number[][][] } | null {
+  let g = raw
+  if (typeof g === "string") {
+    try {
+      g = JSON.parse(g)
+    } catch {
+      return null
+    }
+  }
+  if (
+    g &&
+    typeof g === "object" &&
+    (g as { type?: string }).type === "Polygon" &&
+    Array.isArray((g as { coordinates?: unknown }).coordinates)
+  ) {
+    return g as { type: "Polygon"; coordinates: number[][][] }
+  }
+  return null
+}
+
+// Build a single GeoJSON Feature for a parcelle. Prefers the stored Polygon;
+// falls back to a Point built from lat/lon. Returns null if neither is usable.
+// Property names follow the EUDR / TRACES convention requested by the client
+// (ProducerName, ProducerCountry, ProductionPlace, Area).
+export function buildParcelleFeature(
+  parcelle: ExportParcelle,
+  producteur: ExportProducteur
+): Record<string, unknown> | null {
+  const polygon = parsePolygon(parcelle.geojson)
+  let geometry: Record<string, unknown> | null = null
+
+  if (polygon) {
+    geometry = polygon
+  } else {
+    const lat = parcelle.latitude != null ? Number(parcelle.latitude) : NaN
+    const lon = parcelle.longitude != null ? Number(parcelle.longitude) : NaN
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      geometry = { type: "Point", coordinates: [lon, lat] }
+    }
+  }
+  if (!geometry) return null
+
+  const producerName = producteur
+    ? [producteur.nom, producteur.prenom].filter(Boolean).join(" ").trim() || null
+    : null
+  const productionPlace = producteur
+    ? [producteur.village, producteur.zones?.nom].filter(Boolean).join(", ") || null
+    : null
+
+  return {
+    type: "Feature",
+    properties: {
+      ParcelId: parcelle.code_parcelle ?? null,
+      ProducerName: producerName,
+      ProducerCountry: isoCountry(producteur?.pays?.nom),
+      ProductionPlace: productionPlace,
+      Cooperative: producteur?.cooperative ?? null,
+      Area: parcelle.surface_ha != null ? Number(parcelle.surface_ha) : null,
+    },
+    geometry,
+  }
+}
+
+// Build a TRACES-ready FeatureCollection from a list of (parcelle, producteur)
+// pairs. Parcelles with no usable geometry are skipped.
+export function buildFeatureCollection(
+  rows: Array<{ parcelle: ExportParcelle; producteur: ExportProducteur }>
+): { type: "FeatureCollection"; features: Record<string, unknown>[] } {
+  const features = rows
+    .map(({ parcelle, producteur }) => buildParcelleFeature(parcelle, producteur))
+    .filter((f): f is Record<string, unknown> => f !== null)
+  return { type: "FeatureCollection", features }
+}
+
 // Orientation test: true when p1->p2->p3 turns counter-clockwise.
 function ccw(p1: LatLon, p2: LatLon, p3: LatLon): boolean {
   return (p3.lat - p1.lat) * (p2.lon - p1.lon) > (p2.lat - p1.lat) * (p3.lon - p1.lon)

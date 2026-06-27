@@ -48,7 +48,7 @@ function eudrPct(parcelles: Parcelle[]): number {
 
 function hasRisk(parcelles: Parcelle[]): number {
   return parcelles.filter(
-    (p) => p.status_eudr === EUDR_STATUS.RISQUE || p.status_eudr === EUDR_STATUS.NON_CONFORME
+    (p) => p.status_eudr === EUDR_STATUS.NON_CONFORME
   ).length
 }
 
@@ -106,14 +106,14 @@ export default function EditDdsContent({
 
   function eudrLabel(status: string | null): string {
     if (status === EUDR_STATUS.CONFORME) return e.genConforme
-    if (status === EUDR_STATUS.RISQUE || status === EUDR_STATUS.NON_CONFORME) return e.genRisque
+    if (status === EUDR_STATUS.NON_CONFORME) return e.genRisque
     if (status === EUDR_STATUS.EN_ATTENTE) return e.genEnAttente
     return e.genNonVerifie
   }
 
   function eudrColor(status: string | null): string {
     if (status === EUDR_STATUS.CONFORME) return "text-[#2ac1a3] font-semibold"
-    if (status === EUDR_STATUS.RISQUE || status === EUDR_STATUS.NON_CONFORME) return "text-red-500 font-semibold"
+    if (status === EUDR_STATUS.NON_CONFORME) return "text-red-500 font-semibold"
     if (status === EUDR_STATUS.EN_ATTENTE) return "text-yellow-600 font-semibold"
     return "text-gray-400"
   }

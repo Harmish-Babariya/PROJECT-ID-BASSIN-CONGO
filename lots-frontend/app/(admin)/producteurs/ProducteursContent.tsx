@@ -42,11 +42,30 @@ export default function ProducteursContent({
   const router = useRouter()
   const searchParams = useSearchParams()
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [bulkConfirm, setBulkConfirm] = useState(false)
 
   async function handleDelete() {
     if (!deleteId) return
     await fetch(`/api/producteurs/${deleteId}/delete`, { method: "POST" })
     setDeleteId(null)
+    router.refresh()
+  }
+
+  function toggleSelected(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function handleBulkDelete() {
+    for (const id of selectedIds) {
+      await fetch(`/api/producteurs/${id}/delete`, { method: "POST" })
+    }
+    setSelectedIds(new Set())
+    setBulkConfirm(false)
     router.refresh()
   }
 
@@ -197,12 +216,47 @@ export default function ProducteursContent({
         </div>
       )}
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-3">
+          <span className="text-[12px] font-semibold text-[#1A1A1A]">{co.bulkSelected(selectedIds.size)}</span>
+          <button
+            type="button"
+            onClick={() => setBulkConfirm(true)}
+            className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-lg uppercase tracking-wide transition"
+          >
+            {co.bulkDelete}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs font-semibold text-gray-500 hover:text-gray-700 uppercase tracking-wide transition"
+          >
+            {co.bulkClear}
+          </button>
+        </div>
+      )}
+
       {/* Table — desktop */}
       <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-gray-200">
+                <th className="px-5 py-3.5 w-10">
+                  <input
+                    type="checkbox"
+                    checked={paged.length > 0 && paged.every((row) => selectedIds.has(row.id))}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev)
+                        paged.forEach((row) => (checked ? next.add(row.id) : next.delete(row.id)))
+                        return next
+                      })
+                    }}
+                  />
+                </th>
                 <SortableHeader label={p.colCode} sortKey="code" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
                 <SortableHeader label={p.colName} sortKey="nom" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
                 <SortableHeader label={p.colZone} sortKey="zone" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
@@ -216,6 +270,13 @@ export default function ProducteursContent({
             <tbody>
               {paged.map((prod) => (
                 <tr key={prod.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/60 transition">
+                  <td className="px-5 py-4 w-10" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(prod.id)}
+                      onChange={() => toggleSelected(prod.id)}
+                    />
+                  </td>
                   <td className="px-5 py-4">
                     <Link
                       href={`/producteurs/${prod.id}`}
@@ -263,7 +324,7 @@ export default function ProducteursContent({
               ))}
               {producteurs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-[13px] text-gray-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-[13px] text-gray-400">
                     {p.empty}
                   </td>
                 </tr>
@@ -281,16 +342,25 @@ export default function ProducteursContent({
         {paged.map((prod) => (
           <div key={prod.id} className="bg-white rounded-xl border border-gray-200 px-4 py-4 space-y-3">
             <div className="flex items-start justify-between gap-2">
-              <div>
-                <Link
-                  href={`/producteurs/${prod.id}`}
-                  className="font-mono text-[12px] text-[#2AC1A3] font-semibold tracking-[0.08em] hover:underline"
-                >
-                  {prod.code_producteur}
-                </Link>
-                <p className="text-[14px] font-semibold text-[#1A1A1A] mt-0.5 uppercase">
-                  {prod.nom} {prod.prenom}
-                </p>
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={selectedIds.has(prod.id)}
+                  onChange={() => toggleSelected(prod.id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div>
+                  <Link
+                    href={`/producteurs/${prod.id}`}
+                    className="font-mono text-[12px] text-[#2AC1A3] font-semibold tracking-[0.08em] hover:underline"
+                  >
+                    {prod.code_producteur}
+                  </Link>
+                  <p className="text-[14px] font-semibold text-[#1A1A1A] mt-0.5 uppercase">
+                    {prod.nom} {prod.prenom}
+                  </p>
+                </div>
               </div>
               <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-[0.06em] uppercase ${
                 prod.nombre_parcelles > 0
@@ -343,6 +413,16 @@ export default function ProducteursContent({
         cancelLabel={t.referentiel.cancel}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
+      />
+
+      <ConfirmModal
+        open={bulkConfirm}
+        title={co.bulkConfirmTitle}
+        message={co.bulkConfirmMessage(selectedIds.size)}
+        confirmLabel={co.bulkDelete}
+        cancelLabel={t.referentiel.cancel}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setBulkConfirm(false)}
       />
     </div>
   )

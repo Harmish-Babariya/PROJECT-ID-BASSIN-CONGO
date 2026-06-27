@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { DataScope, applyScope } from "@/lib/services/scope"
+import { searchTokens, tokenOrExpr } from "@/lib/services/common"
 
 // Query helpers for producteurs
 
@@ -19,8 +20,11 @@ export async function getProducteurs(filters?: {
   // Admins pass scope = null and see everything.
   query = applyScope(query, filters?.scope ?? null)
 
-  if (filters?.recherche) {
-    query = query.or(`code_producteur.ilike.%${filters.recherche}%,nom.ilike.%${filters.recherche}%`)
+  // Token-based search: each whitespace-separated token must match at least one
+  // of code/nom/prenom (tokens AND together, fields OR together). This makes
+  // partial matches, trailing spaces, and full names ("Jean Dupont") all work.
+  for (const token of searchTokens(filters?.recherche)) {
+    query = query.or(tokenOrExpr(token, ["code_producteur", "nom", "prenom"]))
   }
   if (filters?.zone_id) {
     query = query.eq("zone_id", parseInt(filters.zone_id))

@@ -28,13 +28,13 @@ function EudrBadge({
   status,
   conformeLabel,
   nonConformeLabel,
-  risqueLabel,
+  geometrieInvalideLabel,
   enAttenteLabel,
 }: {
   status: string | null
   conformeLabel: string
   nonConformeLabel: string
-  risqueLabel: string
+  geometrieInvalideLabel: string
   enAttenteLabel: string
 }) {
   const norm = normalizeEudrStatus(status)
@@ -45,8 +45,8 @@ function EudrBadge({
   if (norm === EUDR_STATUS.NON_CONFORME) {
     return <span className={`${base} bg-red-100 text-red-700 border border-red-200`}>{nonConformeLabel}</span>
   }
-  if (norm === EUDR_STATUS.RISQUE) {
-    return <span className={`${base} bg-yellow-100 text-yellow-700 border border-yellow-200`}>{risqueLabel}</span>
+  if (norm === EUDR_STATUS.GEOMETRIE_INVALIDE) {
+    return <span className={`${base} bg-orange-100 text-orange-700 border border-orange-200`}>{geometrieInvalideLabel}</span>
   }
   return <span className={`${base} bg-amber-50 text-amber-700 border border-amber-200`}>{enAttenteLabel}</span>
 }
@@ -62,15 +62,35 @@ export default function ParcellesContent({
 }) {
   const { t, locale } = useLanguage()
   const tp = t.parcelles
+  const co = t.common
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR"
   const router = useRouter()
   const searchParams = useSearchParams()
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [bulkConfirm, setBulkConfirm] = useState(false)
 
   async function handleDelete() {
     if (!deleteId) return
     await fetch(`/api/parcelles/${deleteId}/delete`, { method: "POST" })
     setDeleteId(null)
+    router.refresh()
+  }
+
+  function toggleSelected(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function handleBulkDelete() {
+    for (const id of selectedIds) {
+      await fetch(`/api/parcelles/${id}/delete`, { method: "POST" })
+    }
+    setSelectedIds(new Set())
+    setBulkConfirm(false)
     router.refresh()
   }
   const [search, setSearch] = useState(searchParams.get("recherche") || "")
@@ -156,11 +176,12 @@ export default function ParcellesContent({
                 {/* 4 filter options matching the spec. NON CONFORME and
                     RISQUE NON NÉGLIGEABLE are both alert-class but filtered
                     separately. Pending review covers EN ATTENTE plus null. */}
+                {/* NON_CONFORME and RISQUE collapsed into one "Non-negligible
+                    risk" category per the client's risk model. */}
                 {[
                   { value: "", label: tp.filterAll },
                   { value: EUDR_STATUS.CONFORME, label: tp.eudrConforme },
                   { value: EUDR_STATUS.NON_CONFORME, label: tp.eudrNonConforme },
-                  { value: EUDR_STATUS.RISQUE, label: tp.eudrRisque },
                   { value: "__pending_review__", label: tp.eudrEnAttente },
                 ].map(({ value, label }) => (
                   <label key={value} className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-gray-50 px-1 rounded">
@@ -174,11 +195,46 @@ export default function ParcellesContent({
         </div>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-3">
+          <span className="text-[12px] font-semibold text-[#1A1A1A]">{co.bulkSelected(selectedIds.size)}</span>
+          <button
+            type="button"
+            onClick={() => setBulkConfirm(true)}
+            className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-lg uppercase tracking-wide transition"
+          >
+            {co.bulkDelete}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs font-semibold text-gray-500 hover:text-gray-700 uppercase tracking-wide transition"
+          >
+            {co.bulkClear}
+          </button>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-200">
+              <th className="px-6 py-4 w-10">
+                <input
+                  type="checkbox"
+                  checked={paged.length > 0 && paged.every((row) => selectedIds.has(row.id))}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setSelectedIds((prev) => {
+                      const next = new Set(prev)
+                      paged.forEach((row) => (checked ? next.add(row.id) : next.delete(row.id)))
+                      return next
+                    })
+                  }}
+                />
+              </th>
               <SortableHeader label={tp.colCode} sortKey="code" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <SortableHeader label={tp.colProducer} sortKey="producteur" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <SortableHeader label={tp.colSurface} sortKey="surface" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
@@ -192,6 +248,13 @@ export default function ParcellesContent({
               const producteur = producteursMap.get(parc.producteur_id)
               return (
                 <tr key={parc.id} className="hover:bg-gray-50 transition">
+                  <td className="px-6 py-4 w-10" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(parc.id)}
+                      onChange={() => toggleSelected(parc.id)}
+                    />
+                  </td>
                   <td className="px-6 py-4">
                     <Link href={`/parcelles/${parc.id}`} className="font-mono text-sm font-bold text-[#2ac1a3] hover:underline">
                       {parc.code_parcelle}
@@ -209,7 +272,7 @@ export default function ParcellesContent({
                       status={parc.status_eudr}
                       conformeLabel={tp.eudrConforme}
                       nonConformeLabel={tp.eudrNonConforme}
-                      risqueLabel={tp.eudrRisque}
+                      geometrieInvalideLabel={tp.eudrGeometrieInvalide}
                       enAttenteLabel={tp.eudrEnAttente}
                     />
                   </td>
@@ -231,7 +294,7 @@ export default function ParcellesContent({
             })}
             {parcelles.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-gray-400 text-sm">{tp.empty}</td>
+                <td colSpan={7} className="px-6 py-12 text-center text-gray-400 text-sm">{tp.empty}</td>
               </tr>
             )}
           </tbody>
@@ -257,6 +320,16 @@ export default function ParcellesContent({
         cancelLabel={t.referentiel.cancel}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
+      />
+
+      <ConfirmModal
+        open={bulkConfirm}
+        title={co.bulkConfirmTitle}
+        message={co.bulkConfirmMessage(selectedIds.size)}
+        confirmLabel={co.bulkDelete}
+        cancelLabel={t.referentiel.cancel}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setBulkConfirm(false)}
       />
     </div>
   )

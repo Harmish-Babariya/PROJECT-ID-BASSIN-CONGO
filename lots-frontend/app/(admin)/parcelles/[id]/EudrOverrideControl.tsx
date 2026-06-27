@@ -121,7 +121,7 @@ export default function EudrOverrideControl({
           >
             <option value={EUDR_STATUS.CONFORME}>{tp.eudrConforme}</option>
             <option value={EUDR_STATUS.NON_CONFORME}>{tp.eudrNonConforme}</option>
-            <option value={EUDR_STATUS.RISQUE}>{tp.eudrRisque}</option>
+            <option value={EUDR_STATUS.GEOMETRIE_INVALIDE}>{tp.eudrGeometrieInvalide}</option>
             <option value={EUDR_STATUS.EN_ATTENTE}>{tp.eudrEnAttente}</option>
           </select>
 

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
 import DetailMap from "@/components/DetailMap"
+import { EUDR_STATUS } from "@/lib/eudr"
 
 type ParcelPoint = {
   code: string
@@ -21,6 +22,18 @@ type CollecteRow = {
   producteur_code: string | null
   producteur_nom: string | null
   parcelle_code: string | null
+}
+
+type ParcelleAnalyse = {
+  code_parcelle: string
+  producteur_nom: string | null
+  cooperative: string | null
+  surface_ha: string | number | null
+  status_eudr: string | null
+  foret_2020_pct: string | number | null
+  perte_2021_2024_ha: string | number | null
+  alertes_2025_ha: string | number | null
+  dans_zone_protegee: boolean | null
 }
 
 type LotData = {
@@ -63,14 +76,34 @@ export default function LotDetailClient({
   lot,
   collectes,
   mapPoints,
+  parcelles,
 }: {
   lot: LotData
   collectes: CollecteRow[]
   mapPoints: ParcelPoint[]
+  parcelles: ParcelleAnalyse[]
 }) {
   const { t, locale } = useLanguage()
   const l = t.lots
+  const tp = t.parcelles
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR"
+
+  // Aggregated deforestation figures for the whole lot.
+  const num = (v: string | number | null) => (v == null ? null : Number(v))
+  const totalParcelles = parcelles.length
+  const negligibleCount = parcelles.filter((p) => p.status_eudr === EUDR_STATUS.CONFORME).length
+  const pctNegligible = totalParcelles > 0 ? Math.round((negligibleCount / totalParcelles) * 100) : 0
+  const totalPerte = parcelles.reduce((s, p) => s + (num(p.perte_2021_2024_ha) ?? 0), 0)
+  const nonNegligibleCount = parcelles.filter(
+    (p) => p.status_eudr === EUDR_STATUS.NON_CONFORME
+  ).length
+  const protectedCount = parcelles.filter((p) => p.dans_zone_protegee === true).length
+  const riskLabel = (s: string | null) =>
+    s === EUDR_STATUS.CONFORME
+      ? tp.eudrConforme
+      : s === EUDR_STATUS.NON_CONFORME
+        ? tp.eudrNonConforme
+        : tp.eudrEnAttente
 
   function formatDate(d: string | null) {
     if (!d) return "—"
@@ -95,6 +128,13 @@ export default function LotDetailClient({
           <h1 className="text-3xl font-bold text-gray-900 tracking-wide">{lot.code_lot}</h1>
           <div className="flex items-center gap-3">
             <StatutBadge statut={lot.statut} />
+            <a
+              href={`/api/lots/${lot.id}/geojson`}
+              download
+              className="border border-[#2ac1a3] text-[#2ac1a3] px-4 py-2 rounded-md text-xs font-bold uppercase tracking-[0.12em] hover:bg-[#2ac1a3]/10 transition"
+            >
+              {l.btnDownloadGeojson}
+            </a>
             <Link
               href={`/lots/${lot.id}/edit`}
               className="bg-[#2ac1a3] text-white px-4 py-2 rounded-md text-xs font-bold uppercase tracking-[0.12em] hover:bg-[#24a88e] transition"
@@ -169,6 +209,64 @@ export default function LotDetailClient({
           {l.sectionGeoloc}
         </h2>
         <DetailMap points={mapPoints} />
+      </div>
+
+      {/* Deforestation risk analysis */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-sm font-bold text-gray-800 tracking-[0.15em] uppercase mb-5">
+          {l.sectionAnalyse}
+        </h2>
+
+        {/* Aggregated summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {[
+            { label: l.analyseSummaryNegligible, value: `${pctNegligible}%` },
+            { label: l.analyseSummaryPerte, value: `${totalPerte.toFixed(2)} ha` },
+            { label: l.analyseSummaryNonNegligible, value: String(nonNegligibleCount) },
+            { label: l.analyseSummaryProtegee, value: String(protectedCount) },
+          ].map(({ label, value }) => (
+            <div key={label} className="bg-[#e6f9f5] border border-[#2ac1a3]/20 rounded-lg p-4 text-center">
+              <p className="text-2xl font-bold text-[#1da88e]">{value}</p>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Per-parcel table */}
+        {parcelles.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200">
+                  <th className="py-2.5 pr-4">{l.colParcelle}</th>
+                  <th className="py-2.5 pr-4">{l.colProducteur}</th>
+                  <th className="py-2.5 pr-4">{tp.cardSurface}</th>
+                  <th className="py-2.5 pr-4">{tp.analyseNiveauRisque}</th>
+                  <th className="py-2.5 pr-4">{tp.analyseForet2020}</th>
+                  <th className="py-2.5 pr-4">{tp.analysePerte}</th>
+                  <th className="py-2.5 pr-4">{tp.analyseAlertes}</th>
+                  <th className="py-2.5 pr-4">{tp.analyseZoneProtegee}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parcelles.map((p) => (
+                  <tr key={p.code_parcelle} className="border-b border-gray-100 last:border-0">
+                    <td className="py-2.5 pr-4 font-mono text-gray-900">{p.code_parcelle}</td>
+                    <td className="py-2.5 pr-4 text-gray-700">{p.producteur_nom ?? "—"}</td>
+                    <td className="py-2.5 pr-4 text-gray-700">{p.surface_ha != null ? `${p.surface_ha} ha` : "—"}</td>
+                    <td className="py-2.5 pr-4 text-gray-700">{riskLabel(p.status_eudr)}</td>
+                    <td className="py-2.5 pr-4 text-gray-700">{num(p.foret_2020_pct) != null ? `${num(p.foret_2020_pct)}%` : "—"}</td>
+                    <td className="py-2.5 pr-4 text-gray-700">{num(p.perte_2021_2024_ha) != null ? `${num(p.perte_2021_2024_ha)} ha` : "—"}</td>
+                    <td className="py-2.5 pr-4 text-gray-700">{num(p.alertes_2025_ha) != null ? `${num(p.alertes_2025_ha)} ha` : "—"}</td>
+                    <td className="py-2.5 pr-4 text-gray-700">{p.dans_zone_protegee == null ? "—" : (p.dans_zone_protegee ? tp.yes : tp.no)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-gray-400 text-sm text-center py-6">{l.noParcelles}</p>
+        )}
       </div>
     </div>
   )
