@@ -387,6 +387,13 @@ export default function LotsContent({
                     <Link href={`/lots/${lot.id}/edit`} className="text-xs font-semibold text-[#2AC1A3] hover:text-[#1da88e] uppercase tracking-wide transition">
                       {l.actionEdit}
                     </Link>
+                    <a
+                      href={`/api/lots/${lot.id}/geojson`}
+                      download
+                      className="text-xs font-semibold text-[#3b82f6] hover:text-[#2563eb] uppercase tracking-wide transition"
+                    >
+                      {l.actionGeojson}
+                    </a>
                     <button onClick={() => setDeleteId(lot.id)} className="text-xs font-semibold text-red-400 hover:text-red-600 uppercase tracking-wide transition">
                       {t.referentiel.delete}
                     </button>

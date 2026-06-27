@@ -38,6 +38,8 @@ interface Dict {
   coverIssueDate: string
   coverIssueTime: string
   coverLotInfo: string
+  coverInfoHeader: string
+  section2Subtitle: string
   // Section 1
   section1: string
   fieldLot: string
@@ -46,6 +48,8 @@ interface Dict {
   fieldOrigin: string
   fieldDest: string
   fieldBuyer: string
+  fieldParcelCount: string
+  fieldTotalSurface: string
   // Section 2
   section2: string
   colParcel: string
@@ -127,6 +131,8 @@ const DICTS: Record<Lang, Dict> = {
     coverIssueDate: "Date d'émission",
     coverIssueTime: "Heure d'émission",
     coverLotInfo: "Informations sur le lot",
+    coverInfoHeader: "INFORMATIONS",
+    section2Subtitle: "Résumé des données relatives au risque de déforestation et à la géolocalisation pour chaque parcelle comprise dans ce lot.",
     section1: "1. INFORMATIONS SUR LE LOT",
     fieldLot: "N° LOT",
     fieldProduct: "PRODUIT",
@@ -134,6 +140,8 @@ const DICTS: Record<Lang, Dict> = {
     fieldOrigin: "PAYS D'ORIGINE",
     fieldDest: "DESTINATION",
     fieldBuyer: "ACHETEUR",
+    fieldParcelCount: "Nombre de parcelles",
+    fieldTotalSurface: "Surface totale",
     section2: "Évaluation du risque de déforestation des parcelles du lot",
     colParcel: "ID PARCELLE",
     colCooperative: "COOPÉRATIVE",
@@ -207,6 +215,8 @@ const DICTS: Record<Lang, Dict> = {
     coverIssueDate: "Issue date",
     coverIssueTime: "Issue time",
     coverLotInfo: "Lot information",
+    coverInfoHeader: "INFORMATION",
+    section2Subtitle: "Summary of data on deforestation risk and geolocation for each parcel included in this lot.",
     section1: "1. LOT INFORMATION",
     fieldLot: "LOT N°",
     fieldProduct: "PRODUCT",
@@ -214,6 +224,8 @@ const DICTS: Record<Lang, Dict> = {
     fieldOrigin: "COUNTRY OF ORIGIN",
     fieldDest: "DESTINATION",
     fieldBuyer: "BUYER",
+    fieldParcelCount: "Number of parcels",
+    fieldTotalSurface: "Total surface",
     section2: "Deforestation risk assessment of lot parcels",
     colParcel: "PARCEL ID",
     colCooperative: "COOPERATIVE",
@@ -428,11 +440,27 @@ export async function GET(
     const pdf = await PDFDocument.create()
     const fontR = await pdf.embedFont(StandardFonts.Helvetica)
     const fontB = await pdf.embedFont(StandardFonts.HelveticaBold)
+    const fontMono = await pdf.embedFont(StandardFonts.Courier)
+
+    // Embed the brand logo (public/logo.png) for the cover header.
+    let logoImage: Awaited<ReturnType<typeof pdf.embedPng>> | null = null
+    try {
+      const fs = await import("fs/promises")
+      const path = await import("path")
+      const logoBytes = await fs.readFile(path.join(process.cwd(), "public", "logo.png"))
+      logoImage = await pdf.embedPng(logoBytes)
+    } catch {
+      logoImage = null // fall back to text-only header if the asset is missing
+    }
 
     const generationDate = new Date()
     const emittedDate = generationDate.toLocaleDateString(d.dateLocale, {
       day: "2-digit", month: "2-digit", year: "numeric",
     })
+    // Long-form date for the cover info table (e.g. "21 Juin 2026" / "21 June 2026").
+    const emittedDateLong = generationDate.toLocaleDateString(d.dateLocale, {
+      day: "2-digit", month: "long", year: "numeric",
+    }).replace(/^(\d+)\s+(\p{L})/u, (_m, dnum, first) => `${dnum} ${first.toUpperCase()}`)
     const emittedTime = generationDate.toLocaleTimeString(d.dateLocale, {
       hour: "2-digit", minute: "2-digit",
     })
@@ -522,46 +550,81 @@ export async function GET(
 
     // ── COVER PAGE ──────────────────────────────────────────────────────────
 
-    let cy = PAGE_H - 150
-    drawCentered(d.orgName, cy, fontB, 20, TEAL)
-    cy -= 70
-    drawCentered(d.coverTitle, cy, fontB, 28, DARK)
-    cy -= 32
+    // 1) Centered brand logo near the top.
+    let cy = PAGE_H - 70
+    if (logoImage) {
+      const logoW = 150
+      const logoH = (logoImage.height / logoImage.width) * logoW
+      page.drawImage(logoImage, {
+        x: (PAGE_W - logoW) / 2,
+        y: cy - logoH,
+        width: logoW,
+        height: logoH,
+      })
+      cy -= logoH + 90
+    } else {
+      drawCentered(d.orgName, cy - 20, fontB, 20, TEAL)
+      cy -= 110
+    }
+
+    // 2) Big bold title, centered, stacked one word per line (Diligence / Raisonnée).
     {
-      const lines = wrapText(d.coverSubtitle, fontR, 12, MR - ML)
+      const titleWords = d.coverTitle.split(" ")
+      titleWords.forEach((word) => {
+        drawCentered(word, cy, fontB, 34, DARK)
+        cy -= 42
+      })
+    }
+    cy -= 4
+
+    // 3) Centered gray subtitle (wraps to multiple lines).
+    {
+      const lines = wrapText(d.coverSubtitle, fontR, 15, MR - ML - 60)
       lines.forEach((line) => {
-        drawCentered(line, cy, fontR, 12, GRAY)
-        cy -= 18
+        drawCentered(line, cy, fontR, 15, GRAY)
+        cy -= 22
       })
     }
 
-    cy -= 50
-    // Left-aligned info block
+    // 4) Full-width teal divider.
+    cy -= 28
+    page.drawLine({ start: { x: ML, y: cy }, end: { x: MR, y: cy }, thickness: 2, color: TEAL })
+    cy -= 4
+
+    // 5) Three-row info table (label left, monospace value right, hairline dividers).
     const coverRows: Array<[string, string]> = [
       [d.coverDocId, ddsRef],
-      [d.coverIssueDate, emittedDate],
-      [d.coverIssueTime, emittedTime],
+      [d.coverIssueDate, emittedDateLong],
+      [d.coverIssueTime, `${emittedTime} UTC`],
     ]
+    const rowH = 30
     coverRows.forEach(([label, value]) => {
-      drawText(page, `${label}:`, ML + 40, cy, { font: fontB, size: 10, color: DARK })
-      drawText(page, value, ML + 200, cy, { font: fontR, size: 10, color: DARK })
-      cy -= 20
+      const rowTop = cy
+      drawText(page, label, ML + 12, rowTop - rowH + 11, { font: fontR, size: 10, color: DARK })
+      drawText(page, value, ML + 280, rowTop - rowH + 11, { font: fontMono, size: 11, color: DARK })
+      cy -= rowH
+      page.drawLine({ start: { x: ML, y: cy }, end: { x: MR, y: cy }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) })
     })
 
-    cy -= 14
-    drawText(page, d.coverLotInfo, ML + 40, cy, { font: fontB, size: 11, color: TEAL })
-    cy -= 22
+    // 6) INFORMATIONS block (teal small-caps header + label/value rows).
+    cy -= 40
+    drawText(page, d.coverInfoHeader, ML, cy, { font: fontMono, size: 10, color: TEAL })
+    cy -= 26
+    const totalSurfaceCover = parcelles.reduce((s, p) => s + (Number(p.surface_ha) || 0), 0)
     const coverLotRows: Array<[string, string]> = [
       [d.fieldLot, lot.code_lot ?? "-"],
       [d.fieldProduct, lot.produit ?? "-"],
       [d.fieldWeight, `${parseFloat(lot.poids_total_kg || "0").toFixed(2)} kg`],
+      [d.fieldParcelCount, String(parcelles.length)],
+      [d.fieldTotalSurface, `${Math.round(totalSurfaceCover)} ha`],
       [d.fieldDest, lot.destination_pays ?? "-"],
       [d.fieldBuyer, lot.acheteur ?? "-"],
     ]
     coverLotRows.forEach(([label, value]) => {
-      drawText(page, `${label}:`, ML + 40, cy, { font: fontB, size: 10, color: DARK })
-      drawText(page, value, ML + 200, cy, { font: fontR, size: 10, color: DARK })
-      cy -= 20
+      drawText(page, `${label}:`, ML, cy, { font: fontR, size: 11, color: DARK })
+      const labelW = fontR.widthOfTextAtSize(`${label}:`, 11)
+      drawText(page, value, ML + labelW + 10, cy, { font: fontB, size: 11, color: DARK })
+      cy -= 22
     })
 
     // Start a fresh page for the rest of the document.
@@ -580,14 +643,18 @@ export async function GET(
     ]
     const TBL_FS = 6
     const ROW_H = 16
-    const HEADER_H = 18
+    const HEADER_H = 26 // taller so two-word headers wrap onto 2 lines
 
     function drawTableHeader() {
       drawRect(page, ML, y - HEADER_H, TABLE_W, HEADER_H, rgb(0.1, 0.1, 0.1))
       let hx = ML
       COL_HEADERS.forEach((h, i) => {
-        drawText(page, truncate(h, fontB, TBL_FS, COL_WIDTHS[i] - 6), hx + 4, y - HEADER_H + 6, {
-          font: fontB, size: TBL_FS, color: WHITE,
+        // Wrap each header into up to 2 lines that fit the column width.
+        const lines = wrapText(h, fontB, TBL_FS, COL_WIDTHS[i] - 8).slice(0, 2)
+        lines.forEach((line, li) => {
+          drawText(page, line, hx + 4, y - 10 - li * 7, {
+            font: fontB, size: TBL_FS, color: WHITE,
+          })
         })
         hx += COL_WIDTHS[i]
       })

@@ -165,7 +165,7 @@ export async function runEudrVerificationViaService(parcelle_id: number | string
   }
 
   const final_justification = data.reason ?? data.status ?? "Vérification EUDR via service externe."
-  const final_sources = data.sources ?? "JRC + Hansen + GFW + WDPA"
+  const final_sources = data.sources ?? "JRC GFC2020, Hansen Global Forest Change (v1.12), Global Forest Watch (GFW) alerts, World Database on Protected Areas (WDPA)"
   const eudr_date_verification = data.analysis_date ?? new Date().toISOString()
 
   await supabaseAdmin
@@ -318,6 +318,9 @@ export async function runEudrVerificationLocal(parcelle_id: number | string) {
       " Aucun élément ne permet d'identifier un risque non négligeable" +
       " au sens du règlement (UE) 2023/1115."
   }
+
+  // Normalize the stored sources literal to explicitly list all four datasets.
+  final_sources = "JRC GFC2020, Hansen Global Forest Change (v1.12), Global Forest Watch (GFW) alerts, World Database on Protected Areas (WDPA)"
 
   const eudr_date_verification = new Date().toISOString()
 

@@ -312,9 +312,16 @@ export default function ExportContent({
                 <a
                   href={`/api/generate-dss/${row.lotId}?lang=${locale}`}
                   download
-                  className="text-xs font-semibold text-[#3b82f6] hover:text-[#2563eb] uppercase tracking-wide transition"
+                  className="text-xs font-semibold text-[#f97316] hover:text-[#ea580c] uppercase tracking-wide transition"
                 >
-                  {e.actionDownload}
+                  {e.actionPdf}
+                </a>
+                <a
+                  href={`/api/lots/${row.lotId}/geojson`}
+                  download
+                  className="text-xs font-semibold text-[#f97316] hover:text-[#ea580c] uppercase tracking-wide transition"
+                >
+                  {e.actionGeojson}
                 </a>
                 <button
                   onClick={() => row.ddsId && setDeleteId(row.ddsId)}
@@ -403,9 +410,16 @@ export default function ExportContent({
                       <a
                         href={`/api/generate-dss/${row.lotId}?lang=${locale}`}
                         download
-                        className="text-xs font-semibold text-[#3b82f6] hover:text-[#2563eb] uppercase tracking-wide transition"
+                        className="text-xs font-semibold text-[#f97316] hover:text-[#ea580c] uppercase tracking-wide transition"
                       >
-                        {e.actionDownload}
+                        {e.actionPdf}
+                      </a>
+                      <a
+                        href={`/api/lots/${row.lotId}/geojson`}
+                        download
+                        className="text-xs font-semibold text-[#f97316] hover:text-[#ea580c] uppercase tracking-wide transition"
+                      >
+                        {e.actionGeojson}
                       </a>
                       <button
                         onClick={() => row.ddsId && setDeleteId(row.ddsId)}

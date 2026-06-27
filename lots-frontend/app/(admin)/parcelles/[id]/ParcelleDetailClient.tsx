@@ -106,6 +106,14 @@ export default function ParcelleDetailClient({
   const pesticides = readField(parcelle, "utilisation_pesticides", "formation_entretien_data.utilisation_pesticides", "formation_data.utilisation_pesticides")
   const etatPlantation = readField(parcelle, "etat", "etat_plantation_enquete", "formation_entretien_data.etat_plantation_enquete", "formation_data.etat_plantation_enquete")
 
+  // GPX cleanup corrections for the polygon-analysis box.
+  const cleanupRaw = readField(parcelle, "nettoyage_corrections", "eudr_cleanup", "cleanup_corrections")
+  const cleanupItems = typeof cleanupRaw === "string"
+    ? cleanupRaw.split(/[,|]/).map((s) => s.trim()).filter(Boolean)
+    : Array.isArray(cleanupRaw)
+      ? cleanupRaw.map((s) => String(s).trim()).filter(Boolean)
+      : []
+
   const fields = [
     { label: tp.fieldCooperative, value: (producteur as any)?.cooperatives?.nom || "—" },
     { label: tp.fieldProducteur, value: producteur ? `${producteur.nom}${(producteur as any).prenom ? " " + (producteur as any).prenom : ""}` : "—" },
@@ -159,8 +167,9 @@ export default function ParcelleDetailClient({
             <a
               href={`/api/parcelles/${parcelle.id}/geojson`}
               download
-              className="border border-[#2ac1a3] text-[#2ac1a3] px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#2ac1a3]/10 transition"
+              className="flex items-center gap-2 bg-[#3b82f6] text-white px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#2563eb] transition"
             >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
               {tp.btnDownloadGeojson}
             </a>
             <Link href={`/parcelles/${parcelle.id}/edit`} className="bg-[#2ac1a3] text-white px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-[#24a88e] transition">
@@ -175,24 +184,6 @@ export default function ParcelleDetailClient({
             <p className="text-sm text-gray-700">{translateJustification(parcelle.justification_eudr, locale)}</p>
           </div>
         )}
-
-        {/* Deforestation analysis summary (EUDR Article 5) */}
-        <div className="mb-6">
-          <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3">{tp.analyseDeforestationTitle}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: tp.analyseForet2020, value: parcelle.eudr_foret_2020_pct != null ? `${Number(parcelle.eudr_foret_2020_pct)}%` : "—" },
-              { label: tp.analysePerte, value: parcelle.eudr_perte_2021_2024_ha != null ? `${Number(parcelle.eudr_perte_2021_2024_ha)} ha` : "—" },
-              { label: tp.analyseAlertes, value: parcelle.eudr_alertes_2025_ha != null ? `${Number(parcelle.eudr_alertes_2025_ha)} ha` : "—" },
-              { label: tp.analyseZoneProtegee, value: parcelle.dans_zone_protegee == null ? "—" : (parcelle.dans_zone_protegee ? tp.yes : tp.no) },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-gray-50 rounded-lg p-4">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-                <p className="text-base font-semibold text-gray-900">{value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left: detail table */}
@@ -238,6 +229,65 @@ export default function ParcelleDetailClient({
               } satisfies MapParcel]}
               height={240}
             />
+
+            {/* Détails de l'analyse — directly below the map */}
+            <div className="pt-4">
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">{tp.analyseDetailsTitle}</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Box 1: polygon analysis & correction */}
+                <div className="bg-[#e6f9f5] border border-[#2ac1a3]/30 rounded-xl p-5">
+                  <h3 className="text-center font-semibold text-gray-800 mb-4">{tp.analysePolygonTitle}</h3>
+                  {cleanupItems.length > 0 ? (
+                    <ul className="text-sm text-gray-700 space-y-1.5">
+                      <li className="flex gap-2">
+                        <span className="text-[#2ac1a3]">•</span>
+                        <div>
+                          <span>{tp.analysePolygonCorrections}</span>
+                          <ul className="mt-1.5 space-y-1.5 pl-4">
+                            {cleanupItems.map((item, i) => (
+                              <li key={i} className="flex gap-2">
+                                <span className="text-[#2ac1a3]">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </li>
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">{tp.analysePolygonNone}</p>
+                  )}
+                </div>
+
+                {/* Box 2: deforestation risk analysis */}
+                <div className="bg-[#e6f9f5] border border-[#2ac1a3]/30 rounded-xl p-5">
+                  <div className="flex flex-col items-center gap-2 mb-4">
+                    <h3 className="text-center font-semibold text-gray-800">{tp.analyseRiskTitle}</h3>
+                    <EudrBadge
+                      status={parcelle.status_eudr}
+                      notVerifiedLabel={tp.notVerified}
+                      conformeLabel={tp.eudrConforme}
+                      nonConformeLabel={tp.eudrNonConforme}
+                      geometrieInvalideLabel={tp.eudrGeometrieInvalide}
+                      enAttenteLabel={tp.eudrEnAttente}
+                    />
+                  </div>
+                  <ul className="text-sm text-gray-700 space-y-1.5">
+                    {[
+                      { label: tp.analyseCouvertureForet, value: parcelle.eudr_foret_2020_pct != null ? `${Number(parcelle.eudr_foret_2020_pct)}%` : "—" },
+                      { label: tp.analysePerteDepuis2020, value: parcelle.eudr_perte_2021_2024_ha != null ? `${Number(parcelle.eudr_perte_2021_2024_ha)} ha` : "—" },
+                      { label: tp.analyseAlertesRecentes, value: parcelle.eudr_alertes_2025_ha != null ? `${Number(parcelle.eudr_alertes_2025_ha)} ha` : "—" },
+                      { label: tp.analyseChevauchement, value: parcelle.dans_zone_protegee == null ? "—" : (parcelle.dans_zone_protegee ? tp.yes : tp.no) },
+                    ].map(({ label, value }) => (
+                      <li key={label} className="flex gap-2">
+                        <span className="text-[#2ac1a3]">•</span>
+                        <span>{label}: {value}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

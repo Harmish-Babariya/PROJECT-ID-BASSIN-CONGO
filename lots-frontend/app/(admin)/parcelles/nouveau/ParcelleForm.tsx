@@ -68,6 +68,7 @@ export default function ParcelleForm({
     eudr_verification_timestamp: "",
     eudr_script_version: "",
     geojson: null as any,
+    nettoyage_corrections: [] as string[],
     culture: "Cacao",
     varietes: [] as string[],
     annee_plantation: "",
@@ -237,6 +238,7 @@ export default function ParcelleForm({
           eudr_verification_timestamp: result.verification_timestamp || "",
           eudr_script_version: result.script_version || "",
           geojson: result.geojson || null,
+          nettoyage_corrections: result.nettoyage_corrections || [],
         }))
         setGpxAnalyse(result)
         showSuccess(t.actions.gpxSuccess)

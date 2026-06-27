@@ -22,6 +22,8 @@ const messages = {
     notEnoughPoints: "Le fichier GPX doit contenir au moins 3 points",
     zeroArea: "Le polygone a une surface nulle ou quasi-nulle",
     selfIntersect: "Le polygone présente des auto-intersections. Veuillez corriger le tracé GPX.",
+    cleanupSelfIntersection: "Réparation de l'auto-intersection",
+    cleanupClosure: "Fermeture conservatrice du polygone",
     uploadError: (msg: string) => `Erreur upload : ${msg}`,
     internalError: "Erreur interne",
     pendingReview: "Vérification automatique en attente",
@@ -43,6 +45,8 @@ const messages = {
     notEnoughPoints: "The GPX file must contain at least 3 points",
     zeroArea: "The polygon has zero or near-zero area",
     selfIntersect: "The polygon is self-intersecting. Please correct the GPX trace.",
+    cleanupSelfIntersection: "Self-intersection repair",
+    cleanupClosure: "Conservative polygon closure",
     uploadError: (msg: string) => `Upload error: ${msg}`,
     internalError: "Internal error",
     pendingReview: "Automatic verification pending",
@@ -178,6 +182,11 @@ export async function POST(request: NextRequest) {
     }
     coords = fix.coords
 
+    // Track the clean-up corrections applied to the raw GPX trace so the parcel
+    // detail page can display them dynamically (Analyse et correction du polygone).
+    const cleanupCorrections: string[] = []
+    if (fix.changed) cleanupCorrections.push(m.cleanupSelfIntersection)
+
     // Preserve the surveyor's actual trace. The shoelace area below works for
     // any simple polygon, concave or convex, so we do NOT replace coords with a
     // convex hull — that would discard the parcel's real shape.
@@ -246,6 +255,7 @@ export async function POST(request: NextRequest) {
     const ring = geojson.coordinates[0]
     if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
       ring.push([...ring[0]])
+      cleanupCorrections.push(m.cleanupClosure)
     }
 
     // Per EUDR rules, plantation year alone is not a valid compliance signal.
@@ -269,6 +279,7 @@ export async function POST(request: NextRequest) {
       script_version: EUDR_SCRIPT_VERSION,
       geojson,
       duplicateWarning,
+      nettoyage_corrections: cleanupCorrections,
     })
   } catch (error: any) {
     console.error("Erreur upload-gpx:", error)

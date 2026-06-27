@@ -45,10 +45,14 @@ export default async function LotDetail({ params }: { params: Promise<{ id: stri
 
   // Parcelle analysis rows for the deforestation summary + table.
   const parcelles = uniqueParcelles.map((p: any) => ({
+    id: p.id,
     code_parcelle: p.code_parcelle,
     producteur_nom: p.producteur ? [p.producteur.nom, p.producteur.prenom].filter(Boolean).join(" ") || null : null,
     cooperative: p.producteur?.cooperative ?? null,
     surface_ha: p.surface_ha ?? null,
+    type: p.geojson != null ? "Polygon" : (p.latitude != null && p.longitude != null ? "Point" : null),
+    latitude: p.latitude ?? null,
+    longitude: p.longitude ?? null,
     status_eudr: normalizeEudrStatus(p.status_eudr),
     foret_2020_pct: p.eudr_foret_2020_pct ?? null,
     perte_2021_2024_ha: p.eudr_perte_2021_2024_ha ?? null,
