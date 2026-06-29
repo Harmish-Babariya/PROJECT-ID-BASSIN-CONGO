@@ -99,6 +99,26 @@ export default function ExportContent({
     setDeleteId(null)
     window.location.reload()
   }
+
+  // Bulk selection (only DDS-backed rows can be selected/deleted).
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [bulkConfirm, setBulkConfirm] = useState(false)
+  function toggleSelected(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+  async function handleBulkDelete() {
+    for (const id of selectedIds) {
+      await fetch(`/api/dds/${id}/delete`, { method: "POST" })
+    }
+    setSelectedIds(new Set())
+    setBulkConfirm(false)
+    window.location.reload()
+  }
+
   const PAGE_SIZE = 10
 
   function handleSearch(v: string) { setSearch(v); setPage(1) }
@@ -151,6 +171,8 @@ export default function ExportContent({
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // Only rows backed by a real DDS can be selected/deleted.
+  const selectableVisibleIds = paginated.map((r) => r.ddsId).filter((id): id is number => id != null)
 
   const stats = useMemo(() => {
     const generated = ddsRows.length
@@ -266,12 +288,21 @@ export default function ExportContent({
           {paginated.map((row) => (
             <div key={row.refDds} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
-                <Link
-                  href={row.ddsId ? `/export/${row.ddsId}` : `/lots/${row.lotId}`}
-                  className="text-[#2AC1A3] font-mono font-semibold text-[13px] hover:underline leading-tight"
-                >
-                  {row.refDds}
-                </Link>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <input
+                    type="checkbox"
+                    className="accent-[#2ac1a3] w-4 h-4 shrink-0 disabled:opacity-30"
+                    disabled={!row.ddsId}
+                    checked={row.ddsId ? selectedIds.has(row.ddsId) : false}
+                    onChange={() => row.ddsId && toggleSelected(row.ddsId)}
+                  />
+                  <Link
+                    href={row.ddsId ? `/export/${row.ddsId}` : `/lots/${row.lotId}`}
+                    className="text-[#2AC1A3] font-mono font-semibold text-[13px] hover:underline leading-tight truncate"
+                  >
+                    {row.refDds}
+                  </Link>
+                </div>
                 <span className={`shrink-0 inline-block min-w-[130px] text-center px-2.5 py-1 rounded-full text-[8px] font-semibold tracking-[0.12em] uppercase font-mono whitespace-nowrap ${statutColors(row.statut)}`}>
                   {statutLabel(row.statut)}
                 </span>
@@ -341,12 +372,46 @@ export default function ExportContent({
         </div>
       )}
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 bg-[#e6f9f5] border border-[#2ac1a3]/30 rounded-lg px-4 py-3">
+          <span className="text-sm font-semibold text-gray-700">{t.common.bulkSelected(selectedIds.size)}</span>
+          <button
+            onClick={() => setBulkConfirm(true)}
+            className="text-xs font-bold text-red-500 hover:text-red-700 uppercase tracking-wide transition"
+          >
+            {t.common.bulkDelete}
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs font-semibold text-gray-500 hover:text-gray-700 uppercase tracking-wide transition"
+          >
+            {t.common.bulkClear}
+          </button>
+        </div>
+      )}
+
       {/* Desktop table */}
       <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full" style={{ fontFamily: "var(--font-courier-prime)" }}>
             <thead>
               <tr className="bg-[#F7F8FA] border-b border-gray-200">
+                <th className="px-4 lg:px-6 py-3.5 w-10">
+                  <input
+                    type="checkbox"
+                    className="accent-[#2ac1a3] w-4 h-4"
+                    checked={selectableVisibleIds.length > 0 && selectableVisibleIds.every((id) => selectedIds.has(id))}
+                    onChange={(ev) => {
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev)
+                        if (ev.target.checked) selectableVisibleIds.forEach((id) => next.add(id))
+                        else selectableVisibleIds.forEach((id) => next.delete(id))
+                        return next
+                      })
+                    }}
+                  />
+                </th>
                 {[e.colRefDds, e.colLotLie, e.colProduit, e.colPoids, e.colDateGen, e.colStatut, e.colGenPar, e.colActions].map((col) => (
                   <th
                     key={col}
@@ -360,6 +425,15 @@ export default function ExportContent({
             <tbody>
               {paginated.map((row) => (
                 <tr key={row.refDds} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60 transition">
+                  <td className="px-4 lg:px-6 py-4">
+                    <input
+                      type="checkbox"
+                      className="accent-[#2ac1a3] w-4 h-4 disabled:opacity-30"
+                      disabled={!row.ddsId}
+                      checked={row.ddsId ? selectedIds.has(row.ddsId) : false}
+                      onChange={() => row.ddsId && toggleSelected(row.ddsId)}
+                    />
+                  </td>
                   <td className="px-4 lg:px-6 py-4">
                     <Link
                       href={row.ddsId ? `/export/${row.ddsId}` : `/lots/${row.lotId}`}
@@ -536,6 +610,15 @@ export default function ExportContent({
         cancelLabel={t.referentiel.cancel}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
+      />
+      <ConfirmModal
+        open={bulkConfirm}
+        title={t.common.bulkConfirmTitle}
+        message={t.common.bulkConfirmMessage(selectedIds.size)}
+        confirmLabel={t.referentiel.delete}
+        cancelLabel={t.referentiel.cancel}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setBulkConfirm(false)}
       />
     </div>
   )

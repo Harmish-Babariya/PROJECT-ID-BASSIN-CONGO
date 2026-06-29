@@ -977,18 +977,30 @@ export async function GET(
     const srcHairline = rgb(0.9, 0.9, 0.9)
     const srcHeaderBg = rgb(0.965, 0.965, 0.97)
 
-    const latestVer = d.sourceLatest(generationDate.toISOString().split("T")[0])
-    // Admin-editable sources take precedence; otherwise use the hardcoded defaults.
-    const sources: Array<[string, string, string]> =
-      customSources.length > 0
-        ? customSources.map((s: { source: string; version: string | null; purpose: string | null }) =>
-            [s.source, s.version ?? "", s.purpose ?? ""] as [string, string, string])
-        : [
-            ["JRC GFC2020", "v3 (release 2023-03)", d.src1Purpose],
-            ["Hansen", "GFC-2024-v1.12", d.src2Purpose],
-            ["GFW Alerts", latestVer, d.src3Purpose],
-            ["WDPA", latestVer, d.src4Purpose],
-          ]
+    // GFW Alerts / WDPA default version reflects the most recent parcel
+    // verification date in this lot (falls back to the generation date if no
+    // parcel has been verified yet).
+    const latestVerifMs = parcelles.reduce((max: number, p: any) => {
+      const raw = p.eudr_date_verification ?? p.eudr_verification_timestamp
+      const ms = raw ? new Date(raw).getTime() : NaN
+      return Number.isFinite(ms) && ms > max ? ms : max
+    }, 0)
+    const latestVerifDate = latestVerifMs > 0
+      ? new Date(latestVerifMs).toISOString().split("T")[0]
+      : generationDate.toISOString().split("T")[0]
+    const latestVer = d.sourceLatest(latestVerifDate)
+    // GFW Alerts + WDPA are ALWAYS shown (version = parcel verification date,
+    // not editable). Any admin-configured sources from the Source Data tab are
+    // appended on top of these two.
+    const adminSources: Array<[string, string, string]> = customSources.map(
+      (s: { source: string; version: string | null; purpose: string | null }) =>
+        [s.source, s.version ?? "", s.purpose ?? ""] as [string, string, string]
+    )
+    const sources: Array<[string, string, string]> = [
+      ...adminSources,
+      ["GFW Alerts", latestVer, d.src3Purpose],
+      ["WDPA", latestVer, d.src4Purpose],
+    ]
 
     // Light-gray header with dark bold column titles.
     drawRect(page, ML, y - SRC_HEADER_H, MR - ML, SRC_HEADER_H, srcHeaderBg)

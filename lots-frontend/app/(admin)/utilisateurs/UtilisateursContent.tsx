@@ -137,6 +137,26 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
     }
   }
 
+  // Bulk selection + bulk actions (delete / deactivate).
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkConfirm, setBulkConfirm] = useState<"delete" | "deactivate" | null>(null)
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+  const visibleIds = paged.map((p) => p.id)
+  async function handleBulkAction(kind: "delete" | "deactivate") {
+    for (const id of selectedIds) {
+      await fetch(`/api/utilisateurs/${id}/${ACTION_PATH[kind]}`, { method: "POST" })
+    }
+    setSelectedIds(new Set())
+    setBulkConfirm(null)
+    router.refresh()
+  }
+
   const totalUsers = profiles.filter((p) => p.statut !== "inactif" && p.statut !== "en_attente").length
   const admins = profiles.filter((p) => p.role === "admin" && p.statut !== "inactif").length
   const focals = profiles.filter((p) => p.role !== "admin" && p.statut !== "inactif" && p.statut !== "en_attente").length
@@ -299,12 +319,52 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
         />
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 bg-[#e6f9f5] border border-[#2ac1a3]/30 rounded-lg px-4 py-3">
+          <span className="text-sm font-semibold text-gray-700">{t.common.bulkSelected(selectedIds.size)}</span>
+          <button
+            onClick={() => setBulkConfirm("deactivate")}
+            className="text-xs font-bold text-[#b07d30] hover:text-[#8a6125] uppercase tracking-wide transition"
+          >
+            {u.bulkDeactivate}
+          </button>
+          <button
+            onClick={() => setBulkConfirm("delete")}
+            className="text-xs font-bold text-red-500 hover:text-red-700 uppercase tracking-wide transition"
+          >
+            {t.common.bulkDelete}
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs font-semibold text-gray-500 hover:text-gray-700 uppercase tracking-wide transition"
+          >
+            {t.common.bulkClear}
+          </button>
+        </div>
+      )}
+
       {/* Users table - desktop/tablet */}
       <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead>
               <tr className="bg-[#F7F8FA] border-b border-gray-200">
+                <th className="px-4 lg:px-6 py-3.5 w-10">
+                  <input
+                    type="checkbox"
+                    className="accent-[#2ac1a3] w-4 h-4"
+                    checked={visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))}
+                    onChange={(ev) => {
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev)
+                        if (ev.target.checked) visibleIds.forEach((id) => next.add(id))
+                        else visibleIds.forEach((id) => next.delete(id))
+                        return next
+                      })
+                    }}
+                  />
+                </th>
                 <SortableHeader label={u.colUser} sortKey="user" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
                 <SortableHeader label={u.colRole} sortKey="role" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
                 <SortableHeader label={u.colCountry} sortKey="country" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
@@ -334,6 +394,14 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
 
                 return (
                   <tr key={user.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60 transition">
+                    <td className="px-4 lg:px-6 py-4">
+                      <input
+                        type="checkbox"
+                        className="accent-[#2ac1a3] w-4 h-4"
+                        checked={selectedIds.has(user.id)}
+                        onChange={() => toggleSelected(user.id)}
+                      />
+                    </td>
                     <td className="px-4 lg:px-6 py-4">
                       <div className="flex items-center gap-3 min-w-0">
                         <div
@@ -482,6 +550,12 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
               style={{ borderRadius: 12 }}
             >
               <div className="flex items-start gap-3 mb-3">
+                <input
+                  type="checkbox"
+                  className="accent-[#2ac1a3] w-4 h-4 mt-3 shrink-0"
+                  checked={selectedIds.has(user.id)}
+                  onChange={() => toggleSelected(user.id)}
+                />
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 ${
                     isPending || isInactive ? "bg-gray-100 text-gray-400" : "bg-[#e8f8f3] text-[#2AC1A3]"
@@ -627,6 +701,20 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
           setConfirmState(null)
         }}
         onCancel={() => setConfirmState(null)}
+      />
+      <ConfirmModal
+        open={bulkConfirm !== null}
+        title={t.common.bulkConfirmTitle}
+        message={
+          bulkConfirm === "deactivate"
+            ? u.bulkDeactivateConfirm(selectedIds.size)
+            : t.common.bulkConfirmMessage(selectedIds.size)
+        }
+        confirmLabel={c.confirmBtn}
+        cancelLabel={c.cancelBtn}
+        danger={bulkConfirm === "delete"}
+        onConfirm={() => bulkConfirm && handleBulkAction(bulkConfirm)}
+        onCancel={() => setBulkConfirm(null)}
       />
     </div>
   )
