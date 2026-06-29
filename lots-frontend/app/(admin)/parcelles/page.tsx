@@ -22,9 +22,12 @@ export default async function ParcellesPage({
   const params = await searchParams
   const scope = buildScope(user)
 
+  // `recherche` is handled CLIENT-side (so it can match producer names too, not
+  // just the parcel code). The server only applies the structured filters.
+  const { recherche: _recherche, ...serverParams } = params
   const [parcelles, producteurs] = await Promise.all([
     getParcelles({
-      ...params,
+      ...serverParams,
       scope,
     }),
     getProducteursForSelect(scope),

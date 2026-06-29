@@ -1,6 +1,6 @@
 "use client"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/contexts/LanguageContext"
 import ConfirmModal from "@/components/ConfirmModal"
@@ -96,7 +96,26 @@ export default function ParcellesContent({
   const [search, setSearch] = useState(searchParams.get("recherche") || "")
   const [showFilter, setShowFilter] = useState(false)
   const [filterStatus, setFilterStatus] = useState(searchParams.get("status_eudr") || "")
-  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Parcelle>(parcelles, {
+
+  // Client-side, token-based search: each whitespace-separated token must appear
+  // somewhere in the parcel's searchable text (parcel code + producer code/nom/
+  // prenom). Handles partial matches, full names, and stray/trailing spaces.
+  const searched = useMemo(() => {
+    const tokens = search.toLowerCase().split(/\s+/).filter(Boolean)
+    if (tokens.length === 0) return parcelles
+    return parcelles.filter((p) => {
+      const prod = producteursMap.get(p.producteur_id)
+      const haystack = [
+        p.code_parcelle ?? "",
+        prod?.code_producteur ?? "",
+        prod?.nom ?? "",
+        prod?.prenom ?? "",
+      ].join(" ").toLowerCase()
+      return tokens.every((tok) => haystack.includes(tok))
+    })
+  }, [parcelles, producteursMap, search])
+
+  const { sorted, sortKey, sortDirection, toggle } = useTableSort<Parcelle>(searched, {
     code: (r) => r.code_parcelle,
     producteur: (r) => producteursMap.get(r.producteur_id)?.code_producteur ?? "",
     surface: (r) => (r.surface_ha ? Number(r.surface_ha) : null),
@@ -106,17 +125,15 @@ export default function ParcellesContent({
   const { page, pageSize, total, setPage, setPageSize, paged } = usePagination(sorted, 10)
 
   function handleSearchChange(val: string) {
+    // Search is filtered entirely client-side (no server round-trip), so it can
+    // match producer names as well as the parcel code, instantly.
     setSearch(val)
-    const params = new URLSearchParams()
-    if (val) params.set("recherche", val)
-    if (filterStatus) params.set("status_eudr", filterStatus)
-    router.push(`/parcelles?${params.toString()}`)
   }
 
   function handleFilterChange(val: string) {
+    // The EUDR status filter is applied server-side; search stays client-side.
     setFilterStatus(val)
     const params = new URLSearchParams()
-    if (search) params.set("recherche", search)
     if (val) params.set("status_eudr", val)
     router.push(`/parcelles?${params.toString()}`)
   }
@@ -292,7 +309,7 @@ export default function ParcellesContent({
                 </tr>
               )
             })}
-            {parcelles.length === 0 && (
+            {searched.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-gray-400 text-sm">{tp.empty}</td>
               </tr>
@@ -310,7 +327,7 @@ export default function ParcellesContent({
         onPageSizeChange={setPageSize}
       />
 
-      <p className="text-gray-400 text-sm">{tp.count(parcelles.length).toUpperCase()}</p>
+      <p className="text-gray-400 text-sm">{tp.count(searched.length).toUpperCase()}</p>
 
       <ConfirmModal
         open={deleteId !== null}

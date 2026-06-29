@@ -59,6 +59,8 @@ export default function Sidebar({
     { href: "/referentiel/zones", label: s.zones },
     { href: "/referentiel/villages", label: s.villages },
     { href: "/referentiel/nationalites", label: s.nationalites },
+    { href: "/referentiel/analyse-metadata", label: s.analyseMetadata },
+    { href: "/referentiel/sources", label: s.sourceData },
   ]
 
   async function handleLogout() {

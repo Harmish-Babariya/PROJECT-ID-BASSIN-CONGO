@@ -153,3 +153,63 @@ export async function deleteNationalite(id: number) {
   const { error } = await supabaseAdmin.from("nationalites").delete().eq("id", id)
   if (error) throw new Error(error.message)
 }
+
+// ─── ANALYSIS METADATA (DDS PDF) ─────────────────────────────────────────────
+
+export async function getAnalysisMetadataAll() {
+  const { data } = await supabaseAdmin.from("analysis_metadata").select("*").order("created_at")
+  return data || []
+}
+
+export async function createAnalysisMetadata(label: string, value: string) {
+  const { data, error } = await supabaseAdmin
+    .from("analysis_metadata")
+    .insert({ label: label.trim(), value: value.trim() })
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function updateAnalysisMetadata(id: number, label: string, value: string) {
+  const { error } = await supabaseAdmin
+    .from("analysis_metadata")
+    .update({ label: label.trim(), value: value.trim() })
+    .eq("id", id)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteAnalysisMetadata(id: number) {
+  const { error } = await supabaseAdmin.from("analysis_metadata").delete().eq("id", id)
+  if (error) throw new Error(error.message)
+}
+
+// ─── DATA SOURCES (DDS PDF) ───────────────────────────────────────────────────
+
+export async function getDataSourcesAll() {
+  const { data } = await supabaseAdmin.from("data_sources").select("*").order("created_at")
+  return data || []
+}
+
+export async function createDataSource(source: string, version: string, purpose: string) {
+  const { data, error } = await supabaseAdmin
+    .from("data_sources")
+    .insert({ source: source.trim(), version: version.trim() || null, purpose: purpose.trim() || null })
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function updateDataSource(id: number, source: string, version: string, purpose: string) {
+  const { error } = await supabaseAdmin
+    .from("data_sources")
+    .update({ source: source.trim(), version: version.trim() || null, purpose: purpose.trim() || null })
+    .eq("id", id)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteDataSource(id: number) {
+  const { error } = await supabaseAdmin.from("data_sources").delete().eq("id", id)
+  if (error) throw new Error(error.message)
+}

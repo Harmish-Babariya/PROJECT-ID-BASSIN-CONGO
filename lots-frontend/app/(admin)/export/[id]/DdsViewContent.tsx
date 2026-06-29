@@ -304,8 +304,18 @@ export default function DdsViewContent({
               </div>
             </div>
 
-            {/* PDF preview content */}
-            <div className={`bg-white overflow-y-auto ${fullscreen ? "flex-1" : "max-h-[620px]"}`}>
+            {/* PDF preview content — embeds the REAL generated PDF so the
+                preview is always 1:1 with the downloaded file. */}
+            <div className={`bg-white ${fullscreen ? "flex-1" : "h-[620px]"}`}>
+              <iframe
+                src={`/api/generate-dss/${lot.id}?lang=${locale}&inline=1#toolbar=0&navpanes=0&view=FitH`}
+                title={e.viewPreviewTitle(dds.reference_dds)}
+                className="w-full h-full border-0"
+              />
+            </div>
+            {/* Legacy HTML mock preview kept below but hidden (replaced by the
+                real PDF iframe above). */}
+            <div className="hidden">
               <div className="p-4 sm:p-8 min-h-[560px]">
                 {/* PDF Header */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">

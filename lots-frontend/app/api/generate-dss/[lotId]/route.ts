@@ -3,6 +3,7 @@ import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from "pdf-lib"
 import { supabaseAdmin } from "@/lib/supabase-server"
 import { verifyToken } from "@/lib/auth/jwt"
 import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
+import { getAnalysisMetadataAll, getDataSourcesAll } from "@/lib/services/referentiel"
 
 const EUDR_SCRIPT_VERSION = "2.3.1"
 // Client-facing analysis version label (per client request).
@@ -99,6 +100,7 @@ interface Dict {
   colSource: string
   colVersion: string
   colPurpose: string
+  sourceLatest: (date: string) => string
   src1Purpose: string
   src2Purpose: string
   src3Purpose: string
@@ -126,10 +128,10 @@ const DICTS: Record<Lang, Dict> = {
     emittedOn: "Émis le",
     filenamePrefix: "DDS",
     coverTitle: "Diligence Raisonnée",
-    coverSubtitle: "Géolocalisation et évaluation des risques de déforestation",
-    coverDocId: "Identifiant du document",
-    coverIssueDate: "Date d'émission",
-    coverIssueTime: "Heure d'émission",
+    coverSubtitle: "Géolocalisation\net\névaluation des risques de déforestation",
+    coverDocId: "ID document",
+    coverIssueDate: "Date",
+    coverIssueTime: "Heure",
     coverLotInfo: "Informations sur le lot",
     coverInfoHeader: "INFORMATIONS",
     section2Subtitle: "Résumé des données relatives au risque de déforestation et à la géolocalisation pour chaque parcelle comprise dans ce lot.",
@@ -166,17 +168,17 @@ const DICTS: Record<Lang, Dict> = {
     fieldCardCooperative: "Coopérative",
     fieldCardCountry: "Pays",
     fieldCardProduct: "Produit",
-    fieldCardSurface: "Surface (ha)",
+    fieldCardSurface: "Surface",
     fieldCardGeoFormat: "Format de géolocalisation",
     fieldCardLat: "Latitude",
     fieldCardLon: "Longitude",
     fieldCardVerifDate: "Date de vérification",
-    q1Label: "Question 1 — Y avait-il une forêt en 2020 ?",
+    q1Label: "Question 1- Forêt présente en 2020?",
     q1Yes: (pct) => `Oui (${pct}%)`,
-    q2Label: "Question 2 — Perte de forêt après 2020 ?",
+    q2Label: "Question 2- Perte de forêt post-2020?",
     q2Yes: (perte, alertes) => `Oui (${perte} ha 2021-2024, ${alertes} ha après 2025)`,
     q2No: "Non, aucune perte détectée",
-    q3Label: "Question 3 — Présence dans une zone protégée ?",
+    q3Label: "Question 3- Présence sur une aire protégée?",
     globalEval: "Évaluation globale",
     section4: "Audit Trail",
     auditMetaTitle: "Métadonnées d'analyse",
@@ -186,6 +188,7 @@ const DICTS: Record<Lang, Dict> = {
     colSource: "SOURCES",
     colVersion: "VERSION",
     colPurpose: "BUT",
+    sourceLatest: (date: string) => `Plus récente (${date})`,
     src1Purpose: "Détermine le niveau de référence de la couverture forestière au 31 décembre 2020",
     src2Purpose: "Détecte la perte de couverture forestière (déforestation) entre 2021 et 2024",
     src3Purpose: "Détecte les alertes de déforestation à partir de 2025",
@@ -210,10 +213,10 @@ const DICTS: Record<Lang, Dict> = {
     emittedOn: "Issued on",
     filenamePrefix: "DDS",
     coverTitle: "Due Diligence Statement",
-    coverSubtitle: "Geolocation and deforestation risk assessment",
+    coverSubtitle: "Geolocation\nand\nAssessment of Deforestation Risks",
     coverDocId: "Document ID",
-    coverIssueDate: "Issue date",
-    coverIssueTime: "Issue time",
+    coverIssueDate: "Date",
+    coverIssueTime: "Time",
     coverLotInfo: "Lot information",
     coverInfoHeader: "INFORMATION",
     section2Subtitle: "Summary of data on deforestation risk and geolocation for each parcel included in this lot.",
@@ -226,7 +229,7 @@ const DICTS: Record<Lang, Dict> = {
     fieldBuyer: "BUYER",
     fieldParcelCount: "Number of parcels",
     fieldTotalSurface: "Total surface",
-    section2: "Deforestation risk assessment of lot parcels",
+    section2: "Assessment of the Risk of Deforestation for Plots in the Lot",
     colParcel: "PARCEL ID",
     colCooperative: "COOPERATIVE",
     colProducer: "PRODUCER",
@@ -244,24 +247,24 @@ const DICTS: Record<Lang, Dict> = {
     riskNegligible: "Negligible risk",
     riskNonNegligible: "Non-negligible risk",
     riskCannotAssess: "Could not assess",
-    section3: "Per-parcel deforestation risk assessment",
-    cardTitle: (code) => `Verification sheet - Parcel ${code}`,
+    section3: "Assessment of the Risk of Deforestation by Plot",
+    cardTitle: (code) => `Verification card - Plot ${code}`,
     fieldCardProducer: "Producer",
     fieldCardCooperative: "Cooperative",
     fieldCardCountry: "Country",
     fieldCardProduct: "Product",
-    fieldCardSurface: "Surface (ha)",
+    fieldCardSurface: "Surface",
     fieldCardGeoFormat: "Geolocation format",
     fieldCardLat: "Latitude",
     fieldCardLon: "Longitude",
     fieldCardVerifDate: "Verification date",
-    q1Label: "Question 1 — Was there a forest in 2020?",
+    q1Label: "Question 1—Was there a forest in 2020?",
     q1Yes: (pct) => `Yes (${pct}%)`,
-    q2Label: "Question 2 — Forest loss after 2020?",
+    q2Label: "Question 2—Forest loss after 2020?",
     q2Yes: (perte, alertes) => `Yes (${perte} ha 2021-2024, ${alertes} ha after 2025)`,
     q2No: "No, no loss detected",
-    q3Label: "Question 3 — Located in a protected area?",
-    globalEval: "Global evaluation",
+    q3Label: "Question 3—Presence in a protected area?",
+    globalEval: "Global assessment",
     section4: "Audit Trail",
     auditMetaTitle: "Analysis metadata",
     auditGeneratedOn: "Generated on",
@@ -270,13 +273,14 @@ const DICTS: Record<Lang, Dict> = {
     colSource: "SOURCES",
     colVersion: "VERSION",
     colPurpose: "PURPOSE",
+    sourceLatest: (date: string) => `Latest (${date})`,
     src1Purpose: "Determines the forest cover baseline at 31 December 2020",
     src2Purpose: "Detects forest cover loss (deforestation) between 2021 and 2024",
     src3Purpose: "Detects deforestation alerts from 2025 onward",
     src4Purpose: "Identifies overlaps with protected areas",
     section6: "Disclaimer",
     disclaimer:
-      "ID Bassin Congo provides this analysis as a risk-assessment tool intended to help producers, cooperatives, exporters and buyers meet their due-diligence obligations under Regulation (EU) 2023/1115 (EUDR). This document does not constitute legal advice, proof of EUDR compliance, or a certification. This assessment reflects the data available at the time of analysis. ID Bassin Congo makes no warranty as to the accuracy or completeness of this assessment. We decline any liability for indirect, consequential or special damages resulting from the use of this document and the underlying analysis. Questions or disputes? Contact: contact@idbassincongo.com",
+      "ID Bassin Congo provides this analysis as a risk assessment tool designed to help producers, cooperatives, exporters, and buyers meet their due diligence obligations under Regulation (EU) 2023/1115 (EUDR). This document does not constitute legal advice or counsel, nor does it serve as proof of compliance with the EUDR or as a certification. This assessment reflects the data available at the time of the analysis.\n\nID Bassin Congo makes no warranty as to the accuracy or completeness of this assessment. We disclaim all liability for any indirect, consequential, or special damages arising from the use of this document and the analysis on which it is based.\n\nQuestions or disputes?\nContact: contact@idbassincongo.com",
     footerLeft: (name, code, date) =>
       `GENERATED BY ID BASSIN CONGO · EUDR SCRIPT V${EUDR_SCRIPT_VERSION}\nADMIN : ${name} (${code}) · ${date}`,
     footerRight: "AUTOMATICALLY GENERATED DOCUMENT — ID BASSIN CONGO",
@@ -316,6 +320,62 @@ function drawRect(
     color: fillColor,
     borderColor,
     borderWidth: borderColor ? 0.5 : 0,
+  })
+}
+
+// Build an SVG path for a rounded rectangle (top-left origin, pdf-lib draws
+// drawSvgPath relative to a given x/y top point with y growing DOWN).
+function roundedRectPath(w: number, h: number, r: number): string {
+  const rr = Math.min(r, w / 2, h / 2)
+  return [
+    `M ${rr} 0`,
+    `H ${w - rr}`,
+    `A ${rr} ${rr} 0 0 1 ${w} ${rr}`,
+    `V ${h - rr}`,
+    `A ${rr} ${rr} 0 0 1 ${w - rr} ${h}`,
+    `H ${rr}`,
+    `A ${rr} ${rr} 0 0 1 0 ${h - rr}`,
+    `V ${rr}`,
+    `A ${rr} ${rr} 0 0 1 ${rr} 0`,
+    "Z",
+  ].join(" ")
+}
+
+// SVG path for a rectangle with only the TOP corners rounded (flat bottom).
+// Used for a table header band that should follow the rounded outer border.
+function topRoundedRectPath(w: number, h: number, r: number): string {
+  const rr = Math.min(r, w / 2, h)
+  return [
+    `M 0 ${h}`,
+    `V ${rr}`,
+    `A ${rr} ${rr} 0 0 1 ${rr} 0`,
+    `H ${w - rr}`,
+    `A ${rr} ${rr} 0 0 1 ${w} ${rr}`,
+    `V ${h}`,
+    "Z",
+  ].join(" ")
+}
+
+function drawTopRoundedRect(
+  page: PDFPage,
+  x: number, topY: number, w: number, h: number, r: number,
+  fill: ReturnType<typeof rgb>
+) {
+  page.drawSvgPath(topRoundedRectPath(w, h, r), { x, y: topY, color: fill, borderWidth: 0 })
+}
+
+// Draw a rounded rectangle. x/y is the TOP-LEFT corner (pdf-lib drawSvgPath
+// places the path so its (0,0) sits at {x,y} and y increases downward).
+function drawRoundedRect(
+  page: PDFPage,
+  x: number, topY: number, w: number, h: number, r: number,
+  opts: { fill?: ReturnType<typeof rgb>; border?: ReturnType<typeof rgb>; borderWidth?: number }
+) {
+  page.drawSvgPath(roundedRectPath(w, h, r), {
+    x, y: topY,
+    color: opts.fill,
+    borderColor: opts.border,
+    borderWidth: opts.border ? (opts.borderWidth ?? 0.8) : 0,
   })
 }
 
@@ -427,6 +487,13 @@ export async function GET(
     })
     const parcelles = Array.from(parcellesMap.values())
 
+    // Admin-editable Audit-Trail data (global). When empty, the PDF falls back
+    // to its hardcoded defaults below.
+    const [customMetadata, customSources] = await Promise.all([
+      getAnalysisMetadataAll(),
+      getDataSourcesAll(),
+    ])
+
     // ── DDS REFERENCE ──
     const refText = lot.code_lot ? `DDS-${new Date().getFullYear()}-${lot.code_lot}` : `DDS-${new Date().getFullYear()}-${lotId}`
     const { data: ddsRow } = await supabaseAdmin
@@ -488,18 +555,34 @@ export async function GET(
     let page = pdf.addPage([PAGE_W, PAGE_H])
     let y = PAGE_H - 48
 
+    // Centered brand logo header drawn at the top of every content page (2..N).
+    // The cover (page 1) draws its own larger logo separately.
+    const CONTENT_TOP = PAGE_H - 120 // y where content starts, below the header logo (with breathing room)
+    function drawPageHeaderLogo(pg: PDFPage) {
+      if (!logoImage) {
+        const w = fontB.widthOfTextAtSize(d.orgName, 13)
+        pg.drawText(d.orgName, { x: (PAGE_W - w) / 2, y: PAGE_H - 60, size: 13, font: fontB, color: TEAL })
+        return
+      }
+      const logoW = 110
+      const logoH = (logoImage.height / logoImage.width) * logoW
+      pg.drawImage(logoImage, { x: (PAGE_W - logoW) / 2, y: PAGE_H - 40 - logoH, width: logoW, height: logoH })
+    }
+
     function newPageIfNeeded(needed: number) {
       if (y - needed < MB) {
         drawPageFooter(page)
         page = pdf.addPage([PAGE_W, PAGE_H])
-        y = PAGE_H - 48
+        drawPageHeaderLogo(page)
+        y = CONTENT_TOP
       }
     }
 
     function addPage() {
       drawPageFooter(page)
       page = pdf.addPage([PAGE_W, PAGE_H])
-      y = PAGE_H - 48
+      drawPageHeaderLogo(page)
+      y = CONTENT_TOP
     }
 
     function drawPageFooter(pg: PDFPage) {
@@ -527,19 +610,12 @@ export async function GET(
       })
     }
 
-    // Draws a section title, paginating first if there isn't room for the
-    // title plus `extra` content below it. Returns nothing; mutates `y`.
+    // Draws a section title (plain bold, no underline — matches the reference),
+    // paginating first if there isn't room for the title plus `extra` below it.
     function drawSectionTitle(title: string, extra = 0) {
-      newPageIfNeeded(24 + extra)
-      drawText(page, title, ML, y, { font: fontB, size: 11, color: DARK })
-      y -= 6
-      page.drawLine({
-        start: { x: ML, y },
-        end: { x: MR, y },
-        thickness: 1,
-        color: TEAL,
-      })
-      y -= 16
+      newPageIfNeeded(28 + extra)
+      drawText(page, title, ML, y, { font: fontB, size: 13, color: DARK })
+      y -= 22
     }
 
     // Centered text helper.
@@ -577,33 +653,39 @@ export async function GET(
     }
     cy -= 4
 
-    // 3) Centered gray subtitle (wraps to multiple lines).
+    // 3) Centered gray subtitle. Honour explicit line breaks (\n), and wrap any
+    //    long line that still exceeds the width.
     {
-      const lines = wrapText(d.coverSubtitle, fontR, 15, MR - ML - 60)
-      lines.forEach((line) => {
-        drawCentered(line, cy, fontR, 15, GRAY)
-        cy -= 22
+      const explicitLines = d.coverSubtitle.split("\n")
+      explicitLines.forEach((seg) => {
+        wrapText(seg, fontR, 15, MR - ML - 60).forEach((line) => {
+          drawCentered(line, cy, fontR, 15, GRAY)
+          cy -= 22
+        })
       })
     }
 
     // 4) Full-width teal divider.
     cy -= 28
     page.drawLine({ start: { x: ML, y: cy }, end: { x: MR, y: cy }, thickness: 2, color: TEAL })
-    cy -= 4
 
-    // 5) Three-row info table (label left, monospace value right, hairline dividers).
+    // 5) Three-row info table — OPEN style: no fill, no box; just thin gray
+    //    hairlines separating each row (matches the reference design exactly).
+    //    Label left (regular), monospace value in the right half.
     const coverRows: Array<[string, string]> = [
       [d.coverDocId, ddsRef],
       [d.coverIssueDate, emittedDateLong],
       [d.coverIssueTime, `${emittedTime} UTC`],
     ]
-    const rowH = 30
+    const rowH = 36
+    const hairline = rgb(0.9, 0.9, 0.9)
+    cy -= 6 // small gap below the teal line before the first row
     coverRows.forEach(([label, value]) => {
       const rowTop = cy
-      drawText(page, label, ML + 12, rowTop - rowH + 11, { font: fontR, size: 10, color: DARK })
-      drawText(page, value, ML + 280, rowTop - rowH + 11, { font: fontMono, size: 11, color: DARK })
+      drawText(page, label, ML + 14, rowTop - rowH / 2 - 4, { font: fontR, size: 11, color: DARK })
+      drawText(page, value, ML + 300, rowTop - rowH / 2 - 4, { font: fontMono, size: 11.5, color: DARK })
       cy -= rowH
-      page.drawLine({ start: { x: ML, y: cy }, end: { x: MR, y: cy }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) })
+      page.drawLine({ start: { x: ML, y: cy }, end: { x: MR, y: cy }, thickness: 0.5, color: hairline })
     })
 
     // 6) INFORMATIONS block (teal small-caps header + label/value rows).
@@ -632,7 +714,14 @@ export async function GET(
 
     // ── SECTION: GENERAL PARCEL TABLE ───────────────────────────────────────
 
-    drawSectionTitle(d.section2, parcelles.length * 16 + 30)
+    drawSectionTitle(d.section2, parcelles.length * 16 + 46)
+
+    // Gray subtitle line under the section title (wraps to width).
+    wrapText(d.section2Subtitle, fontR, 9.5, MR - ML).forEach((line) => {
+      drawText(page, line, ML, y, { font: fontR, size: 9.5, color: GRAY })
+      y -= 13
+    })
+    y -= 10
 
     const TABLE_W = MR - ML
     // parcel, cooperative, producer, surface, type, lat, lon, risk, protected
@@ -641,55 +730,51 @@ export async function GET(
       d.colParcel, d.colCooperative, d.colProducer, d.colSurface, d.colType,
       d.colLat, d.colLon, d.colRisk, d.colProtected,
     ]
-    const TBL_FS = 6
-    const ROW_H = 16
+    const TBL_FS = 6.5
+    const ROW_H = 28
     const HEADER_H = 26 // taller so two-word headers wrap onto 2 lines
+    const HEADER_BG = rgb(0.965, 0.965, 0.97) // light gray header
+    const ROW_LINE = rgb(0.92, 0.92, 0.92)
+    const BORDER = rgb(0.85, 0.87, 0.88)
 
-    function drawTableHeader() {
-      drawRect(page, ML, y - HEADER_H, TABLE_W, HEADER_H, rgb(0.1, 0.1, 0.1))
+    // The whole table sits in a rounded-corner box. We draw the header fill,
+    // each row separator, the cell text, then overlay a rounded border on top.
+    const tableTop = y
+
+    // Light-gray header band with rounded TOP corners (matches the outer
+    // rounded border, radius 8) and gray uppercase wrapped headers.
+    drawTopRoundedRect(page, ML, y, TABLE_W, HEADER_H, 8, HEADER_BG)
+    {
       let hx = ML
       COL_HEADERS.forEach((h, i) => {
-        // Wrap each header into up to 2 lines that fit the column width.
         const lines = wrapText(h, fontB, TBL_FS, COL_WIDTHS[i] - 8).slice(0, 2)
+        const startY = lines.length > 1 ? y - 10 : y - 14
         lines.forEach((line, li) => {
-          drawText(page, line, hx + 4, y - 10 - li * 7, {
-            font: fontB, size: TBL_FS, color: WHITE,
-          })
+          drawText(page, line, hx + 5, startY - li * 7, { font: fontB, size: TBL_FS, color: GRAY })
         })
         hx += COL_WIDTHS[i]
       })
-      y -= HEADER_H
     }
-    drawTableHeader()
+    // separator under header
+    page.drawLine({ start: { x: ML, y: y - HEADER_H }, end: { x: MR, y: y - HEADER_H }, thickness: 0.6, color: BORDER })
+    y -= HEADER_H
 
     parcelles.forEach((p, idx) => {
-      if (y - ROW_H < MB) {
-        addPage()
-        drawTableHeader()
-      }
-      const rowBg = idx % 2 === 0 ? WHITE : rgb(0.985, 0.985, 0.985)
-      drawRect(page, ML, y - ROW_H, TABLE_W, ROW_H, rowBg)
-      page.drawLine({
-        start: { x: ML, y: y - ROW_H },
-        end: { x: MR, y: y - ROW_H },
-        thickness: 0.3,
-        color: rgb(0.9, 0.9, 0.9),
-      })
-
       const hasGeo = p.geojson != null
       const hasPoint = p.latitude != null && p.longitude != null
       const type = hasGeo ? d.typePolygon : (hasPoint ? d.typePoint : "—")
-
       const coopName = cooperativeByParcelle.get(String(p.id)) ?? null
       const prod = producteurByParcelle.get(String(p.id)) ?? null
       const prodName = prod ? [prod.nom, prod.prenom].filter(Boolean).join(" ") : ""
-
       const risk = riskLabel(p.status_eudr)
       const protectedText =
         p.dans_zone_protegee === true ? d.yes
         : p.dans_zone_protegee === false ? d.no
         : d.dash
 
+      const rowMidY = y - ROW_H / 2 - 2 // vertical-centre text in the taller row
+
+      // Plain text cells (everything except the risk pill at index 7).
       const cells = [
         { text: p.code_parcelle ?? "—", color: TEAL, font: fontB },
         { text: coopName ?? "—", color: coopName ? DARK : GRAY, font: fontR },
@@ -698,26 +783,44 @@ export async function GET(
         { text: type, color: DARK, font: fontR },
         { text: p.latitude != null ? Number(p.latitude).toFixed(4) : "—", color: DARK, font: fontR },
         { text: p.longitude != null ? Number(p.longitude).toFixed(4) : "—", color: DARK, font: fontR },
-        { text: risk.text, color: risk.color, font: fontR },
+        null, // risk pill drawn separately
         { text: protectedText, color: DARK, font: fontR },
       ]
 
       let vx = ML
       cells.forEach((c, i) => {
-        drawText(page, truncate(c.text, c.font, TBL_FS, COL_WIDTHS[i] - 6), vx + 4, y - ROW_H + 5, {
-          font: c.font, size: TBL_FS, color: c.color,
-        })
+        if (c) {
+          drawText(page, truncate(c.text, c.font, TBL_FS, COL_WIDTHS[i] - 8), vx + 5, rowMidY, {
+            font: c.font, size: TBL_FS, color: c.color,
+          })
+        }
         vx += COL_WIDTHS[i]
       })
+
+      // Risk pill (column index 7): small green rounded badge for negligible,
+      // red-ish for non-negligible, amber for could-not-assess.
+      const riskX = ML + COL_WIDTHS.slice(0, 7).reduce((a, b) => a + b, 0)
+      const pillText = risk.text.toUpperCase()
+      const pillTextW = fontB.widthOfTextAtSize(truncate(pillText, fontB, 5.5, COL_WIDTHS[7] - 8), 5.5)
+      const pillW = Math.min(pillTextW + 10, COL_WIDTHS[7] - 6)
+      const pillH = 12
+      const pillBg = risk.color === TEAL ? rgb(0.85, 0.96, 0.92)
+        : risk.color === RED ? rgb(0.99, 0.9, 0.9)
+        : rgb(0.99, 0.95, 0.85)
+      drawRoundedRect(page, riskX + 4, y - ROW_H / 2 + pillH / 2, pillW, pillH, 6, { fill: pillBg })
+      drawText(page, truncate(pillText, fontB, 5.5, pillW - 8), riskX + 8, y - ROW_H / 2 - 2, {
+        font: fontB, size: 5.5, color: risk.color,
+      })
+
       y -= ROW_H
+      // row separator (not after the last row — the border closes it)
+      if (idx < parcelles.length - 1) {
+        page.drawLine({ start: { x: ML, y }, end: { x: MR, y }, thickness: 0.4, color: ROW_LINE })
+      }
     })
 
-    page.drawLine({
-      start: { x: ML, y },
-      end: { x: MR, y },
-      thickness: 0.5,
-      color: rgb(0.85, 0.85, 0.85),
-    })
+    // Overlay the rounded outer border spanning header + all rows.
+    drawRoundedRect(page, ML, tableTop, TABLE_W, tableTop - y, 8, { border: BORDER, borderWidth: 0.8 })
     y -= 26
 
     // ── SECTION: PER-PARCEL VERIFICATION CARDS ──────────────────────────────
@@ -763,7 +866,7 @@ export async function GET(
         { label: d.fieldCardCooperative, value: coopName },
         { label: d.fieldCardCountry, value: country },
         { label: d.fieldCardProduct, value: lot.produit ?? "—" },
-        { label: d.fieldCardSurface, value: p.surface_ha != null ? String(p.surface_ha) : "—" },
+        { label: d.fieldCardSurface, value: p.surface_ha != null ? `${p.surface_ha} ha` : "—" },
         { label: d.fieldCardGeoFormat, value: geoFormat },
         { label: d.fieldCardLat, value: p.latitude != null ? Number(p.latitude).toFixed(5) : "—" },
         { label: d.fieldCardLon, value: p.longitude != null ? Number(p.longitude).toFixed(5) : "—" },
@@ -774,126 +877,184 @@ export async function GET(
         { label: d.globalEval, value: risk.text, color: risk.color },
       ]
 
-      const TITLE_GAP = 22
-      const LINE_H = 13
-      const PAD = 10
-      const cardH = TITLE_GAP + fields.length * LINE_H + PAD
+      // The 8 identity fields, then a visual gap, then the date + 3 Q&A + eval.
+      const IDENTITY_COUNT = 8
+      const TITLE_GAP = 30
+      const LINE_H = 14
+      const PAD = 16
+      const GAP_AFTER_IDENTITY = 16 // blank band like the reference image
+      const cardInset = 30 // left/right inset so the card has page margins
+      const cardX = ML + cardInset
+      const cardW = (MR - ML) - cardInset * 2
+      const cardH = TITLE_GAP + fields.length * LINE_H + GAP_AFTER_IDENTITY + PAD
 
-      newPageIfNeeded(cardH + 14)
+      newPageIfNeeded(cardH + 18)
 
       const cardTop = y
       const cardBottom = y - cardH
-      drawRect(page, ML, cardBottom, MR - ML, cardH, LIGHT_TEAL)
-
-      drawText(page, d.cardTitle(p.code_parcelle ?? ""), ML + PAD, cardTop - 15, {
-        font: fontB, size: 9.5, color: TEAL,
+      // Light-teal card with rounded corners + a subtle teal border.
+      drawRoundedRect(page, cardX, cardTop, cardW, cardH, 12, {
+        fill: LIGHT_TEAL, border: rgb(0.6, 0.86, 0.81), borderWidth: 1,
       })
 
-      let fy = cardTop - TITLE_GAP - 4
-      fields.forEach((f) => {
-        drawText(page, `${f.label}:`, ML + PAD, fy, { font: fontB, size: 7, color: DARK })
-        const labelW = fontB.widthOfTextAtSize(`${f.label}:`, 7)
-        const valX = ML + PAD + Math.min(labelW + 8, 230)
-        drawText(page, truncate(f.value, fontR, 7, MR - PAD - valX), valX, fy, {
-          font: fontR, size: 7, color: f.color ?? DARK,
+      // Centered teal title.
+      const title = d.cardTitle(p.code_parcelle ?? "")
+      const titleW = fontB.widthOfTextAtSize(title, 13)
+      drawText(page, title, cardX + (cardW - titleW) / 2, cardTop - 22, {
+        font: fontB, size: 13, color: TEAL,
+      })
+
+      let fy = cardTop - TITLE_GAP - 8
+      fields.forEach((f, i) => {
+        drawText(page, `${f.label}:`, cardX + PAD, fy, { font: fontB, size: 7.5, color: DARK })
+        const labelW = fontB.widthOfTextAtSize(`${f.label}:`, 7.5)
+        const valX = cardX + PAD + Math.min(labelW + 8, 230)
+        drawText(page, truncate(f.value, fontR, 7.5, cardX + cardW - PAD - valX), valX, fy, {
+          font: fontR, size: 7.5, color: f.color ?? DARK,
         })
         fy -= LINE_H
+        // After the 8 identity rows, insert the blank gap (faint divider).
+        if (i === IDENTITY_COUNT - 1) {
+          page.drawLine({
+            start: { x: cardX + PAD, y: fy + 4 }, end: { x: cardX + cardW * 0.6, y: fy + 4 },
+            thickness: 0.4, color: rgb(0.78, 0.88, 0.85),
+          })
+          fy -= GAP_AFTER_IDENTITY
+        }
       })
 
-      y = cardBottom - 12
+      y = cardBottom - 18
     })
 
     // ── SECTION: AUDIT TRAIL ────────────────────────────────────────────────
+    // Always start the audit trail on a fresh page so page 2 holds only the two
+    // assessment sections (table + verification cards).
+    addPage()
 
     drawSectionTitle(d.section4, 70)
+    y -= 8 // extra gap between "Audit Trail" and the metadata sub-heading
 
-    drawText(page, d.auditMetaTitle, ML, y, { font: fontB, size: 8.5, color: DARK })
-    y -= 16
-    const auditRows: Array<[string, string]> = [
-      [d.auditGeneratedOn, generatedOnUtc],
-      [d.auditVersion, ANALYSIS_VERSION],
-    ]
-    auditRows.forEach(([label, value]) => {
-      drawText(page, `${label}:`, ML + 8, y, { font: fontB, size: 8, color: DARK })
-      drawText(page, value, ML + 130, y, { font: fontR, size: 8, color: DARK })
-      y -= 15
+    drawText(page, d.auditMetaTitle, ML, y, { font: fontB, size: 11, color: DARK })
+    y -= 22
+    // Build the metadata rows. Admin-editable rows take precedence; if none,
+    // fall back to the default Version row. "Generated on" is auto-stamped ONLY
+    // when the admin hasn't already provided their own "Generated on" row
+    // (compared case-insensitively) — this avoids a duplicate row.
+    const customRows: Array<[string, string]> =
+      customMetadata.length > 0
+        ? customMetadata.map((m: { label: string; value: string }) => [m.label, m.value] as [string, string])
+        : [[d.auditVersion, ANALYSIS_VERSION] as [string, string]]
+    const hasGeneratedOn = customRows.some(
+      ([label]) => label.trim().toLowerCase() === d.auditGeneratedOn.trim().toLowerCase()
+    )
+    const auditRows: Array<[string, string]> = hasGeneratedOn
+      ? customRows
+      : [[d.auditGeneratedOn, generatedOnUtc], ...customRows]
+    const auditRowH = 28
+    const metaHairline = rgb(0.9, 0.9, 0.9)
+    // top divider
+    page.drawLine({ start: { x: ML, y }, end: { x: MR, y }, thickness: 0.5, color: metaHairline })
+    auditRows.forEach(([label, value], i) => {
+      const rowTop = y
+      if (i % 2 === 0) drawRect(page, ML, rowTop - auditRowH, MR - ML, auditRowH, rgb(0.975, 0.975, 0.975))
+      drawText(page, label, ML + 14, rowTop - auditRowH / 2 - 4, { font: fontB, size: 9.5, color: DARK })
+      drawText(page, value, ML + 230, rowTop - auditRowH / 2 - 4, { font: fontR, size: 9.5, color: DARK })
+      y -= auditRowH
+      page.drawLine({ start: { x: ML, y }, end: { x: MR, y }, thickness: 0.5, color: metaHairline })
     })
-    y -= 16
+    y -= 50
 
     // ── SECTION: DATA SOURCES ───────────────────────────────────────────────
-
-    drawSectionTitle(d.section5, 140)
+    // No section title here (per the reference design); the sources table
+    // follows directly. Keep the page-break safety the title used to provide.
+    newPageIfNeeded(150)
 
     const SRC_COL_W = [110, 110, MR - ML - 220] // source, version, purpose
     const SRC_HEADERS = [d.colSource, d.colVersion, d.colPurpose]
-    const SRC_FS = 7
-    const SRC_HEADER_H = 18
+    const SRC_FS = 8
+    const SRC_HEADER_FS = 9.5
+    const SRC_HEADER_H = 22
+    const srcHairline = rgb(0.9, 0.9, 0.9)
+    const srcHeaderBg = rgb(0.965, 0.965, 0.97)
 
-    const sources: Array<[string, string, string]> = [
-      ["JRC GFC2020", "v3 (release 2023-03)", d.src1Purpose],
-      ["Hansen", "GFC-2024-v1.12", d.src2Purpose],
-      ["GFW Alerts", "2025", d.src3Purpose],
-      ["WDPA", "2024", d.src4Purpose],
-    ]
+    const latestVer = d.sourceLatest(generationDate.toISOString().split("T")[0])
+    // Admin-editable sources take precedence; otherwise use the hardcoded defaults.
+    const sources: Array<[string, string, string]> =
+      customSources.length > 0
+        ? customSources.map((s: { source: string; version: string | null; purpose: string | null }) =>
+            [s.source, s.version ?? "", s.purpose ?? ""] as [string, string, string])
+        : [
+            ["JRC GFC2020", "v3 (release 2023-03)", d.src1Purpose],
+            ["Hansen", "GFC-2024-v1.12", d.src2Purpose],
+            ["GFW Alerts", latestVer, d.src3Purpose],
+            ["WDPA", latestVer, d.src4Purpose],
+          ]
 
-    // Header
-    drawRect(page, ML, y - SRC_HEADER_H, MR - ML, SRC_HEADER_H, rgb(0.1, 0.1, 0.1))
+    // Light-gray header with dark bold column titles.
+    drawRect(page, ML, y - SRC_HEADER_H, MR - ML, SRC_HEADER_H, srcHeaderBg)
     let shx = ML
     SRC_HEADERS.forEach((h, i) => {
-      drawText(page, h, shx + 6, y - SRC_HEADER_H + 6, { font: fontB, size: SRC_FS, color: WHITE })
+      drawText(page, h, shx + 8, y - SRC_HEADER_H + 7, { font: fontB, size: SRC_HEADER_FS, color: DARK })
       shx += SRC_COL_W[i]
     })
     y -= SRC_HEADER_H
+    page.drawLine({ start: { x: ML, y }, end: { x: MR, y }, thickness: 0.5, color: srcHairline })
 
-    sources.forEach(([src, ver, purpose], idx) => {
-      const purposeLines = wrapText(purpose, fontR, SRC_FS, SRC_COL_W[2] - 12)
-      const rowH = Math.max(18, purposeLines.length * 10 + 8)
+    sources.forEach(([src, ver, purpose]) => {
+      const purposeLines = wrapText(purpose, fontMono, SRC_FS, SRC_COL_W[2] - 14)
+      const verLines = wrapText(ver, fontR, SRC_FS, SRC_COL_W[1] - 14)
+      const rowH = Math.max(34, Math.max(purposeLines.length, verLines.length) * 11 + 14)
       if (y - rowH < MB) addPage()
-      const rowBg = idx % 2 === 0 ? WHITE : rgb(0.985, 0.985, 0.985)
-      drawRect(page, ML, y - rowH, MR - ML, rowH, rowBg)
-      page.drawLine({
-        start: { x: ML, y: y - rowH },
-        end: { x: MR, y: y - rowH },
-        thickness: 0.3,
-        color: rgb(0.9, 0.9, 0.9),
+      const topText = y - 16
+      // Source name (bold).
+      drawText(page, src, ML + 8, topText, { font: fontB, size: SRC_FS, color: DARK })
+      // Version (centred-ish, may wrap to 2 lines).
+      let vy = topText
+      verLines.forEach((line) => {
+        drawText(page, line, ML + SRC_COL_W[0] + 8, vy, { font: fontR, size: SRC_FS, color: DARK })
+        vy -= 11
       })
-      drawText(page, src, ML + 6, y - 12, { font: fontB, size: SRC_FS, color: DARK })
-      drawText(page, ver, ML + SRC_COL_W[0] + 6, y - 12, { font: fontR, size: SRC_FS, color: DARK })
-      let ly = y - 12
+      // Purpose (monospace gray, may wrap).
+      let ly = topText
       purposeLines.forEach((line) => {
-        drawText(page, line, ML + SRC_COL_W[0] + SRC_COL_W[1] + 6, ly, { font: fontR, size: SRC_FS, color: DARK })
-        ly -= 10
+        drawText(page, line, ML + SRC_COL_W[0] + SRC_COL_W[1] + 8, ly, { font: fontMono, size: SRC_FS, color: GRAY })
+        ly -= 11
       })
       y -= rowH
+      page.drawLine({ start: { x: ML, y }, end: { x: MR, y }, thickness: 0.5, color: srcHairline })
     })
-    page.drawLine({
-      start: { x: ML, y },
-      end: { x: MR, y },
-      thickness: 0.5,
-      color: rgb(0.85, 0.85, 0.85),
-    })
-    y -= 26
+    y -= 50
 
     // ── SECTION: DISCLAIMER ─────────────────────────────────────────────────
 
     drawSectionTitle(d.section6, 80)
 
-    const disclaimerLines = wrapText(d.disclaimer, fontR, 7.5, MR - ML)
-    disclaimerLines.forEach((line) => {
-      newPageIfNeeded(12)
-      drawText(page, line, ML, y, { font: fontR, size: 7.5, color: GRAY })
-      y -= 11
+    // Render each paragraph (split on blank lines) with a gap between them.
+    // Honour single line breaks inside a paragraph too (e.g. "Contact:" line).
+    d.disclaimer.split("\n\n").forEach((para) => {
+      para.split("\n").forEach((seg) => {
+        wrapText(seg, fontR, 9, MR - ML).forEach((line) => {
+          newPageIfNeeded(14)
+          drawText(page, line, ML, y, { font: fontR, size: 9, color: rgb(0.3, 0.3, 0.3) })
+          y -= 14
+        })
+      })
+      y -= 8 // paragraph gap
     })
 
     // ── DRAW FOOTER ON LAST PAGE ──
     drawPageFooter(page)
 
     // ── RETURN PDF ──
+    // `?inline=1` serves the PDF inline (for in-page <iframe> preview); the
+    // default forces a download with a friendly filename.
+    const inline = request.nextUrl.searchParams.get("inline") === "1"
+    const filename = `${d.filenamePrefix}_${ddsRef}_${lang}_${generationDate.toISOString().split("T")[0]}.pdf`
     const pdfBytes = await pdf.save()
     return new NextResponse(Buffer.from(pdfBytes), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${d.filenamePrefix}_${ddsRef}_${lang}_${generationDate.toISOString().split("T")[0]}.pdf"`,
+        "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${filename}"`,
         "Cache-Control": "no-store",
       },
     })
