@@ -8,6 +8,12 @@ import { fixSelfIntersection } from "@/lib/geo"
 const EUDR_SCRIPT_VERSION = "1.0.0"
 const BUCKET = "parcelles-gpx"
 
+// Canonical (French) clean-up correction strings persisted to
+// parcelles.nettoyage_corrections. Stored language-neutral and re-rendered in
+// the active locale at display time (see lib/i18n/cleanup.ts).
+const CLEANUP_SELF_INTERSECTION_FR = "Réparation de l'auto-intersection"
+const CLEANUP_CLOSURE_FR = "Fermeture conservatrice du polygone"
+
 type Locale = "fr" | "en"
 
 const messages = {
@@ -184,8 +190,11 @@ export async function POST(request: NextRequest) {
 
     // Track the clean-up corrections applied to the raw GPX trace so the parcel
     // detail page can display them dynamically (Analyse et correction du polygone).
+    // Always store the canonical French string regardless of the upload locale,
+    // so rows stay language-consistent in the DB; the detail page re-renders them
+    // in the active locale via translateCleanupCorrection().
     const cleanupCorrections: string[] = []
-    if (fix.changed) cleanupCorrections.push(m.cleanupSelfIntersection)
+    if (fix.changed) cleanupCorrections.push(CLEANUP_SELF_INTERSECTION_FR)
 
     // Preserve the surveyor's actual trace. The shoelace area below works for
     // any simple polygon, concave or convex, so we do NOT replace coords with a
@@ -255,7 +264,7 @@ export async function POST(request: NextRequest) {
     const ring = geojson.coordinates[0]
     if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
       ring.push([...ring[0]])
-      cleanupCorrections.push(m.cleanupClosure)
+      cleanupCorrections.push(CLEANUP_CLOSURE_FR)
     }
 
     // Per EUDR rules, plantation year alone is not a valid compliance signal.

@@ -46,7 +46,9 @@ export default function ParcelleForm({
   const tp = t.parcelles
   const [loading, setLoading] = useState(false)
   const { toast, showSuccess, showError, hideToast } = useToast()
-  const [producteurBloque, setProducteurBloque] = useState(!!producteurPreselectionne)
+  // Producer is enforced (locked, non-changeable) when launched via "+ parcel"
+  // for a specific producer — Issue #3.
+  const producteurBloque = !!producteurPreselectionne
   const [gpxUploading, setGpxUploading] = useState(false)
   const [gpxAnalyse, setGpxAnalyse] = useState<any>(null)
 
@@ -168,7 +170,9 @@ export default function ParcelleForm({
     }))
   }
 
-  // When pays changes, reset zone and producteur if they no longer match
+  // When pays changes, reset zone and producteur if they no longer match.
+  // When the producteur is enforced (producteurBloque), it is never cleared —
+  // the parcel may legitimately sit in a different country/zone (Issue #3).
   function handlePaysChange(val: string) {
     const currentZoneStillValid = val
       ? zones.some(z => z.id === parseInt(formData.zone_id) && z.pays_id === parseInt(val))
@@ -181,11 +185,12 @@ export default function ParcelleForm({
       ...prev,
       pays_id: val,
       zone_id: newZoneId,
-      producteur_id: currentProdStillValid ? prev.producteur_id : "",
+      producteur_id: producteurBloque ? prev.producteur_id : (currentProdStillValid ? prev.producteur_id : ""),
     }))
   }
 
   // When zone changes, reset producteur if it no longer belongs to that zone
+  // (unless the producteur is enforced — see handlePaysChange).
   function handleZoneChange(val: string) {
     const prodStillValid = val
       ? producteurs.some(p => p.id === parseInt(formData.producteur_id) && p.zone_id === parseInt(val))
@@ -195,7 +200,7 @@ export default function ParcelleForm({
       ...prev,
       zone_id: val,
       pays_id: zoneObj?.pays_id?.toString() || prev.pays_id,
-      producteur_id: prodStillValid ? prev.producteur_id : "",
+      producteur_id: producteurBloque ? prev.producteur_id : (prodStillValid ? prev.producteur_id : ""),
     }))
   }
 
@@ -298,14 +303,17 @@ export default function ParcelleForm({
           <div className="grid grid-cols-2 gap-x-8 gap-y-5">
             <div>
               <label className={labelClass}>{tp.labelPays}</label>
-              <select value={formData.pays_id} onChange={e => handlePaysChange(e.target.value)} className={selectClass} disabled={producteurBloque || paysLocked} required>
+              {/* When a producer is enforced via "+ parcel", country/zone stay
+                  editable: this new parcel may sit in a different zone than the
+                  producer's other parcels (client request, Issue #3). */}
+              <select value={formData.pays_id} onChange={e => handlePaysChange(e.target.value)} className={selectClass} disabled={paysLocked} required>
                 <option value="">{tp.selectPays}</option>
                 {pays.map(p => <option key={p.id} value={p.id}>{translateGeoName(p.nom, locale)}</option>)}
               </select>
             </div>
             <div>
               <label className={labelClass}>{tp.labelZone}</label>
-              <select value={formData.zone_id} onChange={e => handleZoneChange(e.target.value)} className={selectClass} required disabled={producteurBloque}>
+              <select value={formData.zone_id} onChange={e => handleZoneChange(e.target.value)} className={selectClass} required>
                 <option value="">{tp.selectZone}</option>
                 {filteredZones.map(z => <option key={z.id} value={z.id}>{translateGeoName(z.nom, locale)}</option>)}
               </select>
@@ -313,18 +321,22 @@ export default function ParcelleForm({
             <div className="col-span-2">
               <label className={labelClass}>{tp.labelProducteur}</label>
               <div className="flex gap-2">
+                {/* When launched from "+ parcel", the producteur is enforced and
+                    cannot be changed (Issue #3): only this producer's parcels are
+                    created here, even if the parcel lies in another zone. The
+                    enforced producer is rendered explicitly so it shows regardless
+                    of the zone filter. */}
                 <select value={formData.producteur_id} onChange={e => handleProducteurChange(e.target.value)} className={selectClass} disabled={producteurBloque} required>
                   <option value="">{tp.selectProducteur}</option>
-                  {filteredProducteurs.map(p => (
-                    <option key={p.id} value={p.id}>{p.code_producteur} – {p.nom} {p.prenom}</option>
-                  ))}
+                  {producteurBloque
+                    ? (() => {
+                        const p = producteurs.find(p => p.id === parseInt(formData.producteur_id))
+                        return p ? <option key={p.id} value={p.id}>{p.code_producteur} – {p.nom} {p.prenom}</option> : null
+                      })()
+                    : filteredProducteurs.map(p => (
+                        <option key={p.id} value={p.id}>{p.code_producteur} – {p.nom} {p.prenom}</option>
+                      ))}
                 </select>
-                {producteurBloque && (
-                  <button type="button" onClick={() => { setProducteurBloque(false); setFormData(prev => ({ ...prev, producteur_id: "", zone_id: "", pays_id: "" })) }}
-                    className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition whitespace-nowrap">
-                    {tp.btnChange}
-                  </button>
-                )}
               </div>
             </div>
           </div>

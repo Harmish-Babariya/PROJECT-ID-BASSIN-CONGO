@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-server"
-import { DataScope, applyOwnerScope } from "@/lib/services/scope"
+import { DataScope, applyProducteurScope, getScopedProducteurIds } from "@/lib/services/scope"
 
 export async function getCollectes(scope?: DataScope) {
   let query = supabaseAdmin
@@ -11,9 +11,12 @@ export async function getCollectes(scope?: DataScope) {
       zones (nom)
     `)
 
-  // collectes has no pays_id; a focal point only sees collectes they
-  // registered (ownership already implies the correct country). Issue #1.
-  query = applyOwnerScope(query, scope ?? null)
+  // collectes has no pays_id; scope it by the producteur ids that live in the
+  // focal point's countries (Issue #7).
+  const producteurIds = await getScopedProducteurIds(scope ?? null)
+  if (producteurIds !== null) {
+    query = applyProducteurScope(query, scope ?? null, producteurIds)
+  }
 
   const { data } = await query.order("date_collecte", { ascending: false })
   return data || []
@@ -116,7 +119,10 @@ export async function getRecentCollectes(
       zones (nom)
     `)
 
-  query = applyOwnerScope(query, scope ?? null)
+  const producteurIds = await getScopedProducteurIds(scope ?? null)
+  if (producteurIds !== null) {
+    query = applyProducteurScope(query, scope ?? null, producteurIds)
+  }
 
   if (range?.from) query = query.gte("date_collecte", range.from)
   if (range?.to) query = query.lte("date_collecte", range.to)
@@ -133,7 +139,10 @@ export async function getCollectesStats(
   range?: { from?: string | null; to?: string | null }
 ) {
   let query = supabaseAdmin.from("collectes").select("id, poids_net_kg")
-  query = applyOwnerScope(query, scope ?? null)
+  const producteurIds = await getScopedProducteurIds(scope ?? null)
+  if (producteurIds !== null) {
+    query = applyProducteurScope(query, scope ?? null, producteurIds)
+  }
   if (range?.from) query = query.gte("date_collecte", range.from)
   if (range?.to) query = query.lte("date_collecte", range.to)
   const { data } = await query

@@ -6,6 +6,7 @@ import type { MapParcel } from "@/components/DetailMap"
 import { EUDR_STATUS, normalizeEudrStatus, eudrBucket } from "@/lib/eudr"
 import { translateGeoName } from "@/lib/i18n/geo"
 import { translateJustification } from "@/lib/i18n/justification"
+import { translateCleanupCorrection } from "@/lib/i18n/cleanup"
 
 function readField(obj: any, ...keys: string[]): any {
   for (const key of keys) {
@@ -247,7 +248,7 @@ export default function ParcelleDetailClient({
                             {cleanupItems.map((item, i) => (
                               <li key={i} className="flex gap-2">
                                 <span className="text-[#2ac1a3]">•</span>
-                                <span>{item}</span>
+                                <span>{translateCleanupCorrection(item, locale)}</span>
                               </li>
                             ))}
                           </ul>
@@ -277,7 +278,12 @@ export default function ParcelleDetailClient({
                       { label: tp.analyseCouvertureForet, value: parcelle.eudr_foret_2020_pct != null ? `${Number(parcelle.eudr_foret_2020_pct)}%` : "—" },
                       { label: tp.analysePerteDepuis2020, value: parcelle.eudr_perte_2021_2024_ha != null ? `${Number(parcelle.eudr_perte_2021_2024_ha)} ha` : "—" },
                       { label: tp.analyseAlertesRecentes, value: parcelle.eudr_alertes_2025_ha != null ? `${Number(parcelle.eudr_alertes_2025_ha)} ha` : "—" },
-                      { label: tp.analyseChevauchement, value: parcelle.dans_zone_protegee == null ? "—" : (parcelle.dans_zone_protegee ? tp.yes : tp.no) },
+                      { label: tp.analyseChevauchement, value: parcelle.dans_zone_protegee == null
+                          ? "—"
+                          : (parcelle.dans_zone_protegee
+                              // Append the WDPA protected-area name after "Yes" when known (Issue #4).
+                              ? (parcelle.zone_protegee_nom ? `${tp.yes} — ${parcelle.zone_protegee_nom}` : tp.yes)
+                              : tp.no) },
                     ].map(({ label, value }) => (
                       <li key={label} className="flex gap-2">
                         <span className="text-[#2ac1a3]">•</span>

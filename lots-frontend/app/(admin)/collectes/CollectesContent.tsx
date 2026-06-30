@@ -182,19 +182,22 @@ export default function CollectesContent({
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="px-6 py-3 w-10">
-                <input
-                  type="checkbox"
-                  checked={paged.length > 0 && paged.every((row) => selectedIds.has(row.id))}
-                  onChange={(e) => {
-                    const checked = e.target.checked
-                    setSelectedIds((prev) => {
-                      const next = new Set(prev)
-                      paged.forEach((row) => (checked ? next.add(row.id) : next.delete(row.id)))
-                      return next
-                    })
-                  }}
-                />
+              <th className="px-6 py-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={paged.length > 0 && paged.every((row) => selectedIds.has(row.id))}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev)
+                        paged.forEach((row) => (checked ? next.add(row.id) : next.delete(row.id)))
+                        return next
+                      })
+                    }}
+                  />
+                  <span className="text-[10px] font-semibold text-[#AAAAAA] tracking-[0.18em] uppercase whitespace-nowrap">{co.selectAll}</span>
+                </label>
               </th>
               <SortableHeader label={c.colDate} sortKey="date" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />
               <SortableHeader label={c.colProducer} sortKey="producteur" activeKey={sortKey} direction={sortDirection} onToggle={toggle} />

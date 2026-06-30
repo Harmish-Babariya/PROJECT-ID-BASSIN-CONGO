@@ -84,7 +84,7 @@ export default function ExportContent({
   lots: Lot[]
   collectesParLot: Record<number, number>
   currentUserName: string
-  ddsByLot?: Record<number, DdsDbRecord>
+  ddsByLot?: Record<number, DdsDbRecord[]>
 }) {
   const { t, locale } = useLanguage()
   const e = t.export
@@ -126,32 +126,48 @@ export default function ExportContent({
 
   const ddsRows: DdsRow[] = useMemo(() => {
     const dateLocale = locale === "en" ? "en-GB" : "fr-FR"
-    return lots
-      .map((lot, i) => {
-        const real = ddsByLot[lot.id]
-        const dateGeneration = real
-          ? new Date(real.created_at).toLocaleDateString(dateLocale, { day: "2-digit", month: "2-digit", year: "numeric" })
-          : lot.date_creation
-            ? new Date(lot.date_creation).toLocaleDateString(dateLocale, { day: "2-digit", month: "2-digit", year: "numeric" })
-            : "-"
-        const sortTs = real
-          ? new Date(real.created_at).getTime()
-          : lot.date_creation
-            ? new Date(lot.date_creation).getTime()
-            : 0
-        return {
-          ddsId: real ? real.id : null,
-          refDds: real ? real.reference_dds : makeDdsRef(lot.id, i),
+    const fmtDate = (iso: string | null | undefined) =>
+      iso ? new Date(iso).toLocaleDateString(dateLocale, { day: "2-digit", month: "2-digit", year: "numeric" }) : "-"
+
+    const rows: (DdsRow & { sortTs: number })[] = []
+
+    lots.forEach((lot, i) => {
+      const ddsList = ddsByLot[lot.id] ?? []
+      if (ddsList.length > 0) {
+        // One row per generated DDS, each carrying its own id so View/Delete
+        // target that specific DDS (Issue #5).
+        for (const real of ddsList) {
+          rows.push({
+            ddsId: real.id,
+            refDds: real.reference_dds,
+            lotCode: lot.code_lot,
+            lotId: lot.id,
+            produit: lot.produit ?? "-",
+            poidsKg: parseFloat(lot.poids_total_kg) || 0,
+            dateGeneration: fmtDate(real.created_at),
+            statut: lotStatutToDds(real.statut),
+            generePar: real.genere_par_nom ?? currentUserName,
+            sortTs: real.created_at ? new Date(real.created_at).getTime() : 0,
+          })
+        }
+      } else {
+        // Lot without any DDS yet — a lot-only row (no ddsId).
+        rows.push({
+          ddsId: null,
+          refDds: makeDdsRef(lot.id, i),
           lotCode: lot.code_lot,
           lotId: lot.id,
           produit: lot.produit ?? "-",
           poidsKg: parseFloat(lot.poids_total_kg) || 0,
-          dateGeneration,
-          statut: real ? lotStatutToDds(real.statut) : lotStatutToDds(lot.statut),
-          generePar: real?.genere_par_nom ?? currentUserName,
-          sortTs,
-        }
-      })
+          dateGeneration: fmtDate(lot.date_creation),
+          statut: lotStatutToDds(lot.statut),
+          generePar: currentUserName,
+          sortTs: lot.date_creation ? new Date(lot.date_creation).getTime() : 0,
+        })
+      }
+    })
+
+    return rows
       .sort((a, b) => b.sortTs - a.sortTs)
       .map(({ sortTs: _, ...row }) => row)
   }, [lots, locale, currentUserName, ddsByLot])
@@ -175,7 +191,8 @@ export default function ExportContent({
   const selectableVisibleIds = paginated.map((r) => r.ddsId).filter((id): id is number => id != null)
 
   const stats = useMemo(() => {
-    const generated = ddsRows.length
+    // "DDS generated" counts only rows backed by a real DDS, not lot-only rows.
+    const generated = ddsRows.filter((r) => r.ddsId != null).length
     const submitted = ddsRows.filter((r) => r.statut === "exporte").length
     const pending = ddsRows.filter((r) => r.statut === "en_preparation").length
     const totalExportKg = ddsRows
@@ -397,20 +414,23 @@ export default function ExportContent({
           <table className="min-w-full" style={{ fontFamily: "var(--font-courier-prime)" }}>
             <thead>
               <tr className="bg-[#F7F8FA] border-b border-gray-200">
-                <th className="px-4 lg:px-6 py-3.5 w-10">
-                  <input
-                    type="checkbox"
-                    className="accent-[#2ac1a3] w-4 h-4"
-                    checked={selectableVisibleIds.length > 0 && selectableVisibleIds.every((id) => selectedIds.has(id))}
-                    onChange={(ev) => {
-                      setSelectedIds((prev) => {
-                        const next = new Set(prev)
-                        if (ev.target.checked) selectableVisibleIds.forEach((id) => next.add(id))
-                        else selectableVisibleIds.forEach((id) => next.delete(id))
-                        return next
-                      })
-                    }}
-                  />
+                <th className="px-4 lg:px-6 py-3.5">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="accent-[#2ac1a3] w-4 h-4"
+                      checked={selectableVisibleIds.length > 0 && selectableVisibleIds.every((id) => selectedIds.has(id))}
+                      onChange={(ev) => {
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev)
+                          if (ev.target.checked) selectableVisibleIds.forEach((id) => next.add(id))
+                          else selectableVisibleIds.forEach((id) => next.delete(id))
+                          return next
+                        })
+                      }}
+                    />
+                    <span className="text-[10px] font-semibold text-[#AAAAAA] tracking-[0.18em] uppercase whitespace-nowrap">{t.common.selectAll}</span>
+                  </label>
                 </th>
                 {[e.colRefDds, e.colLotLie, e.colProduit, e.colPoids, e.colDateGen, e.colStatut, e.colGenPar, e.colActions].map((col) => (
                   <th

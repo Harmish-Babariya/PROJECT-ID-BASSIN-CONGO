@@ -54,3 +54,11 @@ body {
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 255, 255, 0.32);
 }
+
+/* Issue #9: hide the Mapbox wordmark logo on all maps.
+   NOTE: Mapbox's Terms of Service generally require the logo to stay visible
+   on standard plans. Only keep this rule if your Mapbox plan/agreement permits
+   removing the logo. The required attribution text is left untouched. */
+.mapboxgl-ctrl-logo {
+  display: none !important;
+}

@@ -36,6 +36,16 @@ function tSentence(sentence: string, tp: JustifTr): string {
     return tp.eudrJustifImpossible(reasons)
   }
 
+  // ─── External EUDR service (JRC GFC2020) sentences ──────────────────────
+  // The microservice writes these in English (and occasionally in French).
+  // They are compound, so we parse the recognizable clauses and re-render the
+  // whole sentence in the active locale. Matching either language lets a row
+  // verified before this change still translate correctly.
+  {
+    const jrc = translateJrcSentence(t, tp)
+    if (jrc !== null) return jrc
+  }
+
   // ─── Legacy plantation-year sentences (older rows) ──────────────────────
 
   let m =
@@ -122,6 +132,52 @@ function tSentence(sentence: string, tp: JustifTr): string {
 
   // Unknown sentence — return as-is so we never hide content.
   return sentence.trim()
+}
+
+// Parses a compound JRC GFC2020 sentence from the external EUDR service and
+// re-renders it in the active locale. Returns null when the sentence is not a
+// recognizable JRC sentence (so the caller falls through to other matchers).
+function translateJrcSentence(t: string, tp: JustifTr): string | null {
+  // Must mention the JRC GFC2020 source to qualify — protects against false
+  // positives on unrelated sentences.
+  if (!/JRC\s*GFC2020/i.test(t)) return null
+
+  const out: string[] = []
+
+  // Forest-in-2020 clause (carries the % figure).
+  let m =
+    t.match(/(?:Parcel was not forest in 2020|n'?[ée]tait pas une for[êe]t en 2020)\s*\(([\d.]+)%/i)
+  if (m) {
+    out.push(tp.eudrJrcNotForest2020(parseFloat(m[1])))
+  } else {
+    m = t.match(/(?:Parcel was forest in 2020|[ée]tait une for[êe]t en 2020)\s*\(([\d.]+)%/i)
+    if (m) out.push(tp.eudrJrcForest2020(parseFloat(m[1])))
+  }
+
+  // Deforestation clause.
+  m = t.match(/(?:Post-cut-off deforestation detected|D[ée]forestation post-date butoir d[ée]tect[ée]e)\s*\(([\d.]+)\s*ha/i)
+  if (m) {
+    out.push(tp.eudrJrcDeforestation(parseFloat(m[1])))
+  } else if (/No post-cut-off deforestation detected|Aucune d[ée]forestation post-date butoir/i.test(t)) {
+    out.push(tp.eudrJrcNoDeforestation)
+  }
+
+  // Protected-area clause — capture the WDPA area name when present (Issue #4).
+  m =
+    t.match(/(?:intersects protected area|chevauche la zone prot[ée]g[ée]e)\s*['"]([^'"]+)['"]/i)
+  if (m) {
+    out.push(tp.eudrJrcProtectedOverlap(m[1]))
+  } else if (/intersects a protected area|chevauche une zone prot[ée]g[ée]e/i.test(t)) {
+    out.push(tp.eudrJrcProtectedOverlapNoName)
+  } else if (/no protected-area overlap|aucun chevauchement avec une zone prot[ée]g[ée]e/i.test(t)) {
+    out.push(tp.eudrJrcNoProtectedOverlap)
+  }
+
+  // Recognized the JRC source but none of the known clauses → don't claim a
+  // translation; let the original text show so we never hide content.
+  if (out.length === 0) return null
+
+  return out.join(" ")
 }
 
 function translateReason(reason: string, tp: JustifTr): string {

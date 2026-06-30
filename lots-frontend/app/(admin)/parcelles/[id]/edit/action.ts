@@ -1,5 +1,5 @@
 "use server"
-import { updateParcelleById } from "@/lib/services/parcelles"
+import { updateParcelleById, getParcelleById } from "@/lib/services/parcelles"
 import { getCurrentUser } from "@/lib/services/auth"
 import { insertAuditLog } from "@/lib/services/audit"
 import { runEudrVerification } from "@/app/api/verify-eudr/route"
@@ -10,7 +10,13 @@ export async function updateParcelle(id: number, formData: any) {
   const me = await getCurrentUser()
 
   try {
-    const dataToUpdate = {
+    // When an admin override is active, the EUDR status/justification are pinned
+    // and must never be clobbered by the (stale) form values on a normal save —
+    // doing so silently undid the override (Issue #6). Detect it up front.
+    const existing = await getParcelleById(String(id))
+    const overrideActive = !!existing?.eudr_admin_override
+
+    const dataToUpdate: Record<string, unknown> = {
       producteur_id: parseInt(formData.producteur_id),
       zone_id: parseInt(formData.zone_id),
       pays_id: formData.pays_id ? parseInt(formData.pays_id) : null,
@@ -19,8 +25,13 @@ export async function updateParcelle(id: number, formData: any) {
       annee_plantation: formData.annee_plantation ? parseInt(formData.annee_plantation) : null,
       date_creation: formData.date_creation || new Date().toISOString().split("T")[0],
       gpx_file_url: formData.gpx_file_url || null,
-      status_eudr: formData.status_eudr || null,
-      justification_eudr: formData.justification_eudr || null,
+      // EUDR status/justification are owned by the override modal + satellite
+      // verification, never by the plain edit form. Only persist them when no
+      // override is pinned; otherwise leave the pinned values untouched.
+      ...(overrideActive ? {} : {
+        status_eudr: formData.status_eudr || null,
+        justification_eudr: formData.justification_eudr || null,
+      }),
       eudr_verification_timestamp: formData.eudr_verification_timestamp || null,
       eudr_script_version: formData.eudr_script_version || null,
       geojson: formData.geojson || null,

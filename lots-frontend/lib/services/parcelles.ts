@@ -12,7 +12,7 @@ export async function getParcelles(filters?: {
 }) {
   let query = supabaseAdmin.from("parcelles").select("*")
 
-  // Parcelles carry both pays_id and created_by, so scope directly (Issue #1).
+  // Parcelles carry pays_id, so scope by country directly (Issue #7).
   query = applyScope(query, filters?.scope ?? null)
 
   // Token-based search on the parcel code: each whitespace-separated token must

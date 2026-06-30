@@ -350,20 +350,23 @@ export default function UtilisateursContent({ profiles }: { profiles: Profile[] 
           <table className="min-w-full">
             <thead>
               <tr className="bg-[#F7F8FA] border-b border-gray-200">
-                <th className="px-4 lg:px-6 py-3.5 w-10">
-                  <input
-                    type="checkbox"
-                    className="accent-[#2ac1a3] w-4 h-4"
-                    checked={visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))}
-                    onChange={(ev) => {
-                      setSelectedIds((prev) => {
-                        const next = new Set(prev)
-                        if (ev.target.checked) visibleIds.forEach((id) => next.add(id))
-                        else visibleIds.forEach((id) => next.delete(id))
-                        return next
-                      })
-                    }}
-                  />
+                <th className="px-4 lg:px-6 py-3.5">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="accent-[#2ac1a3] w-4 h-4"
+                      checked={visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))}
+                      onChange={(ev) => {
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev)
+                          if (ev.target.checked) visibleIds.forEach((id) => next.add(id))
+                          else visibleIds.forEach((id) => next.delete(id))
+                          return next
+                        })
+                      }}
+                    />
+                    <span className="text-[10px] font-semibold text-[#AAAAAA] tracking-[0.18em] uppercase whitespace-nowrap">{t.common.selectAll}</span>
+                  </label>
                 </th>
                 <SortableHeader label={u.colUser} sortKey="user" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
                 <SortableHeader label={u.colRole} sortKey="role" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />

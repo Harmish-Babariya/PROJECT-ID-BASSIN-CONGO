@@ -243,19 +243,22 @@ export default function ProducteursContent({
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="px-5 py-3.5 w-10">
-                  <input
-                    type="checkbox"
-                    checked={paged.length > 0 && paged.every((row) => selectedIds.has(row.id))}
-                    onChange={(e) => {
-                      const checked = e.target.checked
-                      setSelectedIds((prev) => {
-                        const next = new Set(prev)
-                        paged.forEach((row) => (checked ? next.add(row.id) : next.delete(row.id)))
-                        return next
-                      })
-                    }}
-                  />
+                <th className="px-5 py-3.5">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={paged.length > 0 && paged.every((row) => selectedIds.has(row.id))}
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev)
+                          paged.forEach((row) => (checked ? next.add(row.id) : next.delete(row.id)))
+                          return next
+                        })
+                      }}
+                    />
+                    <span className="text-[10px] font-semibold text-[#AAAAAA] tracking-[0.18em] uppercase whitespace-nowrap">{co.selectAll}</span>
+                  </label>
                 </th>
                 <SortableHeader label={p.colCode} sortKey="code" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />
                 <SortableHeader label={p.colName} sortKey="nom" activeKey={sortKey} direction={sortDirection} onToggle={toggle} className="whitespace-nowrap" />

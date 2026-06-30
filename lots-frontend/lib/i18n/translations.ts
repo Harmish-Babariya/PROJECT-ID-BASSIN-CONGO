@@ -489,6 +489,25 @@ export const translations = {
         `GPX ne contient que ${n} point(s), 3 minimum requis`,
       eudrReasonNoGps: "coordonnées GPS manquantes sur la parcelle",
       eudrReasonIncomplete: "données incomplètes",
+      // ── External EUDR service (JRC GFC2020) sentences ───────────────────────
+      // The microservice emits these in English; re-rendered here in French.
+      eudrJrcNotForest2020: (pct: number) =>
+        `La parcelle n'était pas une forêt en 2020 (${pct.toFixed(1)}% selon JRC GFC2020 v3) : hors du champ de la déforestation post-date butoir.`,
+      eudrJrcForest2020: (pct: number) =>
+        `La parcelle était une forêt en 2020 (${pct.toFixed(1)}% selon JRC GFC2020 v3).`,
+      eudrJrcNoDeforestation:
+        "Aucune déforestation post-date butoir détectée.",
+      eudrJrcDeforestation: (ha: number) =>
+        `Déforestation post-date butoir détectée (${ha.toFixed(2)} ha).`,
+      eudrJrcNoProtectedOverlap:
+        "aucun chevauchement avec une zone protégée.",
+      eudrJrcProtectedOverlap: (name: string) =>
+        `la parcelle chevauche la zone protégée '${name}' (WDPA). La légalité de la production doit être vérifiée.`,
+      eudrJrcProtectedOverlapNoName:
+        "la parcelle chevauche une zone protégée (WDPA). La légalité de la production doit être vérifiée.",
+      // GPX polygon clean-up corrections (Analyse et correction du polygone)
+      cleanupSelfIntersection: "Réparation de l'auto-intersection",
+      cleanupClosure: "Fermeture conservatrice du polygone",
       // Stored DB option labels — keys are the canonical French values stored in DB
       optionLabels: {
         "Cacao": "Cacao",
@@ -1416,6 +1435,7 @@ export const translations = {
       bulkSelected: (n: number) => `${n} sélectionné(s)`,
       bulkDelete: "Supprimer la sélection",
       bulkClear: "Désélectionner",
+      selectAll: "Tout sélectionner",
       bulkConfirmTitle: "Supprimer les éléments sélectionnés ?",
       bulkConfirmMessage: (n: number) => `${n} élément(s) seront définitivement supprimés. Cette action est irréversible.`,
       // Geo names — translate stored pays/zone strings at render time. Keys
@@ -2049,6 +2069,24 @@ export const translations = {
         `GPX only contains ${n} point(s), 3 minimum required`,
       eudrReasonNoGps: "missing GPS coordinates on the parcel",
       eudrReasonIncomplete: "incomplete data",
+      // ── External EUDR service (JRC GFC2020) sentences ───────────────────────
+      eudrJrcNotForest2020: (pct: number) =>
+        `Parcel was not forest in 2020 (${pct.toFixed(1)}% per JRC GFC2020 v3): outside the scope of post-cut-off deforestation.`,
+      eudrJrcForest2020: (pct: number) =>
+        `Parcel was forest in 2020 (${pct.toFixed(1)}% per JRC GFC2020 v3).`,
+      eudrJrcNoDeforestation:
+        "No post-cut-off deforestation detected.",
+      eudrJrcDeforestation: (ha: number) =>
+        `Post-cut-off deforestation detected (${ha.toFixed(2)} ha).`,
+      eudrJrcNoProtectedOverlap:
+        "no protected-area overlap.",
+      eudrJrcProtectedOverlap: (name: string) =>
+        `the parcel intersects protected area '${name}' (WDPA). Legality of production to be verified.`,
+      eudrJrcProtectedOverlapNoName:
+        "the parcel intersects a protected area (WDPA). Legality of production to be verified.",
+      // GPX polygon clean-up corrections (Analyse et correction du polygone)
+      cleanupSelfIntersection: "Self-intersection repair",
+      cleanupClosure: "Conservative polygon closure",
       // Stored DB option labels — keys are the canonical French values stored in DB
       optionLabels: {
         "Cacao": "Cocoa",
@@ -2976,6 +3014,7 @@ export const translations = {
       bulkSelected: (n: number) => `${n} selected`,
       bulkDelete: "Delete selection",
       bulkClear: "Clear selection",
+      selectAll: "Select all",
       bulkConfirmTitle: "Delete selected items?",
       bulkConfirmMessage: (n: number) => `${n} item(s) will be permanently deleted. This action cannot be undone.`,
       geoNames: {
