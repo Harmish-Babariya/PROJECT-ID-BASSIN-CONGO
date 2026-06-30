@@ -140,18 +140,16 @@ export default function ParcelleForm({
     ? producteurs.filter(p => p.pays_id === parseInt(formData.pays_id))
     : producteurs
 
-  // When producteur is pre-selected, auto-fill pays_id and zone_id
+  // When producteur is pre-selected via "+ parcel", lock ONLY the producer.
+  // Country and zone are left empty for the user to fill in, because this new
+  // parcel may sit in a different zone than the producer's other parcels
+  // (client request, Issue #3).
   useEffect(() => {
     if (producteurPreselectionne) {
-      const p = producteurs.find(p => p.id === parseInt(producteurPreselectionne))
-      if (p) {
-        setFormData(prev => ({
-          ...prev,
-          producteur_id: producteurPreselectionne,
-          zone_id: p.zone_id?.toString() || "",
-          pays_id: p.pays_id?.toString() || "",
-        }))
-      }
+      setFormData(prev => ({
+        ...prev,
+        producteur_id: producteurPreselectionne,
+      }))
     }
   }, [producteurPreselectionne, producteurs])
 
