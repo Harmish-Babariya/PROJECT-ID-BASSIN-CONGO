@@ -6,6 +6,9 @@ import { getZones, getPays } from "@/lib/services/common"
 import { getCurrentUser } from "@/lib/services/auth"
 import { supabaseAdmin } from "@/lib/supabase-server"
 
+// Always render fresh so the override state set via the modal shows on refresh.
+export const dynamic = "force-dynamic"
+
 export default async function EditParcelle({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user) redirect("/login")

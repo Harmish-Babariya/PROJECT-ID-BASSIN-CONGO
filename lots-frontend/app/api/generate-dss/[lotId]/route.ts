@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-server"
 import { verifyToken } from "@/lib/auth/jwt"
 import { EUDR_STATUS, normalizeEudrStatus } from "@/lib/eudr"
 import { getAnalysisMetadataAll, getDataSourcesAll } from "@/lib/services/referentiel"
+import { extractProtectedAreaName } from "@/lib/i18n/justification"
 
 const EUDR_SCRIPT_VERSION = "2.3.1"
 // Client-facing analysis version label (per client request).
@@ -466,7 +467,7 @@ export async function GET(
             latitude, longitude, geojson,
             eudr_verification_timestamp, eudr_script_version,
             eudr_foret_2020_pct, eudr_perte_2021_2024_ha, eudr_alertes_2025_ha,
-            dans_zone_protegee, eudr_date_verification, eudr_sources, justification_eudr
+            dans_zone_protegee, zone_protegee_nom, eudr_date_verification, eudr_sources, justification_eudr
           )
         )
       `)
@@ -767,8 +768,12 @@ export async function GET(
       const prod = producteurByParcelle.get(String(p.id)) ?? null
       const prodName = prod ? [prod.nom, prod.prenom].filter(Boolean).join(" ") : ""
       const risk = riskLabel(p.status_eudr)
+      // Show the WDPA area name after "Yes" when known (Issue #4).
+      const protectedAreaNameRow =
+        p.zone_protegee_nom || extractProtectedAreaName(p.justification_eudr)
       const protectedText =
-        p.dans_zone_protegee === true ? d.yes
+        p.dans_zone_protegee === true
+          ? (protectedAreaNameRow ? `${d.yes} — ${protectedAreaNameRow}` : d.yes)
         : p.dans_zone_protegee === false ? d.no
         : d.dash
 
@@ -853,9 +858,13 @@ export async function GET(
         q2Answer = d.q2No
       }
 
-      // Q3: protected area
+      // Q3: protected area — append the WDPA area name after "Yes" (Issue #4).
+      // Prefer the dedicated column, fall back to the name in the justification.
+      const protectedAreaName =
+        p.zone_protegee_nom || extractProtectedAreaName(p.justification_eudr)
       const q3Answer =
-        p.dans_zone_protegee === true ? d.yes
+        p.dans_zone_protegee === true
+          ? (protectedAreaName ? `${d.yes} — ${protectedAreaName}` : d.yes)
         : p.dans_zone_protegee === false ? d.no
         : "—"
 

@@ -4,6 +4,10 @@ import { getProducteurById } from "@/lib/services/producteurs"
 import { getCollectesByParcelle } from "@/lib/services/collectes"
 import ParcelleDetailClient from "./ParcelleDetailClient"
 
+// Always render fresh so the EUDR admin override (and edits) are reflected
+// immediately, never served from a stale route cache.
+export const dynamic = "force-dynamic"
+
 export default async function ParcelleDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 

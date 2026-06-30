@@ -5,7 +5,7 @@ import DetailMap from "@/components/DetailMap"
 import type { MapParcel } from "@/components/DetailMap"
 import { EUDR_STATUS, normalizeEudrStatus, eudrBucket } from "@/lib/eudr"
 import { translateGeoName } from "@/lib/i18n/geo"
-import { translateJustification } from "@/lib/i18n/justification"
+import { translateJustification, extractProtectedAreaName } from "@/lib/i18n/justification"
 import { translateCleanupCorrection } from "@/lib/i18n/cleanup"
 
 function readField(obj: any, ...keys: string[]): any {
@@ -114,6 +114,11 @@ export default function ParcelleDetailClient({
     : Array.isArray(cleanupRaw)
       ? cleanupRaw.map((s) => String(s).trim()).filter(Boolean)
       : []
+
+  // WDPA protected-area name: prefer the dedicated column, fall back to the
+  // name embedded in the justification text (Issue #4).
+  const protectedAreaName =
+    parcelle.zone_protegee_nom || extractProtectedAreaName(parcelle.justification_eudr)
 
   const fields = [
     { label: tp.fieldCooperative, value: (producteur as any)?.cooperatives?.nom || "—" },
@@ -281,8 +286,11 @@ export default function ParcelleDetailClient({
                       { label: tp.analyseChevauchement, value: parcelle.dans_zone_protegee == null
                           ? "—"
                           : (parcelle.dans_zone_protegee
-                              // Append the WDPA protected-area name after "Yes" when known (Issue #4).
-                              ? (parcelle.zone_protegee_nom ? `${tp.yes} — ${parcelle.zone_protegee_nom}` : tp.yes)
+                              // Append the WDPA protected-area name after "Yes" (Issue #4).
+                              // Prefer the dedicated column; fall back to the name
+                              // embedded in the justification text when the column
+                              // was never populated.
+                              ? (protectedAreaName ? `${tp.yes} — ${protectedAreaName}` : tp.yes)
                               : tp.no) },
                     ].map(({ label, value }) => (
                       <li key={label} className="flex gap-2">

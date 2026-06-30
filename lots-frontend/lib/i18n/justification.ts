@@ -203,6 +203,20 @@ function translateReason(reason: string, tp: JustifTr): string {
   return r
 }
 
+// Pull the WDPA protected-area name out of a stored justification, covering
+// every sentence shape the backend/service can produce (French Hansen, English
+// JRC, etc.). Used as a fallback when the dedicated zone_protegee_nom column was
+// never populated (older rows / a service field-name mismatch) — Issue #4.
+export function extractProtectedAreaName(raw: string | null | undefined): string | null {
+  if (!raw) return null
+  const m =
+    // French Hansen: zone protégée 'NAME' (TYPE)
+    raw.match(/zone prot[ée]g[ée]e\s*['"]([^'"]+)['"]/i) ||
+    // English JRC/service: protected area 'NAME' (WDPA)
+    raw.match(/protected area\s*['"]([^'"]+)['"]/i)
+  return m ? m[1].trim() : null
+}
+
 export function translateJustification(raw: string | null | undefined, locale: Locale): string {
   if (!raw) return ""
   const tp = getTranslations(locale).parcelles
