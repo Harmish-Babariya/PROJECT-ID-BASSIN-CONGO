@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { updateParcelle } from "./action"
 import { Toast, useToast } from "@/components/Toast"
@@ -131,6 +131,19 @@ export default function ParcelleForm({ parcelle, producteurs, zones, pays, isAdm
     utilisation_pesticides: readField(parcelle, "utilisation_pesticides", "formation_entretien_data.utilisation_pesticides", "formation_data.utilisation_pesticides"),
     etat_plantation_enquete: readField(parcelle, "etat_plantation_enquete", "formation_entretien_data.etat_plantation_enquete", "formation_data.etat_plantation_enquete"),
   })
+
+  // Keep the EUDR status/justification banner in sync after an admin sets or
+  // clears an override: the modal calls router.refresh(), which re-fetches the
+  // `parcelle` prop, but useState initializers don't re-run — so without this
+  // the banner kept showing the stale status/reason. Only the EUDR fields are
+  // re-synced, leaving any in-progress edits to other sections untouched.
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      status_eudr: parcelle.status_eudr || "",
+      justification_eudr: parcelle.justification_eudr || "",
+    }))
+  }, [parcelle.status_eudr, parcelle.justification_eudr, parcelle.eudr_admin_override])
 
   const filteredZones = formData.pays_id
     ? zones.filter((z: any) => z.pays_id === parseInt(formData.pays_id))
