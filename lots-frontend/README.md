@@ -7,6 +7,7 @@
 ## Table of Contents
 
 - [Project Overview](#project-overview)
+- [Recent Changes](#recent-changes)
 - [Tech Stack](#tech-stack)
 - [Installation & Setup](#installation--setup)
 - [Environment Variables](#environment-variables)
@@ -47,7 +48,30 @@ Farmer (Producteur)
 ### Who uses it
 
 - **Admin** — full access to all data, manages users and master data
-- **Focal Point** — field agent scoped to their assigned country/region, manages their own records
+- **Focal Point** — field agent scoped to their assigned countries; sees all data in those countries
+
+---
+
+## Recent Changes
+
+Latest behaviour changes reflected throughout this document:
+
+- **Country-only data scoping** — focal points now see *all* data in their
+  assigned countries (not just records they created). Lots derive `pays_id`
+  from their producers; a one-time backfill migration repairs historical rows.
+- **Locale-consistent EUDR text** — justifications and GPX clean-up corrections
+  are stored language-neutral and re-rendered in the active locale (FR/EN),
+  including the external JRC GFC2020 service sentences.
+- **Protected-area name** shown after "Yes" on the parcel detail page and in
+  the DDS PDF / verification card.
+- **"+ Parcel" enforces the producer** — the producer is locked, while country
+  and zone stay editable.
+- **DDS & Export list** — one row per generated DDS, so View/Delete target the
+  correct DDS; lots without a DDS appear as lot-only rows.
+- **Admin EUDR override** persists and is reflected immediately (pages render
+  `force-dynamic`; the edit banner re-syncs).
+- **"Select all" labels** on every list table; **Mapbox logo hidden** via CSS
+  (subject to Mapbox ToS).
 
 ---
 
@@ -227,6 +251,14 @@ JWT_SECRET=your-super-secret-string-minimum-32-characters
 NEXT_PUBLIC_MAPBOX_TOKEN=pk.eyJ1IjoieW91cnVzZXJuYW1lIiwiYSI6...
 
 
+# ─── EUDR analysis service (optional) ────────────────────────────────────────
+
+# URL of the external EUDR Cloud Run service (JRC GFC2020 + Hansen + GFW + WDPA)
+# When set, /api/verify-eudr calls this service; when unset, the built-in local
+# Hansen pipeline is used instead.
+NEXT_PUBLIC_EUDR_SERVICE_URL=https://eudr-service-xxxx.run.app   # optional
+
+
 # ─── Email / Mailjet ─────────────────────────────────────────────────────────
 # Used to send user invitation emails and password resets
 # Create a free account at mailjet.com → API Keys
@@ -245,6 +277,7 @@ MAILJET_FROM_NAME=ID Bassin Congo             # optional in dev
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Safe — just a project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Safe — enforces Supabase RLS policies |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | Yes | Restrict to your domain in Mapbox dashboard |
+| `NEXT_PUBLIC_EUDR_SERVICE_URL` | Yes | Optional — external EUDR service; falls back to local pipeline if unset |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Never** | Full DB access — server-side only |
 | `JWT_SECRET` | **Never** | Session security — server-side only |
 | `MAILJET_*` | **Never** | Server-side only |
@@ -286,13 +319,14 @@ lots-frontend/
 │   │
 │   ├── api/                          # API routes — server-side only
 │   │   ├── auth/                     # login, logout, register, invite, sessions
-│   │   ├── verify-eudr/              # EUDR satellite analysis (single parcel)
+│   │   ├── verify-eudr/              # EUDR analysis entry point (single parcel) — service or local
+│   │   ├── verify-eudr-service/      # External Cloud Run EUDR service call (JRC GFC2020)
 │   │   ├── verify-eudr-batch/        # EUDR analysis (multiple parcels)
 │   │   ├── analyse-gpx/              # Parse GPX file → GeoJSON polygon
-│   │   ├── upload-gpx/               # Upload GPX file to Supabase Storage
+│   │   ├── upload-gpx/               # Upload GPX to the private "parcelles-gpx" bucket
 │   │   ├── generate-dss/[lotId]/     # Generate DDS PDF for a lot
 │   │   ├── utilisateurs/             # User invite / deactivate / delete
-│   │   └── dds/                      # DDS record CRUD
+│   │   └── dds/                      # DDS record CRUD (incl. [id]/delete)
 │   │
 │   ├── login/                        # Public login page
 │   └── verify-invite/                # Email invite verification page
@@ -318,7 +352,7 @@ lots-frontend/
 │   │   ├── collectes.ts              # Harvest collection queries
 │   │   ├── lots.ts                   # Lot queries + collection association
 │   │   ├── referentiel.ts            # Countries, zones, villages CRUD
-│   │   ├── scope.ts                  # ★ Access control — DataScope builder
+│   │   ├── scope.ts                  # ★ Access control — country-only DataScope + getScopedProducteurIds()
 │   │   ├── audit.ts                  # Activity log (every create/update/delete)
 │   │   └── mail.ts                   # Email sending via Mailjet
 │   │
@@ -329,7 +363,8 @@ lots-frontend/
 │   ├── i18n/
 │   │   ├── translations.ts           # All FR + EN UI strings (~5000 keys)
 │   │   ├── geo.ts                    # Translate place names per locale
-│   │   └── justification.ts          # Re-render EUDR result sentences in active locale
+│   │   ├── justification.ts          # Re-render EUDR sentences per locale (FR+EN input) + extractProtectedAreaName()
+│   │   └── cleanup.ts                # Re-render GPX clean-up corrections per locale
 │   │
 │   ├── eudr.ts                       # EUDR status constants + normalisation logic
 │   ├── supabase.ts                   # Client-side Supabase instance (anon key)
@@ -410,10 +445,17 @@ Server Action → createProducteur()
   6. Redirect to /producteurs/[new-id]
         │
         ▼
-From producer detail page → "Add Parcel" button
+From the producers list → "+ Parcel" on a producer row
         │
         ▼
-Fill in parcel: GPS coordinates, surface, crop type
+Opens /parcelles/nouveau?producteur_id=<id>
+The producer is ENFORCED (locked, not changeable) for this parcel; only that
+producer's parcels are created here. Country and zone are left empty and stay
+editable, because the new parcel may sit in a different zone than the
+producer's other parcels.
+        │
+        ▼
+Fill in parcel: country, zone, GPS coordinates, surface, crop type
 Optionally upload a GPX boundary file (see GPX section below)
         │
         ▼
@@ -428,42 +470,71 @@ Server Action → createParcelle()  (same auth + scope + audit pattern)
 Open parcel detail page → click "Verify EUDR"
         │
         ▼
-POST /api/verify-eudr  { parcelle_id }
+POST /api/verify-eudr  { parcelle_id }   →  runEudrVerification()
         │
-        ├── eudr_admin_override = true ──► skip analysis, return current status
+        ├── eudr_admin_override = true ──► skip analysis, keep the pinned status
         │
-        └── Proceed with satellite analysis:
+        └── Proceed with analysis:
+                │
+                ├── NEXT_PUBLIC_EUDR_SERVICE_URL set ──► external Cloud Run service
+                │       JRC GFC2020 + Hansen + GFW alerts + WDPA, returns risk +
+                │       reason + protected_area_name + forest/loss figures
+                │
+                └── otherwise ─────────────────────────► local Hansen pipeline
+                        • Clip year-2000 tree cover + loss-year tiles to the polygon
+                        • % pixels with tree cover > 30% in 2000
+                        • % pixels deforested after 31 December 2020
+                        • WDPA overlap check (protected-area name captured)
                 │
                 ▼
-        Hansen GeoTIFF analysis (30m resolution satellite data):
-          • Download tree cover year-2000 raster tile from Google Cloud
-          • Download deforestation loss-year tiles (2001–2023)
-          • Clip both tiles to the parcel polygon boundary
-          • Calculate % of pixels with tree cover > 30% in 2000
-          • Calculate % of pixels deforested after December 31, 2020
-                │
-                ▼
-        WDPA protected area check:
-          • Query Global Forest Watch API with polygon bounding box
-          • Detect any overlap with IUCN-classified protected zones
-                │
-                ▼
-        Decision tree:
-          deforestation after 2020 > 5%  ──► NON CONFORME   (red)
-          forest cover 2000 < 5%         ──► CONFORME        (green)
-          overlap with protected area    ──► RISQUE           (yellow)
-          otherwise                      ──► CONFORME        (green)
+        Decision (single "non-negligible" risk category):
+          deforestation after 2020          ──► Risque non négligeable  (alert)
+          overlap with a protected area     ──► Risque non négligeable  (alert)
+          no forest in 2020 / no loss       ──► Risque négligeable      (compliant)
+          could not assess / bad geometry   ──► Analyse impossible      (pending)
                 │
                 ▼
         Update parcelles row:
-          status_eudr                 = result
-          justification_eudr          = "Couverture forestière 2000 : 73%. Déforestation après 2020 : 0.2%."
-          eudr_verification_timestamp = now()
+          status_eudr        = result
+          justification_eudr = written in French (re-rendered per locale on display)
+          zone_protegee_nom  = WDPA protected-area name, when any overlap
+          eudr_foret_2020_pct / eudr_perte_2021_2024_ha / eudr_alertes_2025_ha
+          eudr_date_verification = now()
 ```
 
 ---
 
-### 4. Building a Shipment Lot
+### 4. Admin EUDR Override
+
+An admin can manually pin a parcel's EUDR status (e.g. after an off-platform
+legality review) from the parcel **edit** page:
+
+```
+Parcel edit page → "Override EUDR status" → pick status + reason → confirm
+        │
+        ▼
+Server Action → setEudrOverride(parcelleId, status, reason)
+  • status_eudr / eudr_statut  = chosen status
+  • eudr_admin_override        = true   (+ by / at / reason)
+  • justification_eudr         = "[ADMIN OVERRIDE] <reason>"   (rendered cleanly on display)
+  • revalidatePath(/parcelles/[id])
+        │
+        ▼
+Future runs of /api/verify-eudr SKIP this parcel while the override is set,
+so the admin's decision survives later satellite refreshes.
+
+"Remove override" → clearEudrOverride():
+  • clears the override flags
+  • re-runs the satellite analysis so the real Hansen + WDPA result is restored
+```
+
+The parcel detail and edit pages render `force-dynamic`, and the edit form
+re-syncs its EUDR banner when the underlying record changes, so a set/clear
+override is reflected immediately without a stale cache.
+
+---
+
+### 5. Building a Shipment Lot
 
 ```
 Navigate to /lots/nouveau → fill in lot details
@@ -489,7 +560,7 @@ Update lot status to "Prêt" when ready for export
 
 ---
 
-### 5. Generating a Due Diligence Statement (DDS)
+### 6. Generating a Due Diligence Statement (DDS)
 
 ```
 Navigate to /export/generate → select the lot
@@ -515,12 +586,19 @@ POST /api/generate-dss/[lotId]
      │  Agent: Jean Dupont (CMR-001)        │
      └──────────────────────────────────────┘
   4. Upload PDF to Supabase Storage
-  5. Insert record into dds table (reference_code, lot_id, pdf_url)
+  5. Insert record into dds table (reference_dds, lot_id, pdf_url, statut)
   6. Return { pdf_url }
         │
         ▼
 User downloads PDF → submits to EU TRACES portal
 ```
+
+**DDS & Export list.** The `/export` screen lists **one row per generated
+DDS** (each carries its own `dds.id`, so View opens that DDS's preview and
+Delete removes that DDS). Lots that do not have a DDS yet appear as lot-only
+rows (no `dds.id`) — a placeholder reference, with View falling back to the lot
+page. The DDS details page (`/export/[id]`) embeds the real generated PDF in an
+iframe, so the on-screen preview is always identical to the downloaded file.
 
 ---
 
@@ -534,19 +612,21 @@ When a field agent uploads a `.gpx` file to define a parcel's boundary:
 User selects .gpx file in the parcel edit form
         │
         ▼
-Step 1 — POST /api/upload-gpx
+Step 1 — POST /api/upload-gpx?locale=fr|en
   • Validates file is .gpx type
-  • Uploads to Supabase Storage bucket "gpx-files"
-  • Returns a public URL for the file
+  • Parses the trace, repairs self-intersections and closes the ring,
+    recording any clean-up corrections (stored in canonical French)
+  • Uploads to the PRIVATE Supabase Storage bucket "parcelles-gpx"
+  • Returns the storage path (not a public URL) + geojson + centroid + surface
         │
         ▼
-Step 2 — POST /api/analyse-gpx  { url: "<storage-url>" }
+Step 2 — POST /api/analyse-gpx  { url: "<storage-path>" }
   • Downloads the GPX file content
   • Parses XML with xml2js
   • Extracts all track points (trkpt) with lat/lon coordinates
   • Builds a GeoJSON Polygon from the coordinate ring
   • Computes the centroid (average of all lat/lon values)
-  • Calculates surface area in hectares using the Haversine formula
+  • Calculates surface area in hectares
   • Returns { geojson, latitude, longitude, surface_ha }
         │
         ▼
@@ -555,12 +635,17 @@ Map preview shows the polygon outline
         │
         ▼
 User saves → parcelle row updated:
-  geojson       = { type: "Polygon", coordinates: [...] }
-  gpx_file_url  = "https://...supabase.co/storage/..."
-  latitude      = centroid lat
-  longitude     = centroid lon
-  surface_ha    = calculated area
+  geojson              = { type: "Polygon", coordinates: [...] }
+  gpx_file_url         = storage path inside the private "parcelles-gpx" bucket
+  latitude             = centroid lat
+  longitude            = centroid lon
+  surface_ha           = calculated area
+  nettoyage_corrections = ["Réparation de l'auto-intersection", ...]  (French, canonical)
 ```
+
+> The bucket is **private**. The server downloads GPX files with the
+> service-role key, and the UI uses short-lived signed URLs
+> (`getSignedGpxUrl()`), so files are never publicly exposed.
 
 The `geojson` column is then used by:
 - All map components to render the polygon fill and outline
@@ -576,23 +661,36 @@ Every database query automatically filters data based on who is logged in. This 
 ```typescript
 // lib/services/scope.ts
 
-// Admin      → scope = null            → no filter, sees everything
+// Admin       → scope = null           → no filter, sees everything
 // Focal point → scope = {              → filtered query
-//   paysIds: [2, 5],                   // countries this agent covers
-//   createdBy: "user-uuid-abc"         // their user ID
+//   paysIds: [2, 5],                   // countries this agent is assigned to
 // }
 
 const scope = buildScope(user)
 
 // Applied automatically in every service function:
 if (scope) {
-  query = query
-    .in("pays_id", scope.paysIds)       // only their assigned countries
-    .eq("created_by", scope.createdBy)  // only records they personally created
+  query = query.in("pays_id", scope.paysIds)   // only their assigned countries
 }
 ```
 
-This means two focal points working in the same country cannot see each other's farmers or parcels — each agent manages their own data independently.
+**Country-only scoping.** A focal point sees **all** data in their assigned
+countries — producers, parcels, collections and lots — regardless of who
+registered them (admin or another focal point). There is no per-user ownership
+filter. This is what lets a field agent see everything uploaded for the
+country they are responsible for.
+
+Some tables have no `pays_id` of their own:
+
+- **collectes** — scoped by country via the set of producteur ids that live in
+  the scope's countries (`getScopedProducteurIds()` in `scope.ts`).
+- **lots** — carry a `pays_id` derived from the lot's collections → producers
+  at creation time, so a lot created by an admin (who has no country) is still
+  visible to the country's focal point.
+
+> The `created_by` ownership column is no longer used for read scoping. The
+> previous behaviour (each agent only saw records they personally created) was
+> replaced with the country-only model above.
 
 ---
 
@@ -609,7 +707,34 @@ const { t } = useLanguage()
 <p>{t.parcelles.eudrStatusLabel}</p>             // "Statut EUDR" or "EUDR Status"
 ```
 
-EUDR justification sentences are stored in French in the database and automatically translated to English on display using regex pattern matching in `lib/i18n/justification.ts`.
+EUDR text is **stored language-neutral and re-rendered in the active locale on
+display**, so the interface is always consistent regardless of who ran the
+verification:
+
+- **`lib/i18n/justification.ts`** — parses each EUDR justification sentence
+  (French Hansen sentences, English JRC GFC2020 service sentences, WDPA
+  overlap, "could not assess" reasons, admin-override marker) and re-renders it
+  in FR or EN. It recognizes **both** languages on input, so rows verified
+  before this change still translate correctly. `extractProtectedAreaName()`
+  pulls the WDPA area name out of the justification as a fallback when the
+  dedicated `zone_protegee_nom` column was never populated.
+- **`lib/i18n/cleanup.ts`** — re-renders the GPX polygon clean-up corrections
+  ("self-intersection repair", "conservative polygon closure"). New uploads
+  store the canonical French string; this helper still recognizes older English
+  values.
+
+The protected-area name is shown after "Yes" wherever the overlap answer
+appears — the parcel detail page, the DDS PDF's parcel table, and the
+verification card's "Presence in a protected area?" line.
+
+---
+
+### Bulk Selection
+
+Every list table (producers, parcels, collections, lots, users, DDS/export) has
+a header checkbox to select all visible rows. It is labelled **"Select all" /
+"Tout sélectionner"** so the action is obvious, and drives the bulk-delete bar
+shown once one or more rows are selected.
 
 ---
 
@@ -627,7 +752,7 @@ Key behaviors:
 - **Auto-zoom on load**: the map automatically fits the viewport to the actual polygon coordinates, regardless of where in the world the parcel is located
 - **VIEW PLOT button** (lot map): opens a dropdown listing all parcels in the lot; clicking one flies the camera to that parcel's exact location
 - **Style toggle**: switch between Satellite, Street Map, and Terrain views
-- **EUDR color coding**: green = compliant, red = non-compliant, yellow = risk, orange = pending
+- **EUDR color coding**: green = negligible risk, red = non-negligible risk, amber/grey = could not assess / pending review
 
 ---
 
@@ -650,7 +775,7 @@ The JWT contains: `userId`, `email`, `tokenVersion`, `sessionId`.
 | Role | Permissions |
 |---|---|
 | **admin** | View and edit all data across all countries. Manage users (invite, deactivate, delete). Manage master data (countries, zones, villages). |
-| **focal_point** | View and edit only data in their assigned countries, and only records they personally created. Cannot access user management or master data. |
+| **focal_point** | View and edit **all** data in their assigned countries (producers, parcels, collections, lots), regardless of who registered it. Cannot access user management or master data. |
 
 ### Instant session revocation
 
@@ -736,8 +861,9 @@ In your Mapbox account → Tokens, add an **allowed URL** restriction for your V
 
 ```
 Supabase Dashboard → Storage → New Bucket
-  Name:   gpx-files
-  Public: Yes  (files must be publicly accessible for EUDR analysis to download them)
+  Name:   parcelles-gpx
+  Public: No   (private — the server reads files with the service-role key and
+               the UI uses short-lived signed URLs)
 ```
 
 **Disable Supabase email confirmation**
@@ -754,14 +880,20 @@ Supabase Dashboard → Authentication → Settings → Email
 For faster queries on large datasets, add indexes on the most-filtered columns:
 
 ```sql
-CREATE INDEX IF NOT EXISTS idx_producteurs_pays_id     ON producteurs(pays_id);
-CREATE INDEX IF NOT EXISTS idx_producteurs_created_by  ON producteurs(created_by);
-CREATE INDEX IF NOT EXISTS idx_parcelles_pays_id       ON parcelles(pays_id);
-CREATE INDEX IF NOT EXISTS idx_parcelles_created_by    ON parcelles(created_by);
-CREATE INDEX IF NOT EXISTS idx_parcelles_status_eudr   ON parcelles(status_eudr);
-CREATE INDEX IF NOT EXISTS idx_collectes_created_by    ON collectes(created_by);
-CREATE INDEX IF NOT EXISTS idx_lots_created_by         ON lots(created_by);
+-- Country-based read scoping filters on pays_id (and producteur_id for collectes).
+CREATE INDEX IF NOT EXISTS idx_producteurs_pays_id       ON producteurs(pays_id);
+CREATE INDEX IF NOT EXISTS idx_parcelles_pays_id         ON parcelles(pays_id);
+CREATE INDEX IF NOT EXISTS idx_parcelles_status_eudr     ON parcelles(status_eudr);
+CREATE INDEX IF NOT EXISTS idx_collectes_producteur_id   ON collectes(producteur_id);
+CREATE INDEX IF NOT EXISTS idx_lots_pays_id              ON lots(pays_id);
+CREATE INDEX IF NOT EXISTS idx_dds_lot_id                ON dds(lot_id);
 ```
+
+> **Backfill migration.** Country scoping requires every `lots` row to carry a
+> `pays_id`. Admin-created lots historically had `pays_id = NULL` and were
+> invisible to focal points. Run
+> `supabase/migrations/20260630_backfill_lot_pays_id.sql` once to backfill them
+> from each lot's collections → producers.
 
 **No direct PostgreSQL connection needed**
 
@@ -779,19 +911,20 @@ In Vercel → **Settings → Domains**, add your custom domain (e.g. `app.idbass
 
 ### EUDR Verification
 
-- **Polygon required** — parcels with only a GPS point (no GPX/GeoJSON boundary) cannot be verified. They remain in `EN ATTENTE` status until a polygon is uploaded.
+- **Polygon required** — parcels with only a GPS point (no GPX/GeoJSON boundary) cannot be verified. They remain in the "could not assess" (`Analyse impossible`) status until a polygon is uploaded.
 - **30m satellite resolution** — Hansen tiles are 30 meters per pixel. Parcels smaller than ~0.5 hectares may produce imprecise deforestation percentages.
 - **No background job queue** — batch EUDR verification runs sequentially in a single API call. Verifying hundreds of parcels at once can hit Vercel's 60-second serverless function timeout.
 
 ### Access Control
 
-- **Focal points cannot share data** — two agents covering the same country cannot see each other's records. If collaborative visibility is needed within a country, both agents must be promoted to admin.
+- **Country-level visibility** — data scoping is per-country, not per-user. Every focal point assigned to a country sees all of that country's producers, parcels, collections and lots. There is no way to hide records from other agents within the same country.
 - **Two roles only** — there is no "team lead" or "read-only" role. The next step for a more granular permissions model would be to add a role between `focal_point` and `admin`.
 
 ### Maps
 
 - **Internet required** — Mapbox satellite tiles are fetched from the Mapbox CDN. The maps do not work offline.
 - **Mapbox free tier** — the free plan allows 50,000 map loads per month. High-traffic deployments may need a paid plan.
+- **Mapbox logo hidden** — a global CSS rule in `app/globals.css` hides the `.mapboxgl-ctrl-logo` wordmark. Mapbox's Terms of Service generally require the logo to stay visible on standard plans; keep this rule only if your Mapbox plan/agreement permits it. The required attribution text is left in place.
 
 ### PDF Generation
 
@@ -808,4 +941,4 @@ In Vercel → **Settings → Domains**, add your custom domain (e.g. `app.idbass
 
 ---
 
-*ID Bassin Congo — MVP Documentation · Last updated 2026-06-03*
+*ID Bassin Congo — MVP Documentation · Last updated 2026-07-01*
